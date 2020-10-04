@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'polycrystal.i'
+    exodiff = 'polycrystal_out.e'
+  [../]
+[]

@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'cryspTry.i'
+    exodiff = 'cryspTry_out.e'
+  [../]
+[]

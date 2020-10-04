@@ -24,7 +24,7 @@ include $(FRAMEWORK_DIR)/moose.mk
 # yes as needed.  Or set ALL_MODULES to yes to turn on everything (overrides
 # other set variables).
 
-ALL_MODULES                 := no
+ALL_MODULES                 := yes
 
 CHEMICAL_REACTIONS          := no
 CONTACT                     := no
