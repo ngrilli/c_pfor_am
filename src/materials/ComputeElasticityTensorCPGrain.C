@@ -18,6 +18,13 @@ ComputeElasticityTensorCPGrain::validParams()
                                   "The GrainPropertyReadFile "
                                   "GeneralUserObject to read element "
                                   "specific property values from file");
+  params.addCoupledVar("temp", 293.0,"Temperature, initialize at room temperature");
+  params.addParam<Real>("dC11_dT", 0.0, "Change of C11 stiffness tensor component with temperature. "
+									    "Use positive values, minus sign is added in the code. ");  
+  params.addParam<Real>("dC12_dT", 0.0, "Change of C12 stiffness tensor component with temperature. "
+								        "Use positive values, minus sign is added in the code. ");  
+  params.addParam<Real>("dC44_dT", 0.0, "Change of C44 stiffness tensor component with temperature. "
+									    "Use positive values, minus sign is added in the code. ");  
   return params;
 }
 
@@ -27,6 +34,10 @@ ComputeElasticityTensorCPGrain::ComputeElasticityTensorCPGrain(const InputParame
                                ? &getUserObject<GrainPropertyReadFile>("read_prop_user_object")
                                : nullptr),
     _Euler_angles_mat_prop(declareProperty<RealVectorValue>("Euler_angles")),
+	_temp(coupledValue("temp")),
+	_dC11_dT(getParam<Real>("dC11_dT")),
+	_dC12_dT(getParam<Real>("dC12_dT")),
+	_dC44_dT(getParam<Real>("dC44_dT")),
     _crysrot(declareProperty<RankTwoTensor>("crysrot")),
     _R(_Euler_angles)
 {
@@ -61,6 +72,54 @@ ComputeElasticityTensorCPGrain::computeQpElasticityTensor()
   _R.update(_Euler_angles_mat_prop[_qp]);
 
   _crysrot[_qp] = _R.transpose();
+  
+  // Apply temperature dependence on _Cijkl
+  temperatureDependence();
+  
   _elasticity_tensor[_qp] = _Cijkl;
+
   _elasticity_tensor[_qp].rotate(_crysrot[_qp]);
 }
+
+// Temperature dependence of the elasticity tensor
+// always referred to room temperature
+void
+ComputeElasticityTensorCPGrain::temperatureDependence()
+{
+  Real temp = _temp[_qp]; // Temperature
+  Real deltatemp; // Temperature variation
+  
+  deltatemp = temp - 293.0;
+  
+  // Components with C11 coefficient
+  _Cijkl(0, 0, 0, 0) = (1.0 - _dC11_dT * deltatemp) * _Cijkl(0, 0, 0, 0); // C1111
+  _Cijkl(1, 1, 1, 1) = (1.0 - _dC11_dT * deltatemp) * _Cijkl(1, 1, 1, 1); // C2222
+  _Cijkl(2, 2, 2, 2) = (1.0 - _dC11_dT * deltatemp) * _Cijkl(2, 2, 2, 2); // C3333
+
+  // Components with C12 coefficient
+  _Cijkl(0, 0, 1, 1) = (1.0 - _dC12_dT * deltatemp) * _Cijkl(0, 0, 1, 1); // C1122
+  _Cijkl(1, 1, 0, 0) = (1.0 - _dC12_dT * deltatemp) * _Cijkl(1, 1, 0, 0);
+
+  _Cijkl(0, 0, 2, 2) = (1.0 - _dC12_dT * deltatemp) * _Cijkl(0, 0, 2, 2); // C1133
+  _Cijkl(2, 2, 0, 0) = (1.0 - _dC12_dT * deltatemp) * _Cijkl(2, 2, 0, 0);
+
+  _Cijkl(1, 1, 2, 2) = (1.0 - _dC12_dT * deltatemp) * _Cijkl(1, 1, 2, 2); // C2233
+  _Cijkl(2, 2, 1, 1) = (1.0 - _dC12_dT * deltatemp) * _Cijkl(2, 2, 1, 1);
+
+  // Components with C44 coefficient
+  _Cijkl(1, 2, 1, 2) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(1, 2, 1, 2); // C2323
+  _Cijkl(2, 1, 2, 1) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(2, 1, 2, 1);
+  _Cijkl(2, 1, 1, 2) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(2, 1, 1, 2);
+  _Cijkl(1, 2, 2, 1) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(1, 2, 2, 1);
+
+  _Cijkl(0, 2, 0, 2) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(0, 2, 0, 2); // C1313
+  _Cijkl(2, 0, 2, 0) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(2, 0, 2, 0);
+  _Cijkl(2, 0, 0, 2) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(2, 0, 0, 2);
+  _Cijkl(0, 2, 2, 0) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(0, 2, 2, 0);
+
+  _Cijkl(0, 1, 0, 1) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(0, 1, 0, 1); // C1212
+  _Cijkl(1, 0, 1, 0) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(1, 0, 1, 0);
+  _Cijkl(1, 0, 0, 1) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(1, 0, 0, 1);
+  _Cijkl(0, 1, 1, 0) = (1.0 - _dC44_dT * deltatemp) * _Cijkl(0, 1, 1, 0);
+}
+

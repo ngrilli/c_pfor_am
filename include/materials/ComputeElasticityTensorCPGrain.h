@@ -26,12 +26,20 @@ protected:
   virtual void computeQpElasticityTensor() override;
 
   virtual void assignEulerAngles();
+  
+  virtual void temperatureDependence();
 
   /**
    * Element property read user object
    * Presently used to read Euler angles -  see test
    */
   const GrainPropertyReadFile * const _read_prop_user_object;
+  
+  const VariableValue & _temp;
+  
+  const Real _dC11_dT;
+  const Real _dC12_dT;
+  const Real _dC44_dT;
 
   MaterialProperty<RealVectorValue> & _Euler_angles_mat_prop;
 
