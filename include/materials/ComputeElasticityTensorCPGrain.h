@@ -48,4 +48,7 @@ protected:
 
   /// Rotation matrix
   RotationTensor _R;
+  
+  /// Stiffness tensor modified by temperature
+  RankFourTensor _Temp_Cijkl;
 };

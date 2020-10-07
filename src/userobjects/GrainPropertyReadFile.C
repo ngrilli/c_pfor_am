@@ -205,6 +205,12 @@ GrainPropertyReadFile::getIndexGrainData(const Elem * elem, unsigned int prop_nu
 
   // Get grain index of this element
   unsigned int igrain = elem->subdomain_id();
+  
+  // If elements are generated with GeneratedMesh
+  // then igrain will be zero
+  if (igrain == 0) {
+	  igrain = 1;
+  }
 
   // Grain index starts from 1 to ngrain
   // but _data vector starts from 0
