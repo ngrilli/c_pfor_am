@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'DislocationConservativeAdvection.i'
+    exodiff = 'DislocationConservativeAdvection_out.e'
+  [../]
+[]
