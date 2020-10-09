@@ -1,3 +1,8 @@
+// Nicolo Grilli
+// Daijun Hu 
+// National University of Singapore
+// 9 Ottobre 2020
+
 #pragma once
 
 #include "FiniteStrainCrystalPlasticity.h"
@@ -17,13 +22,25 @@ public:
 
 protected:
   /**
-   * This function calculate stress residual.
+   * This function calculates stress residual.
    */
   virtual void calcResidual( RankTwoTensor &resid );
+  
+  /**
+  * This function updates the slip increments.
+  * And derivative of slip w.r.t. resolved shear stress.
+  */
+  virtual void getSlipIncrements();
 
   const VariableValue & _temp;
   const Real _reference_temperature;
   const Real _thermal_expansion;
+  const Real _dCRSS_dT;
+  
+  // critical resolved shear stress
+  // exponentially decreased with temperature
+  std::vector<Real> _gssT;
+
 };
 
 
