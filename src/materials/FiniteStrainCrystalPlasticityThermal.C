@@ -20,8 +20,12 @@ FiniteStrainCrystalPlasticityThermal::validParams()
   params.addCoupledVar("temp",293.0,"Temperature");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",293.0,"reference temperature for thermal expansion");
-  params.addParam<Real>("dCRSS_dT",0.0,"coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature");
+  params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
+  params.addParam<Real>("dCRSS_dT_B",0.0,"B coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
+  params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
   return params;
 }
 
@@ -30,7 +34,9 @@ FiniteStrainCrystalPlasticityThermal::FiniteStrainCrystalPlasticityThermal(const
     _temp(coupledValue("temp")),     
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _reference_temperature(getParam<Real>("reference_temperature")),
-    _dCRSS_dT(getParam<Real>("dCRSS_dT")),
+    _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
+	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
+	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
 	_gssT(_nss)
 {
 }
@@ -83,6 +89,7 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
 
 // Calculate slip increment,dslipdtau
 // Critical resolved shear stress decreases exponentially with temperature
+// A + B exp(- C * (T - 293.0))
 void
 FiniteStrainCrystalPlasticityThermal::getSlipIncrements()
 {
@@ -92,7 +99,8 @@ FiniteStrainCrystalPlasticityThermal::getSlipIncrements()
   // refers always to room temperature
   for (unsigned int i = 0; i < _nss; ++i)
   {
-    _gssT[i] = std::exp(- _dCRSS_dT * (temp - 293.0)) * _gss_tmp[i];
+    _gssT[i] = ( _dCRSS_dT_A + _dCRSS_dT_B * std::exp(- _dCRSS_dT_C * (temp - 293.0))) * 
+	           _gss_tmp[i];
   }
   
   for (unsigned int i = 0; i < _nss; ++i)

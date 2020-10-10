@@ -35,7 +35,9 @@ protected:
   const VariableValue & _temp;
   const Real _reference_temperature;
   const Real _thermal_expansion;
-  const Real _dCRSS_dT;
+  const Real _dCRSS_dT_A;
+  const Real _dCRSS_dT_B;
+  const Real _dCRSS_dT_C;
   
   // critical resolved shear stress
   // exponentially decreased with temperature
