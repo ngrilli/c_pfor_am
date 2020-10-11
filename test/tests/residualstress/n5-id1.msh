@@ -1,6 +1,14 @@
 $MeshFormat
 2.2 0 8
 $EndMeshFormat
+$PhysicalNames
+5
+3 1 poly1
+3 2 poly2
+3 3 poly3
+3 4 poly4
+3 5 poly5
+$EndPhysicalNames
 $Nodes
 729
 1 0.625 0 0
@@ -1248,11 +1256,3 @@ $Elements
 511 5 2 5 5 689 197 697 696 718 719 728 727
 512 5 2 5 5 197 198 698 697 719 720 729 728
 $EndElements
-$PhysicalNames
-5
-3 1 poly1
-3 2 poly2
-3 3 poly3
-3 4 poly4
-3 5 poly5
-$EndPhysicalNames
