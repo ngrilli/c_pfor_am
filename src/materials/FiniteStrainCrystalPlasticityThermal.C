@@ -37,8 +37,9 @@ FiniteStrainCrystalPlasticityThermal::FiniteStrainCrystalPlasticityThermal(const
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
-	_gssT(_nss)
-{
+	_gssT(_nss),
+    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")) // Slip directions
+{	
 }
 
 void
@@ -85,6 +86,10 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
   pk2_new = _elasticity_tensor[_qp] * (ee - thermal_eigenstrain);
   
   resid = _pk2_tmp - pk2_new;
+  
+  // It would be better to call this function in postSolveQp()
+  // so it is not called more times than necessary
+  OutputSlipDirection();
 }
 
 // Calculate slip increment,dslipdtau
@@ -122,5 +127,38 @@ FiniteStrainCrystalPlasticityThermal::getSlipIncrements()
     _dslipdtau(i) = _a0(i) / _xm(i) *
                     std::pow(std::abs(_tau(i) / _gssT[i]), 1.0 / _xm(i) - 1.0) / _gssT[i] *
                     _dt;
+}
+
+// Store slip direction
+// to couple with dislocation transport
+void
+FiniteStrainCrystalPlasticityThermal::OutputSlipDirection()
+{
+  DenseVector<Real> mo(LIBMESH_DIM * _nss);
+
+  // Update slip direction with crystal orientation
+  for (unsigned int i = 0; i < _nss; ++i)
+  {
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+    {
+      mo(i * LIBMESH_DIM + j) = 0.0;
+      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+        mo(i * LIBMESH_DIM + j) =
+            mo(i * LIBMESH_DIM + j) + _crysrot[_qp](j, k) * _mo(i * LIBMESH_DIM + k);
+    }
+  }
+ 
+  _slip_direction[_qp].resize(LIBMESH_DIM * _nss);
+
+  // Store slip direction (already normalized)
+  // to couple with dislocation transport
+  for (unsigned int i = 0; i < _nss; ++i)
+  {
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+    {
+  	  _slip_direction[_qp][i * LIBMESH_DIM + j] = mo(i * LIBMESH_DIM + j);
+  	}
+  }
+  
 }
 

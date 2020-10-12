@@ -31,6 +31,13 @@ protected:
   * And derivative of slip w.r.t. resolved shear stress.
   */
   virtual void getSlipIncrements();
+  
+  /**
+  * This function
+  * stores the dislocation velocity
+  * to couple with dislocation transport
+  */
+  virtual void OutputSlipDirection();
 
   const VariableValue & _temp;
   const Real _reference_temperature;
@@ -42,6 +49,10 @@ protected:
   // critical resolved shear stress
   // exponentially decreased with temperature
   std::vector<Real> _gssT;
+  
+  // Rotated slip direction to couple with dislocation transport
+  // to indicate dislocation velocity direction for all slip systems
+  MaterialProperty<std::vector<Real>> & _slip_direction;
 
 };
 

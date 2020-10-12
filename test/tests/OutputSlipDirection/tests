@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'OutputSlipDirection.i'
+    exodiff = 'OutputSlipDirection_out.e'
+  [../]
+[]
