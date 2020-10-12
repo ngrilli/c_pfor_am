@@ -394,9 +394,9 @@
     fill_method = symmetric9
     read_prop_user_object = prop_read
     temp = temp
-    dC11_dT = 0.0004757
-    dC12_dT = 0.0004757
-    dC44_dT = 0.0004757
+    dC11_dT = 0.0004415
+    dC12_dT = 0.0003275
+    dC44_dT = 0.0004103
   [../]
   [./strain]
     type = ComputeFiniteStrain
