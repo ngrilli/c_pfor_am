@@ -32,7 +32,6 @@ protected:
 
   /// advection velocity
   std::vector<Real> _velocity;
-  //RealVectorValue _velocity;
   
   // Slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _slip_direction;

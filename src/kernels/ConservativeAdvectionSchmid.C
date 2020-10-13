@@ -24,7 +24,8 @@ ConservativeAdvectionSchmid::validParams()
                              "Type of upwinding used.  None: Typically results in overshoots and "
                              "undershoots, but numerical diffusion is minimized.  Full: Overshoots "
                              "and undershoots are avoided, but numerical diffusion is large");
-  params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction");
+  params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
+							   "for instance from 0 to 11 for FCC.");
   return params;
 }
 
