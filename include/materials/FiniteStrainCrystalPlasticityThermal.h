@@ -53,6 +53,9 @@ protected:
   // Rotated slip direction to couple with dislocation transport
   // to indicate dislocation velocity direction for all slip systems
   MaterialProperty<std::vector<Real>> & _slip_direction;
+  
+  // Slip increment for output
+  MaterialProperty<std::vector<Real>> & _slip_incr_out;
 
 };
 

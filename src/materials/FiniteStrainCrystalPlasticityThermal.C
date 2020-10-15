@@ -38,7 +38,8 @@ FiniteStrainCrystalPlasticityThermal::FiniteStrainCrystalPlasticityThermal(const
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
 	_gssT(_nss),
-    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")) // Slip directions
+    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Slip directions
+	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out"))    // Slip system resistances
 {	
 }
 
@@ -127,6 +128,14 @@ FiniteStrainCrystalPlasticityThermal::getSlipIncrements()
     _dslipdtau(i) = _a0(i) / _xm(i) *
                     std::pow(std::abs(_tau(i) / _gssT[i]), 1.0 / _xm(i) - 1.0) / _gssT[i] *
                     _dt;
+					
+  // store slip increment for output
+  _slip_incr_out[_qp].resize(_nss);
+  
+  for (unsigned int i = 0; i < _nss; ++i) {
+    _slip_incr_out[_qp][i] = _slip_incr(i);
+  }
+  
 }
 
 // Store slip direction
