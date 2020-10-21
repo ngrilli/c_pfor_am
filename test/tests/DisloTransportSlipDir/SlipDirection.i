@@ -278,7 +278,7 @@
 
 [Materials]
   [./crysp]
-    type = FiniteStrainCrystalPlasticityThermal
+    type = FiniteStrainCrystalPlasticityDislo
     block = 0
     gtol = 1e-2
     slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
@@ -300,6 +300,7 @@
 	dCRSS_dT_A = 0.53
 	dCRSS_dT_B = 0.47
 	dCRSS_dT_C = 0.008
+	dislo_mobility = 1.0
   [../]
   [./elasticity_tensor]
     type = ComputeElasticityTensorCPGrain
