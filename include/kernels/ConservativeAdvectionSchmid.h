@@ -32,12 +32,6 @@ protected:
 
   /// advection velocity
   std::vector<Real> _velocity;
-  
-  // Slip directions of all slip systems
-  const MaterialProperty<std::vector<Real>> & _slip_direction;
-  
-  // Slip system index to determine slip direction
-  const unsigned int _slip_sys_index;
 
   /// enum to make the code clearer
   enum class JacRes
@@ -45,9 +39,15 @@ protected:
     CALCULATE_RESIDUAL = 0,
     CALCULATE_JACOBIAN = 1
   };
+  
+  // Slip directions of all slip systems
+  const MaterialProperty<std::vector<Real>> & _slip_direction;
 
   /// Type of upwinding
   const enum class UpwindingType { none, full } _upwinding;
+  
+  // Slip system index to determine slip direction
+  const unsigned int _slip_sys_index;
 
   /// Nodal value of u, used for full upwinding
   const VariableValue & _u_nodal;

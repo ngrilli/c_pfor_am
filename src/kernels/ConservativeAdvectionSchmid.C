@@ -17,7 +17,6 @@ ConservativeAdvectionSchmid::validParams()
   params.addClassDescription("Conservative form of $\\nabla \\cdot \\vec{v} u$ which in its weak "
                              "form is given by: $(-\\nabla \\psi_i, \\vec{v} u)$. "
 							 "Velocity \vec{v} is taken as material property.");
-  //params.addRequiredCoupledVar("velocity", "Velocity vector");
   MooseEnum upwinding_type("none full", "none");
   params.addParam<MooseEnum>("upwinding_type",
                              upwinding_type,
