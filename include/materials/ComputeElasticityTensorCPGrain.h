@@ -35,13 +35,13 @@ protected:
    */
   const GrainPropertyReadFile * const _read_prop_user_object;
   
+  MaterialProperty<RealVectorValue> & _Euler_angles_mat_prop;
+  
   const VariableValue & _temp;
   
   const Real _dC11_dT;
   const Real _dC12_dT;
   const Real _dC44_dT;
-
-  MaterialProperty<RealVectorValue> & _Euler_angles_mat_prop;
 
   /// Crystal Rotation Matrix
   MaterialProperty<RankTwoTensor> & _crysrot;
