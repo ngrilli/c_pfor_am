@@ -1,6 +1,6 @@
 // Nicolo Grilli
 // National University of Singapore
-// 13 Ottobre 2020
+// 21 Ottobre 2020
 
 #pragma once
 
@@ -12,7 +12,8 @@ class ConservativeAdvectionSchmid;
 /**
  * Advection of the variable by the velocity provided by the user.
  * Options for numerical stabilization are: none; full upwinding
- * Advection velocity \vec{v} is taken as material property.
+ * Advection velocity direction \vec{v} and magnitude/sign are taken as material property.
+ * Based on dislocation velocity model dependent on the resolved shear stress.
  */
 template <>
 InputParameters validParams<ConservativeAdvectionSchmid>();
@@ -42,6 +43,9 @@ protected:
   
   // Slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _slip_direction;
+  
+  // Dislocation velocity value (signed) on all slip systems
+  const MaterialProperty<std::vector<Real>> & _dislo_velocity;
 
   /// Type of upwinding
   const enum class UpwindingType { none, full } _upwinding;

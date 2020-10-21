@@ -1,6 +1,6 @@
 // Nicolo Grilli
 // National University of Singapore
-// 13 Ottobre 2020
+// 21 Ottobre 2020
 
 #include "ConservativeAdvectionSchmid.h"
 #include "SystemBase.h"
@@ -30,7 +30,8 @@ ConservativeAdvectionSchmid::validParams()
 
 ConservativeAdvectionSchmid::ConservativeAdvectionSchmid(const InputParameters & parameters)
   : Kernel(parameters),
-    _slip_direction(getMaterialProperty<std::vector<Real>>("slip_direction")), // Velocity
+    _slip_direction(getMaterialProperty<std::vector<Real>>("slip_direction")), // Velocity direction
+    _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
     _upwinding(getParam<MooseEnum>("upwinding_type").getEnum<UpwindingType>()),
 	_slip_sys_index(getParam<int>("slip_sys_index")),
     _u_nodal(_var.dofValues()),
@@ -46,7 +47,8 @@ ConservativeAdvectionSchmid::negSpeedQp()
   // Find dislocation velocity based on slip systems index
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
   {
-	_velocity[j] = _slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j];  
+	_velocity[j] = _slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // direction
+	_velocity[j] *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value (signed)
   }
   
   return -_grad_test[_i][_qp] * RealVectorValue(_velocity[0],_velocity[1],_velocity[2]);
