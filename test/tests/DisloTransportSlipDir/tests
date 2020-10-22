@@ -4,4 +4,10 @@
     input = 'SlipDirection.i'
     exodiff = 'SlipDirection_out.e'
   [../]
+  
+  [./test2]
+    type = 'Exodiff'
+    input = 'SlipDirectionLoad.i'
+    exodiff = 'SlipDirectionLoad_out.e'
+  [../]
 []
