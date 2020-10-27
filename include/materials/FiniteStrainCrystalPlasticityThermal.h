@@ -57,7 +57,8 @@ protected:
   
   // Slip increment for output
   MaterialProperty<std::vector<Real>> & _slip_incr_out;
-
+  
+  MaterialProperty<RankTwoTensor> & _lattice_strain;
 };
 
 
