@@ -6,7 +6,7 @@
 #include "FiniteStrainCrystalPlasticityThermal.h"
 #include "petscblaslapack.h"
 #include "libmesh/utility.h"
-
+#include "ComputeElasticityTensorCPGrain.h"
 #include <fstream>
 #include <cmath>
 
@@ -38,6 +38,7 @@ FiniteStrainCrystalPlasticityThermal::FiniteStrainCrystalPlasticityThermal(const
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
 	_gssT(_nss),
+    _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
     _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Slip directions
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out"))    // Slip system resistances
 {	
@@ -87,7 +88,8 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
   pk2_new = _elasticity_tensor[_qp] * (ee - thermal_eigenstrain);
   
   resid = _pk2_tmp - pk2_new;
-  
+  _lattice_strain[_qp] = _crysrot[_qp].transpose() * ee * _crysrot[_qp];
+	
   // It would be better to call this function in postSolveQp()
   // so it is not called more times than necessary
   OutputSlipDirection();
