@@ -88,7 +88,7 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
   pk2_new = _elasticity_tensor[_qp] * (ee - thermal_eigenstrain);
   
   resid = _pk2_tmp - pk2_new;
-  _lattice_strain[_qp] = _crysrot[_qp].transpose() * ee * _crysrot[_qp];
+  _lattice_strain[_qp] = _crysrot[_qp] * ee * _crysrot[_qp].transpose();
 	
   // It would be better to call this function in postSolveQp()
   // so it is not called more times than necessary
