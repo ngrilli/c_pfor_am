@@ -1,7 +1,7 @@
 // Nicolo Grilli
 // Daijun Hu 
 // National University of Singapore
-// 9 Ottobre 2020
+// 27 Ottobre 2020
 
 #include "FiniteStrainCrystalPlasticityThermal.h"
 #include "petscblaslapack.h"
@@ -38,6 +38,7 @@ FiniteStrainCrystalPlasticityThermal::FiniteStrainCrystalPlasticityThermal(const
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
 	_gssT(_nss),
+    _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
     _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Slip directions
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out"))    // Slip system resistances
 {	
@@ -88,9 +89,10 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
   
   resid = _pk2_tmp - pk2_new;
   
-  // It would be better to call this function in postSolveQp()
+  // It would be better to call the following lines in postSolveQp()
   // so it is not called more times than necessary
   OutputSlipDirection();
+  _lattice_strain[_qp] = _crysrot[_qp].transpose() * ee * _crysrot[_qp];
 }
 
 // Calculate slip increment,dslipdtau

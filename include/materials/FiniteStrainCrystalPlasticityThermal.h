@@ -1,7 +1,7 @@
 // Nicolo Grilli
 // Daijun Hu 
 // National University of Singapore
-// 9 Ottobre 2020
+// 27 Ottobre 2020
 
 #pragma once
 
@@ -50,6 +50,10 @@ protected:
   // critical resolved shear stress
   // exponentially decreased with temperature
   std::vector<Real> _gssT;
+  
+  // Green-Lagrange strain tensor expressed in the
+  // lattice coordinate system
+  MaterialProperty<RankTwoTensor> & _lattice_strain; 
   
   // Rotated slip direction to couple with dislocation transport
   // to indicate dislocation velocity direction for all slip systems
