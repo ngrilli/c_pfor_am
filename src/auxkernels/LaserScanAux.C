@@ -36,7 +36,7 @@ LaserScanAux::computeValue()
   Real x0, y0, z0;
   Real LaserWidth = 200.0; // characteristic diameter of laser at laser tail (micrometres)
   Real WidthAhead = 300.0; // characteristic length scale ahead of the laser centre (micrometres)
-  Real MaxTemp = 755.0; // max temperature above 298.0 in the centre of the laser
+  Real MaxTemp = 755.0; // max temperature above 293.0 in the centre of the laser
   Real LaserShrinkBegin = 104.21; // beginning of laser shrinking with respect to laser centre (micrometres)
   Real TailBegin = 208.42; // beginning of the laser tail (micrometres)
   Real TailMiddle = 547.11; // middle of the laser tail, where laser starts to shrink (micrometres)
