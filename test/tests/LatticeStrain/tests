@@ -1,0 +1,13 @@
+[Tests]
+  [./test45degrees]
+    type = 'Exodiff'
+    input = 'latticestrain45.i'
+    exodiff = 'latticestrain45_out.e'
+  [../]
+  
+  [./testm45degrees]
+    type = 'Exodiff'
+    input = 'latticestrain-45.i'
+    exodiff = 'latticestrain-45_out.e'
+  [../]
+[]
