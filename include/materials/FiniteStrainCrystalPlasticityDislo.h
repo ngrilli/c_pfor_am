@@ -54,6 +54,20 @@ protected:
   virtual void OutputSlipDirection();
 
   const VariableValue & _temp;
+  
+  const VariableValue & _rho_1;
+  const VariableValue & _rho_2;
+  const VariableValue & _rho_3;
+  const VariableValue & _rho_4;
+  const VariableValue & _rho_5;
+  const VariableValue & _rho_6;
+  const VariableValue & _rho_7;
+  const VariableValue & _rho_8;
+  const VariableValue & _rho_9;
+  const VariableValue & _rho_10;
+  const VariableValue & _rho_11;
+  const VariableValue & _rho_12;
+  
   const Real _thermal_expansion;
   const Real _reference_temperature;
 
@@ -61,6 +75,7 @@ protected:
   const Real _dCRSS_dT_B;
   const Real _dCRSS_dT_C;
   const Real _dislo_mobility;
+  const Real _burgers_vector_mag;
   
   // critical resolved shear stress
   // exponentially decreased with temperature
@@ -75,6 +90,10 @@ protected:
   
   // Dislocation velocity
   MaterialProperty<std::vector<Real>> & _dislo_velocity;
+  
+  // Derivative of the dislocation velocity with respect to the RSS
+  // on the same slip system
+  MaterialProperty<std::vector<Real>> & _ddislo_velocity_dtau;
 
 };
 
