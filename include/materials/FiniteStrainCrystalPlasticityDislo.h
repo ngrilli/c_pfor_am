@@ -14,7 +14,7 @@
  * Backward Euler integration rule is used for the rate equations.
  * Temperature dependence of the CRSS.
  * Dislocation based model.
- * Calculation of the dislocation velocity depending on resolved shear stress
+ * Calculation of the dislocation velocity depending on resolved shear stress.
  */
 class FiniteStrainCrystalPlasticityDislo : public FiniteStrainCrystalPlasticity
 {
@@ -28,6 +28,10 @@ protected:
    * This function calculates stress residual.
    */
   virtual void calcResidual( RankTwoTensor &resid );
+  
+  // Critical resolved shear stress decreases exponentially with temperature
+  // A + B exp(- C * (T - 293.0))
+  virtual void TempDependCRSS();
   
   /**
   * This function updates the slip increments.

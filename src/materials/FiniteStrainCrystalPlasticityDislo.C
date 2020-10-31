@@ -18,7 +18,8 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   InputParameters params = FiniteStrainCrystalPlasticity::validParams();
   params.addClassDescription("Crystal Plasticity with thermal eigenstrain. "
                              "Temperature dependence of the CRSS. "
-							 "Dislocation based model. ");
+							 "Dislocation based model. "
+							 "Stress dependent dislocation velocity. ");
   params.addCoupledVar("temp",293.0,"Temperature");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",293.0,"reference temperature for thermal expansion");
@@ -69,10 +70,13 @@ FiniteStrainCrystalPlasticityDislo::calcResidual( RankTwoTensor &resid )
   for (unsigned int i = 0; i < _nss; ++i)
     _tau(i) = ce_pk2.doubleContraction(_s0[i]);
 
+  // Introduce temperature dependence of the CRSS
+  TempDependCRSS();
+
   // calculate dislocation velocity
   // and store it for advection kernel
   // necessary to call it here because getSlipIncrements
-  // will depend on dislocation velocity, changing at each iteration
+  // depends on dislocation velocity, changing at each iteration
   // of the CP algorithm
   getDisloVelocity();
 
@@ -105,11 +109,10 @@ FiniteStrainCrystalPlasticityDislo::calcResidual( RankTwoTensor &resid )
   OutputSlipDirection();
 }
 
-// Calculate slip increment,dslipdtau
 // Critical resolved shear stress decreases exponentially with temperature
 // A + B exp(- C * (T - 293.0))
 void
-FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
+FiniteStrainCrystalPlasticityDislo::TempDependCRSS()
 {
   Real temp = _temp[_qp];
   
@@ -120,7 +123,12 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
     _gssT[i] = ( _dCRSS_dT_A + _dCRSS_dT_B * std::exp(- _dCRSS_dT_C * (temp - 293.0))) * 
 	           _gss_tmp[i];
   }
-  
+}
+
+// Calculate slip increment,dslipdtau
+void
+FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
+{  
   for (unsigned int i = 0; i < _nss; ++i)
   {
     _slip_incr(i) = _a0(i) * 
@@ -147,7 +155,6 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   for (unsigned int i = 0; i < _nss; ++i) {
     _slip_incr_out[_qp][i] = _slip_incr(i);
   }
-  
 }
 
 // Calculate dislocation velocity as a function
