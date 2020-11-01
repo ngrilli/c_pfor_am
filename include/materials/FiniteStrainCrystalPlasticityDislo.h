@@ -1,7 +1,7 @@
 // Nicolo Grilli
 // Daijun Hu 
 // National University of Singapore
-// 21 Ottobre 2020
+// 1 Novembre 2020
 
 #pragma once
 
@@ -55,18 +55,30 @@ protected:
 
   const VariableValue & _temp;
   
-  const VariableValue & _rho_1;
-  const VariableValue & _rho_2;
-  const VariableValue & _rho_3;
-  const VariableValue & _rho_4;
-  const VariableValue & _rho_5;
-  const VariableValue & _rho_6;
-  const VariableValue & _rho_7;
-  const VariableValue & _rho_8;
-  const VariableValue & _rho_9;
-  const VariableValue & _rho_10;
-  const VariableValue & _rho_11;
-  const VariableValue & _rho_12;
+  const VariableValue & _rho_edge_pos_1;
+  const VariableValue & _rho_edge_neg_1;
+  const VariableValue & _rho_edge_pos_2;
+  const VariableValue & _rho_edge_neg_2;
+  const VariableValue & _rho_edge_pos_3;
+  const VariableValue & _rho_edge_neg_3;
+  const VariableValue & _rho_edge_pos_4;
+  const VariableValue & _rho_edge_neg_4;
+  const VariableValue & _rho_edge_pos_5;
+  const VariableValue & _rho_edge_neg_5;
+  const VariableValue & _rho_edge_pos_6;
+  const VariableValue & _rho_edge_neg_6;
+  const VariableValue & _rho_edge_pos_7;
+  const VariableValue & _rho_edge_neg_7;
+  const VariableValue & _rho_edge_pos_8;
+  const VariableValue & _rho_edge_neg_8;
+  const VariableValue & _rho_edge_pos_9;
+  const VariableValue & _rho_edge_neg_9;
+  const VariableValue & _rho_edge_pos_10;
+  const VariableValue & _rho_edge_neg_10;
+  const VariableValue & _rho_edge_pos_11;
+  const VariableValue & _rho_edge_neg_11;
+  const VariableValue & _rho_edge_pos_12;
+  const VariableValue & _rho_edge_neg_12;
   
   const Real _thermal_expansion;
   const Real _reference_temperature;

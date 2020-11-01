@@ -1,6 +1,6 @@
 // Nicolo Grilli
 // National University of Singapore
-// 21 Ottobre 2020
+// 1 Novembre 2020
 
 #include "ConservativeAdvectionSchmid.h"
 #include "SystemBase.h"
@@ -25,6 +25,10 @@ ConservativeAdvectionSchmid::validParams()
                              "and undershoots are avoided, but numerical diffusion is large");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
+  MooseEnum dislo_sign("positive negative", "positive");
+  params.addRequiredParam<MooseEnum>("dislo_sign",
+                                     dislo_sign,
+                                     "Sign of edge dislocations.");
   return params;
 }
 
@@ -34,6 +38,7 @@ ConservativeAdvectionSchmid::ConservativeAdvectionSchmid(const InputParameters &
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
     _upwinding(getParam<MooseEnum>("upwinding_type").getEnum<UpwindingType>()),
 	_slip_sys_index(getParam<int>("slip_sys_index")),
+	_dislo_sign(getParam<MooseEnum>("dislo_sign").getEnum<DisloSign>()),
     _u_nodal(_var.dofValues()),
     _upwind_node(0),
     _dtotal_mass_out(0)
@@ -43,12 +48,25 @@ ConservativeAdvectionSchmid::ConservativeAdvectionSchmid(const InputParameters &
 Real
 ConservativeAdvectionSchmid::negSpeedQp()
 {
+  Real edge_sign;
+
+  switch (_dislo_sign)
+  {
+    case DisloSign::positive:
+      edge_sign = 1.0;
+      break;
+    case DisloSign::negative:
+      edge_sign = -1.0;
+      break;
+  }  
+	
   _velocity.resize(3, 0.0);
   // Find dislocation velocity based on slip systems index
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
   {
 	_velocity[j] = _slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // direction
-	_velocity[j] *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value (signed)
+	_velocity[j] *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value (positive edge)
+	_velocity[j] *= edge_sign; // positive or negative dislocation
   }
   
   return -_grad_test[_i][_qp] * RealVectorValue(_velocity[0],_velocity[1],_velocity[2]);

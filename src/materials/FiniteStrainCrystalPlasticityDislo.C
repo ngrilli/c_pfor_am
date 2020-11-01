@@ -1,7 +1,7 @@
 // Nicolo Grilli
 // Daijun Hu 
 // National University of Singapore
-// 21 Ottobre 2020
+// 1 Novembre 2020
 
 #include "FiniteStrainCrystalPlasticityDislo.h"
 #include "petscblaslapack.h"
@@ -21,18 +21,30 @@ FiniteStrainCrystalPlasticityDislo::validParams()
 							 "Dislocation based model. "
 							 "Stress dependent dislocation velocity. ");
   params.addCoupledVar("temp",293.0,"Temperature");
-  params.addCoupledVar("rho_1",0.0,"Dislocation density: slip system 1");
-  params.addCoupledVar("rho_2",0.0,"Dislocation density: slip system 2");
-  params.addCoupledVar("rho_3",0.0,"Dislocation density: slip system 3");
-  params.addCoupledVar("rho_4",0.0,"Dislocation density: slip system 4");
-  params.addCoupledVar("rho_5",0.0,"Dislocation density: slip system 5");
-  params.addCoupledVar("rho_6",0.0,"Dislocation density: slip system 6");
-  params.addCoupledVar("rho_7",0.0,"Dislocation density: slip system 7");
-  params.addCoupledVar("rho_8",0.0,"Dislocation density: slip system 8");
-  params.addCoupledVar("rho_9",0.0,"Dislocation density: slip system 9");
-  params.addCoupledVar("rho_10",0.0,"Dislocation density: slip system 10");
-  params.addCoupledVar("rho_11",0.0,"Dislocation density: slip system 11");
-  params.addCoupledVar("rho_12",0.0,"Dislocation density: slip system 12");
+  params.addCoupledVar("rho_edge_pos_1",0.0,"Positive edge dislocation density: slip system 1");
+  params.addCoupledVar("rho_edge_neg_1",0.0,"Negative edge dislocation density: slip system 1");
+  params.addCoupledVar("rho_edge_pos_2",0.0,"Positive edge dislocation density: slip system 2");
+  params.addCoupledVar("rho_edge_neg_2",0.0,"Negative edge dislocation density: slip system 2");
+  params.addCoupledVar("rho_edge_pos_3",0.0,"Positive edge dislocation density: slip system 3");
+  params.addCoupledVar("rho_edge_neg_3",0.0,"Negative edge dislocation density: slip system 3");
+  params.addCoupledVar("rho_edge_pos_4",0.0,"Positive edge dislocation density: slip system 4");
+  params.addCoupledVar("rho_edge_neg_4",0.0,"Negative edge dislocation density: slip system 4");
+  params.addCoupledVar("rho_edge_pos_5",0.0,"Positive edge dislocation density: slip system 5");
+  params.addCoupledVar("rho_edge_neg_5",0.0,"Negative edge dislocation density: slip system 5");
+  params.addCoupledVar("rho_edge_pos_6",0.0,"Positive edge dislocation density: slip system 6");
+  params.addCoupledVar("rho_edge_neg_6",0.0,"Negative edge dislocation density: slip system 6");
+  params.addCoupledVar("rho_edge_pos_7",0.0,"Positive edge dislocation density: slip system 7");
+  params.addCoupledVar("rho_edge_neg_7",0.0,"Negative edge dislocation density: slip system 7");
+  params.addCoupledVar("rho_edge_pos_8",0.0,"Positive edge dislocation density: slip system 8");
+  params.addCoupledVar("rho_edge_neg_8",0.0,"Negative edge dislocation density: slip system 8");
+  params.addCoupledVar("rho_edge_pos_9",0.0,"Positive edge dislocation density: slip system 9");
+  params.addCoupledVar("rho_edge_neg_9",0.0,"Negative edge dislocation density: slip system 9");
+  params.addCoupledVar("rho_edge_pos_10",0.0,"Positive edge dislocation density: slip system 10");
+  params.addCoupledVar("rho_edge_neg_10",0.0,"Negative edge dislocation density: slip system 10");
+  params.addCoupledVar("rho_edge_pos_11",0.0,"Positive edge dislocation density: slip system 11");
+  params.addCoupledVar("rho_edge_neg_11",0.0,"Negative edge dislocation density: slip system 11");
+  params.addCoupledVar("rho_edge_pos_12",0.0,"Positive edge dislocation density: slip system 12");
+  params.addCoupledVar("rho_edge_neg_12",0.0,"Negative edge dislocation density: slip system 12");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",293.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
@@ -49,18 +61,30 @@ FiniteStrainCrystalPlasticityDislo::validParams()
 FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const InputParameters & parameters) :
     FiniteStrainCrystalPlasticity(parameters),
     _temp(coupledValue("temp")),
-    _rho_1(coupledValue("rho_1")),
-    _rho_2(coupledValue("rho_2")),
-    _rho_3(coupledValue("rho_3")),
-    _rho_4(coupledValue("rho_4")),
-    _rho_5(coupledValue("rho_5")),
-    _rho_6(coupledValue("rho_6")),
-    _rho_7(coupledValue("rho_7")),
-    _rho_8(coupledValue("rho_8")),
-    _rho_9(coupledValue("rho_9")),
-    _rho_10(coupledValue("rho_10")),
-    _rho_11(coupledValue("rho_11")),
-    _rho_12(coupledValue("rho_12")),	
+    _rho_edge_pos_1(coupledValue("rho_edge_pos_1")),
+	_rho_edge_neg_1(coupledValue("rho_edge_neg_1")),
+    _rho_edge_pos_2(coupledValue("rho_edge_pos_2")),
+	_rho_edge_neg_2(coupledValue("rho_edge_neg_2")),
+    _rho_edge_pos_3(coupledValue("rho_edge_pos_3")),
+	_rho_edge_neg_3(coupledValue("rho_edge_neg_3")),
+    _rho_edge_pos_4(coupledValue("rho_edge_pos_4")),
+	_rho_edge_neg_4(coupledValue("rho_edge_neg_4")),
+    _rho_edge_pos_5(coupledValue("rho_edge_pos_5")),
+	_rho_edge_neg_5(coupledValue("rho_edge_neg_5")),
+    _rho_edge_pos_6(coupledValue("rho_edge_pos_6")),
+	_rho_edge_neg_6(coupledValue("rho_edge_neg_6")),
+    _rho_edge_pos_7(coupledValue("rho_edge_pos_7")),
+	_rho_edge_neg_7(coupledValue("rho_edge_neg_7")),
+    _rho_edge_pos_8(coupledValue("rho_edge_pos_8")),
+	_rho_edge_neg_8(coupledValue("rho_edge_neg_8")),
+    _rho_edge_pos_9(coupledValue("rho_edge_pos_9")),
+	_rho_edge_neg_9(coupledValue("rho_edge_neg_9")),
+    _rho_edge_pos_10(coupledValue("rho_edge_pos_10")),
+	_rho_edge_neg_10(coupledValue("rho_edge_neg_10")),
+    _rho_edge_pos_11(coupledValue("rho_edge_pos_11")),
+	_rho_edge_neg_11(coupledValue("rho_edge_neg_11")),
+    _rho_edge_pos_12(coupledValue("rho_edge_pos_12")),
+    _rho_edge_neg_12(coupledValue("rho_edge_neg_12")),	
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _reference_temperature(getParam<Real>("reference_temperature")),
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
@@ -156,25 +180,42 @@ FiniteStrainCrystalPlasticityDislo::TempDependCRSS()
 void
 FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
 {  
-  std::vector<Real> rho(_nss);
+  std::vector<Real> rho_edge_pos(_nss);
+  std::vector<Real> rho_edge_neg(_nss);
 
-  // Assign dislocation density vector
-  rho[0] = _rho_1[_qp];
-  rho[1] = _rho_2[_qp];
-  rho[2] = _rho_3[_qp];
-  rho[3] = _rho_4[_qp];
-  rho[4] = _rho_5[_qp];
-  rho[5] = _rho_6[_qp];
-  rho[6] = _rho_7[_qp];
-  rho[7] = _rho_8[_qp];
-  rho[8] = _rho_9[_qp];
-  rho[9] = _rho_10[_qp];
-  rho[10] = _rho_11[_qp];
-  rho[11] = _rho_12[_qp];
+  // Assign dislocation density vectors
+  rho_edge_pos[0] = _rho_edge_pos_1[_qp];
+  rho_edge_pos[1] = _rho_edge_pos_2[_qp];
+  rho_edge_pos[2] = _rho_edge_pos_3[_qp];
+  rho_edge_pos[3] = _rho_edge_pos_4[_qp];
+  rho_edge_pos[4] = _rho_edge_pos_5[_qp];
+  rho_edge_pos[5] = _rho_edge_pos_6[_qp];
+  rho_edge_pos[6] = _rho_edge_pos_7[_qp];
+  rho_edge_pos[7] = _rho_edge_pos_8[_qp];
+  rho_edge_pos[8] = _rho_edge_pos_9[_qp];
+  rho_edge_pos[9] = _rho_edge_pos_10[_qp];
+  rho_edge_pos[10] = _rho_edge_pos_11[_qp];
+  rho_edge_pos[11] = _rho_edge_pos_12[_qp];
+  
+  rho_edge_neg[0] = _rho_edge_neg_1[_qp];
+  rho_edge_neg[1] = _rho_edge_neg_2[_qp];
+  rho_edge_neg[2] = _rho_edge_neg_3[_qp];
+  rho_edge_neg[3] = _rho_edge_neg_4[_qp];
+  rho_edge_neg[4] = _rho_edge_neg_5[_qp];
+  rho_edge_neg[5] = _rho_edge_neg_6[_qp];
+  rho_edge_neg[6] = _rho_edge_neg_7[_qp];
+  rho_edge_neg[7] = _rho_edge_neg_8[_qp];
+  rho_edge_neg[8] = _rho_edge_neg_9[_qp];
+  rho_edge_neg[9] = _rho_edge_neg_10[_qp];
+  rho_edge_neg[10] = _rho_edge_neg_11[_qp];
+  rho_edge_neg[11] = _rho_edge_neg_12[_qp];
 
+  // Positive and negative dislocation give the same
+  // contribution to Lp even if their velocity is opposite
   for (unsigned int i = 0; i < _nss; ++i)
   {
-    _slip_incr(i) = rho[i] * _dislo_velocity[_qp][i] * _burgers_vector_mag *
+    _slip_incr(i) = (rho_edge_pos[i] + rho_edge_neg[i]) * 
+	                _dislo_velocity[_qp][i] * _burgers_vector_mag *
                     std::copysign(1.0, _tau(i)) * _dt;
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
     {
@@ -187,7 +228,8 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   }
 
   for (unsigned int i = 0; i < _nss; ++i)
-    _dslipdtau(i) = rho[i] * _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
+    _dslipdtau(i) = (rho_edge_pos[i] + rho_edge_neg[i]) * 
+                    _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
 					
   // store slip increment for output
   _slip_incr_out[_qp].resize(_nss);
