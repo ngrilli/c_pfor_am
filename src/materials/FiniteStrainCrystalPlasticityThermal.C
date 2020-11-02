@@ -26,6 +26,7 @@ FiniteStrainCrystalPlasticityThermal::validParams()
                         "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
   params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
+  params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
   return params;
 }
 
@@ -37,6 +38,7 @@ FiniteStrainCrystalPlasticityThermal::FiniteStrainCrystalPlasticityThermal(const
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
+    _dCTE_dT(getParam<Real>("dCTE_dT")),
 	_gssT(_nss),
     _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
     _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Slip directions
@@ -51,7 +53,7 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
   Real temp = _temp[_qp];
   Real thermal_expansion = _thermal_expansion; 
   Real reference_temperature = _reference_temperature;
-
+  Real dCTE_dT =_dCTE_dT;
 
   iden.zero();
   iden.addIa(1.0);
@@ -83,8 +85,8 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
   ee *= 0.5;
   RankTwoTensor thermal_eigenstrain;
   thermal_eigenstrain = (1.0 / 2.0)
-                      * (std::exp((2.0/3.0) * thermal_expansion * (temp - reference_temperature)) - 1.0)
-                      * iden;
+                     * (std::exp((2.0/3.0) * ((1.0/2.0)* dCTE_dT * (temp-reference_temperature)*(temp+reference_temperature)
+                      + thermal_expansion * (temp - reference_temperature))) - 1.0) * iden;
   pk2_new = _elasticity_tensor[_qp] * (ee - thermal_eigenstrain);
   
   resid = _pk2_tmp - pk2_new;
