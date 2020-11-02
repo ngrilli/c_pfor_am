@@ -46,6 +46,7 @@ protected:
   const Real _dCRSS_dT_A;
   const Real _dCRSS_dT_B;
   const Real _dCRSS_dT_C;
+  const Real _dCTE_dT;
   
   // critical resolved shear stress
   // exponentially decreased with temperature
