@@ -34,15 +34,17 @@ LaserScanAux::computeValue()
   Real TempValue = 0.0;
   Real x, y, z;
   Real x0, y0, z0;
-  Real LaserWidth = 200.0; // characteristic diameter of laser at laser tail (micrometres)
-  Real WidthAhead = 300.0; // characteristic length scale ahead of the laser centre (micrometres)
-  Real MaxTemp = 779.0; // max temperature above 293.0 in the centre of the laser
-  Real LaserShrinkBegin = 104.21; // beginning of laser shrinking with respect to laser centre (micrometres)
-  Real TailBegin = 208.42; // beginning of the laser tail (micrometres)
-  Real TailMiddle = 547.11; // middle of the laser tail, where laser starts to shrink (micrometres)
-  Real TailEnd = 997.11; // End of the laser tail
+
+  Real LaserWidth = 200.0; // characteristic diameter of laser (micrometres)
+  Real WidthBehind = 400.0; // characteristic length scale behind of the laser tail (micrometres)
+  Real MaxTemp = 779.0; // max temperature above 293.0 in the tail of the laser
+  Real LaserShrinkBegin = 390.0; // beginning of laser shrinking with respect to laser tail (micrometres)
+  Real TailBegin = 740.0; // beginning of the laser tail (micrometres)
+  Real LaserCentre = 790.0; // middle of the laser tail, where laser starts to shrink (micrometres)
+  Real LaserMaxT = 940.0; // End of the laser tail
+  Real LaserHead = 1040.0;
   Real zLength = 90.0; // characteristic length of high temperature region in depth (micrometres)
-  Real HeatingTime = 1.0; // Characteristic time for heating up (s)
+  Real HeatingTime = 1.0e-4; // Characteristic time for heating up (s)
   
   // Get coordinates of the current IP
   x = _q_point[_qp](0);
@@ -55,32 +57,37 @@ LaserScanAux::computeValue()
 			   "where z0 is on the upper surface. ");
   
   // Calculate laser centre as a function of time
-  x0 = _laser_init_coord[0] - _scan_velocity * _t;
+  x0 = _laser_init_coord[0] + _scan_velocity * _t;
   y0 = _laser_init_coord[1];
   z0 = _laser_init_coord[2];
   LaserShrinkBegin += x0;
   TailBegin += x0;
-  TailMiddle += x0;
-  TailEnd += x0;
-
+  LaserCentre += x0;
+  LaserMaxT += x0;
+  
   // different sections of the temperature profile
   // depending on coordinates
   if (x < x0) {
     LaserWidth *= 2.0;
 	TempValue += MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0)) * 
-	                       std::exp((x-x0)/WidthAhead);
+	                       std::exp((x-x0)/WidthBehind);
 } else if (x >= x0 && x < LaserShrinkBegin) {
     LaserWidth *= 2.0;
 	TempValue += MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0));
 } else if (x >= LaserShrinkBegin && x < TailBegin) {	
-    LaserWidth *= (1.0 + (TailBegin-x)/(TailBegin-LaserShrinkBegin));
+    LaserWidth *= (2.0 - 1.5 * std::pow((x-LaserShrinkBegin)/(TailBegin-LaserShrinkBegin),0.3));
     TempValue += MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0));
-} else if (x >= TailBegin && x < TailMiddle) {
-	TempValue += 0.95 * MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0));
-} else if (x >= TailMiddle && x < TailEnd) {
-	LaserWidth *= std::max(1.0 - (x-TailMiddle)/(TailEnd-TailMiddle),0.001);
-	TempValue += 0.95 * MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0)) * 
-	             std::pow(1.0 - (x-TailMiddle)/(TailEnd-TailMiddle),0.2);
+} else if (x >= TailBegin && x < LaserCentre) {
+	LaserWidth *= 0.4;
+	TempValue += MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0));
+} else if (x >= LaserCentre && x < LaserMaxT) {
+	LaserWidth *= 0.4 * (1.0 - 0.4 * (x-LaserCentre)/(LaserMaxT-LaserCentre));
+	MaxTemp *= (1.0 + 0.25 * (x-LaserCentre)/(LaserMaxT-LaserCentre));
+	TempValue += MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0));
+} else if (x >= LaserMaxT && x < LaserHead) {
+	LaserWidth *= 0.4 * 0.6 * (1.0 - std::pow(std::max((x-LaserMaxT)/(LaserHead-LaserMaxT),1.0e-40),0.2));
+    MaxTemp *= 1.25 * (1.0 - 0.5 * (x-LaserMaxT)/(LaserHead-LaserMaxT));
+	TempValue += MaxTemp * std::exp(-std::pow((y-y0)/LaserWidth,2.0));
 } else {
 	TempValue += 0.0;
 }
@@ -88,8 +95,8 @@ LaserScanAux::computeValue()
   // Exponential decrease of the temperature in depth
   TempValue *= std::exp(-(std::abs(z-z0))/zLength);
   
-  if (_t < 1.0) {
-	TempValue *= _t; 
+  if (_t < HeatingTime) {
+	TempValue *= (_t / HeatingTime); 
   }
   
   // Add room temperature

@@ -24,7 +24,7 @@ protected:
   /// Base name of the material system used to calculate the temperature
   const std::string _base_name;
   
-  /// Laser scan velocity magnitude, along negative x coordinates
+  /// Laser scan velocity magnitude, along positive x coordinates
   const Real _scan_velocity;
   
   std::vector<Real> _laser_init_coord;
