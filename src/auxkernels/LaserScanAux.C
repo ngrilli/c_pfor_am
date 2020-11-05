@@ -64,6 +64,7 @@ LaserScanAux::computeValue()
   TailBegin += x0;
   LaserCentre += x0;
   LaserMaxT += x0;
+  LaserHead += x0;
   
   // different sections of the temperature profile
   // depending on coordinates
