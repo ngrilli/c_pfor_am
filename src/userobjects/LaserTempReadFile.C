@@ -16,16 +16,14 @@ LaserTempReadFile::validParams()
   InputParameters params = GeneralUserObject::validParams();
   params.addClassDescription("User Object to read temperature data from an external file and assign "
                              "to elements.");
-  params.addParam<FileName>("temperature_file_name","", "Name of the temperature file name");
-  //params.addRequiredParam<Real>("temperature_time_step",0.0,"Time interval between two temperature data field");
-  params.addRequiredParam<unsigned int>("temperature_num_step",0,"Number of temperature data field in time");
+  params.addParam<FileName>("temperature_file_name","", "Name of the temperature file");
+  params.addRequiredParam<unsigned int>("temperature_num_step","Number of temperature data field in time");
   return params;
 }
 
 LaserTempReadFile::LaserTempReadFile(const InputParameters & parameters)
   : GeneralUserObject(parameters),
     _temperature_file_name(getParam<FileName>("temperature_file_name")),
-	//_temperature_time_step(getParam<Real>("temperature_time_step")),
 	_temperature_num_step(getParam<unsigned int>("temperature_num_step")),
     _mesh(_fe_problem.mesh())
 {
@@ -56,8 +54,8 @@ LaserTempReadFile::readElementData()
   std::ifstream file_prop;
   file_prop.open(_temperature_file_name.c_str());
 
-  for (unsigned int i = 0; i < _nelem; i++)
-    for (unsigned int j = 0; j < _temperature_num_step; j++)
+  for (unsigned int j = 0; j < _temperature_num_step; j++)
+    for (unsigned int i = 0; i < _nelem; i++)
       if (!(file_prop >> _data[i + j * _nelem]))
         mooseError("Error LaserTempReadFile: Premature end of temperature file");
 

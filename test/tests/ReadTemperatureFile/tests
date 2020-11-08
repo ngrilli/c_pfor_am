@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'Poly8.i'
+    exodiff = 'Poly8_out.e'
+  [../]
+[]

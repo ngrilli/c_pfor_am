@@ -29,7 +29,7 @@ public:
   void readElementData();
 
   /**
-   * This function assign property data to elements
+   * This function assign temperature data to elements
    */
   Real getData(const Elem *, unsigned int) const;
 
@@ -37,9 +37,6 @@ protected:
   
   /// Name of file containing temperature values
   std::string _temperature_file_name;
-  
-  /// Time interval between two temperature data field
-  //const Real _temperature_time_step;
   
   /// Number of temperature data field in time
   const unsigned int _temperature_num_step;
