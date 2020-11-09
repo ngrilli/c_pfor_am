@@ -40,18 +40,18 @@ LaserTempReadFileAux::computeValue()
   Real TempValue = 0.0;
   Real TempValueNext = 0.0;
   unsigned int temperature_step;
+  Real FracTimeStep = 0.0; // fraction of temperature time step completed, between 0 and 1
   
   // determine time step to be used from the CFD simulations
   temperature_step = floor(_t / _temperature_time_step);
+  FracTimeStep = _t / _temperature_time_step - temperature_step;
 	
   if (_temperature_read_user_object)
   {
     TempValue = _temperature_read_user_object->getData(_current_elem, temperature_step);
 	TempValueNext = _temperature_read_user_object->getData(_current_elem, temperature_step+1);
 	// linear interpolation of the temperature in time
-	// Define other variables, too many repetitions
-	TempValue = (_t / _temperature_time_step - temperature_step) * TempValue
-	          + (1.0 - _t / _temperature_time_step + temperature_step) * TempValueNext;
+	TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
   }
   else
   {

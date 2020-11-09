@@ -317,8 +317,8 @@
  
   start_time = 0.0
   end_time = 0.19
-  dt = 0.05
-  dtmin = 0.05
+  dt = 0.025
+  dtmin = 0.025
 
 []
 
