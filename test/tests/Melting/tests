@@ -4,4 +4,9 @@
     input = 'Melting.i'
     exodiff = 'Melting_out.e'
   [../]
+  [./testgas]
+    type = 'Exodiff'
+    input = 'MeltingAndGas.i'
+    exodiff = 'MeltingAndGas_out.e'
+  [../]
 []

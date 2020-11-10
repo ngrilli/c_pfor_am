@@ -94,7 +94,7 @@ ComputeElasticityTensorMelting::melting()
 	  }	  
 	  
 	  melt_scale_factor = std::max(0.0,(temp-_gas_temperature_low)/temp_interval);
-	  _Melt_Cijkl = (1.0-melt_scale_factor) * _Temp_Cijkl;
+	  _Melt_Cijkl = melt_scale_factor * _Temp_Cijkl;
 	  
 	  // Is a residual stiffness needed?
 	  
