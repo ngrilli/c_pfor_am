@@ -1,6 +1,6 @@
 // Nicolo Grilli
-// ADSC Singapore
-// 13 Ottobre 2020
+// National University of Singapore
+// 10 Novembre 2020
 
 #pragma once
 
@@ -11,8 +11,8 @@
  * It is based on the user object GrainPropertyReadFile
  * that allows to assign grains from the euler angles input file
  * to the physical volumes in GMSH
- * Melting is modelled as a degradation of the stiffness tensor
- * when temperature grows above the crystallization temperature
+ * Melting is considered: stiffness is degraded when the
+ * temperature increases above melting or below gas temperature.
  */
 class ComputeElasticityTensorMelting : public ComputeElasticityTensorCPGrain
 {
@@ -27,8 +27,10 @@ protected:
   
   virtual void melting();
   
-  const Real _melting_temperature;
-  const Real _crystallisation_temperature;
+  const Real _melting_temperature_high;
+  const Real _melting_temperature_low;
+  const Real _gas_temperature_high;
+  const Real _gas_temperature_low;
 
   /// Stiffness tensor modified by melting
   /// to model laser scanning
