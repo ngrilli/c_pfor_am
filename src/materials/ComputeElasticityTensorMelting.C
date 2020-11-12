@@ -20,6 +20,7 @@ ComputeElasticityTensorMelting::validParams()
   params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus = full stiffness.");
   params.addParam<Real>("gas_temperature_high", 298.1, "Lowest possible solid temperature = full stiffness.");
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
+  params.addParam<Real>("residual_stiffness", 0.1, "Residual stiffness of gas and molten pool (percent).");
   return params;
 }
 
@@ -28,7 +29,8 @@ ComputeElasticityTensorMelting::ComputeElasticityTensorMelting(const InputParame
 	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
 	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
 	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
-	_gas_temperature_low(getParam<Real>("gas_temperature_low"))
+	_gas_temperature_low(getParam<Real>("gas_temperature_low")),
+	_residual_stiffness(getParam<Real>("residual_stiffness"))
 {
 	// _Cijkl is reinizialized to the unrotated state by the base class
 }
@@ -79,9 +81,7 @@ ComputeElasticityTensorMelting::melting()
 	  }
 	  
 	  melt_scale_factor = std::min(1.0,(temp-_melting_temperature_low)/temp_interval);
-      _Melt_Cijkl = (1.0-melt_scale_factor) * _Temp_Cijkl;
-	  
-	  // Is a residual stiffness needed?
+      _Melt_Cijkl = std::max(_residual_stiffness,(1.0-melt_scale_factor)) * _Temp_Cijkl;
 	  
   } else if (temp < _gas_temperature_high) {
 	  
@@ -94,9 +94,7 @@ ComputeElasticityTensorMelting::melting()
 	  }	  
 	  
 	  melt_scale_factor = std::max(0.0,(temp-_gas_temperature_low)/temp_interval);
-	  _Melt_Cijkl = melt_scale_factor * _Temp_Cijkl;
-	  
-	  // Is a residual stiffness needed?
+	  _Melt_Cijkl = std::max(_residual_stiffness,melt_scale_factor) * _Temp_Cijkl;
 	  
   } else {
 	  _Melt_Cijkl = _Temp_Cijkl;

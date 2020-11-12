@@ -31,6 +31,9 @@ protected:
   const Real _melting_temperature_low;
   const Real _gas_temperature_high;
   const Real _gas_temperature_low;
+  
+  /// Residual stiffness of gas and molten pool (percent)
+  const Real _residual_stiffness;
 
   /// Stiffness tensor modified by melting
   /// to model laser scanning
