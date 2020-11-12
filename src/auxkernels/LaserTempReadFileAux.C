@@ -58,6 +58,17 @@ LaserTempReadFileAux::computeValue()
   {
     TempValue = _temperature_read_user_object->getData(_current_elem, temperature_step);
 	TempValueNext = _temperature_read_user_object->getData(_current_elem, temperature_step+1);
+	
+	// Limit temperature in the interval gas to liquidus
+    // to avoid problem with the temperature dependencies
+    // of elastic constants, CRSS, CTE
+	
+    TempValue = std::min(_melting_temperature_high,TempValue);
+    TempValue = std::max(_gas_temperature_low,TempValue);
+	
+	TempValueNext = std::min(_melting_temperature_high,TempValueNext);
+	TempValueNext = std::max(_gas_temperature_low,TempValueNext);
+	
 	// linear interpolation of the temperature in time
 	TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
   }
@@ -65,12 +76,6 @@ LaserTempReadFileAux::computeValue()
   {
 	mooseError("Error in reading temperature file");
   }
-  
-  // Limit temperature in the interval gas to liquidus
-  // to avoid problem with the temperature dependencies
-  // of elastic constants, CRSS, CTE
-  TempValue = std::min(_melting_temperature_high,TempValue);
-  TempValue = std::max(_gas_temperature_low,TempValue);
   
   return TempValue;
 }
