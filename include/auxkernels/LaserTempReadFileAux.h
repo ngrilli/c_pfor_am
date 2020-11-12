@@ -30,6 +30,11 @@ protected:
   /// Time interval between two temperature data field
   const Real _temperature_time_step;
 
+  const Real _melting_temperature_high;
+  const Real _melting_temperature_low;
+  const Real _gas_temperature_high;
+  const Real _gas_temperature_low;
+
   virtual Real computeValue();
 
 };

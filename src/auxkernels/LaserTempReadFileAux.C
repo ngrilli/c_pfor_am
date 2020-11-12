@@ -19,6 +19,10 @@ LaserTempReadFileAux::validParams()
                                   "GeneralUserObject to read element "
                                   "specific temperature values from file");
   params.addRequiredParam<Real>("temperature_time_step","Time interval between two temperature data field");
+  params.addParam<Real>("melting_temperature_high", 1673.15, "Melting temperature (liquidus) = zero stiffness.");  
+  params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus = full stiffness.");
+  params.addParam<Real>("gas_temperature_high", 298.1, "Lowest possible solid temperature = full stiffness.");
+  params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
   return params;
 }
 
@@ -28,7 +32,11 @@ LaserTempReadFileAux::LaserTempReadFileAux(const InputParameters & parameters)
 	_temperature_read_user_object(isParamValid("temperature_read_user_object")
                                   ? &getUserObject<LaserTempReadFile>("temperature_read_user_object")
                                   : nullptr),
-    _temperature_time_step(getParam<Real>("temperature_time_step"))
+    _temperature_time_step(getParam<Real>("temperature_time_step")),
+	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
+	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
+	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
+	_gas_temperature_low(getParam<Real>("gas_temperature_low"))
 {
 }
 
@@ -57,6 +65,12 @@ LaserTempReadFileAux::computeValue()
   {
 	mooseError("Error in reading temperature file");
   }
+  
+  // Limit temperature in the interval gas to liquidus
+  // to avoid problem with the temperature dependencies
+  // of elastic constants, CRSS, CTE
+  TempValue = std::min(_melting_temperature_high,TempValue);
+  TempValue = std::max(_gas_temperature_low,TempValue);
   
   return TempValue;
 }
