@@ -49,6 +49,8 @@ LaserTempReadFileAux::computeValue()
   Real TempValueNext = 0.0;
   unsigned int temperature_step;
   Real FracTimeStep = 0.0; // fraction of temperature time step completed, between 0 and 1
+  bool isGasOrLiquid = false;
+  bool isGasOrLiquidNext = false;
   
   // determine time step to be used from the CFD simulations
   temperature_step = floor(_t / _temperature_time_step);
@@ -59,18 +61,33 @@ LaserTempReadFileAux::computeValue()
     TempValue = _temperature_read_user_object->getData(_current_elem, temperature_step);
 	TempValueNext = _temperature_read_user_object->getData(_current_elem, temperature_step+1);
 	
-	// Limit temperature in the interval gas to liquidus
-    // to avoid problem with the temperature dependencies
-    // of elastic constants, CRSS, CTE
+	if (TempValue > _melting_temperature_low || TempValue < _gas_temperature_high) {
+	  isGasOrLiquid = true;	
+	}
 	
-    TempValue = std::min(_melting_temperature_high,TempValue);
-    TempValue = std::max(_gas_temperature_low,TempValue);
+	if (TempValueNext > _melting_temperature_low || TempValueNext < _gas_temperature_high) {
+	  isGasOrLiquidNext = true;	
+	}
 	
-	TempValueNext = std::min(_melting_temperature_high,TempValueNext);
-	TempValueNext = std::max(_gas_temperature_low,TempValueNext);
+	if (isGasOrLiquid && isGasOrLiquidNext) {
+	  // This is a transition from liquid to gas
+	  // or gas to liquid
+	  TempValue = TempValueNext;
+		
+	} else {
+	  // Limit temperature in the interval gas to liquidus
+      // to avoid problem with the temperature dependencies
+      // of elastic constants, CRSS, CTE
 	
-	// linear interpolation of the temperature in time
-	TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
+      TempValue = std::min(_melting_temperature_high,TempValue);
+      TempValue = std::max(_gas_temperature_low,TempValue);
+	
+	  TempValueNext = std::min(_melting_temperature_high,TempValueNext);
+	  TempValueNext = std::max(_gas_temperature_low,TempValueNext);
+	
+	  // linear interpolation of the temperature in time
+	  TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
+	}
   }
   else
   {
