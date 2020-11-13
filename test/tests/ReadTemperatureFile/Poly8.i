@@ -316,8 +316,8 @@
   l_tol = 1e-5
  
   start_time = 0.0
-  end_time = 0.02
-  dt = 0.01
+  end_time = 0.2
+  dt = 0.05
   dtmin = 0.001
 
 []

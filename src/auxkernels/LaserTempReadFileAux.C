@@ -65,17 +65,11 @@ LaserTempReadFileAux::computeValue()
     // to avoid problem with the temperature dependencies
     // of elastic constants, CRSS, CTE
 	
-	if (TempValue < _gas_temperature_high) {
-		TempValue = _melting_temperature_high;
-	}
+    TempValue = std::min(_melting_temperature_low,TempValue);
+	TempValue = std::max(_gas_temperature_low,TempValue);
 	
-	if (TempValueNext < _gas_temperature_high) {
-		TempValueNext = _melting_temperature_high;
-	}
-	
-    TempValue = std::min(_melting_temperature_high,TempValue);
-	
-	TempValueNext = std::min(_melting_temperature_high,TempValueNext);
+	TempValueNext = std::min(_melting_temperature_low,TempValueNext);
+	TempValueNext = std::max(_gas_temperature_low,TempValueNext);
 	
 	// linear interpolation of the temperature in time
 	TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
