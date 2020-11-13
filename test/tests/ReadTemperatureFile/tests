@@ -4,4 +4,10 @@
     input = 'Poly8.i'
     exodiff = 'Poly8_out.e'
   [../]
+  
+  [./test_gap_phase]
+    type = 'Exodiff'
+    input = 'GasPhase.i'
+    exodiff = 'GasPhase_out.e'
+  [../]
 []

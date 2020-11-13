@@ -1,10 +1,11 @@
 // Nicolo Grilli
 // National University of Singapore
-// 10 Novembre 2020
+// 13 Novembre 2020
 
 #pragma once
 
 #include "ComputeElasticityTensorCPGrain.h"
+#include "LaserTempReadFile.h"
 
 /**
  * ComputeElasticityTensorMelting defines an elasticity tensor material object for crystal plasticity.
@@ -25,6 +26,8 @@ protected:
 
   virtual void computeQpElasticityTensor() override;
   
+  virtual void checkPhase();
+  
   virtual void melting();
   
   const Real _melting_temperature_high;
@@ -35,8 +38,34 @@ protected:
   /// Residual stiffness of gas and molten pool (percent)
   const Real _residual_stiffness;
 
+  /// The LaserTempReadFile GeneralUserObject to read element specific temperature values from file
+  const LaserTempReadFile * const _temperature_read_user_object;
+  
+  /// Time interval between two temperature data field
+  const Real _temperature_time_step;
+
   /// Stiffness tensor modified by melting
   /// to model laser scanning
   RankFourTensor _Melt_Cijkl;
+  
+  /// Flags to indicate the phase at the current 
+  /// and next temperature time step 
+  unsigned int _isSolid;
+  unsigned int _isLiquid;
+  unsigned int _isGas;
+  unsigned int _isSolidNext;
+  unsigned int _isLiquidNext;
+  unsigned int _isGasNext;
+  
+  // Temperature values at the current and 
+  // next temperature time step
+  Real _TempValue;
+  Real _TempValueNext;
+  
+  // temperature time step to be used from the CFD simulations
+  unsigned int _temperature_step;
+  
+  // fraction of temperature time step completed, between 0 and 1
+  Real _FracTimeStep;
   
 };

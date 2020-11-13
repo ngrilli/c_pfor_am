@@ -1,12 +1,12 @@
 [Mesh]
   type = GeneratedMesh
   dim = 3
-  nx = 20
-  ny = 10
+  nx = 1
+  ny = 1
   nz = 1
-  xmax = 2.0
+  xmax = 1.0
   ymax = 1.0
-  zmax = 0.1
+  zmax = 1.0
   elem_type = HEX8
   displacements = 'disp_x disp_y disp_z'
 []
@@ -30,87 +30,54 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  
-  # Dislocation densities
-  
-  [./rho_edge_pos_12] 
-    order = FIRST
-    family = LAGRANGE
-	[./InitialCondition]
-      type = FunctionIC
-      function = init_rho_edge_pos
-    [../]
-  [../]
-  
-  [./rho_edge_neg_12] 
-    order = FIRST
-    family = LAGRANGE
-	[./InitialCondition]
-      type = FunctionIC
-      function = init_rho_edge_neg
-    [../]
-  [../]
 []
 
 [AuxVariables]
   [./temp]
     order = FIRST
     family = LAGRANGE
+	[./InitialCondition]
+      type = ConstantIC
+      value = 303.0
+    [../]
   [../]
 
-  [./stress_xy]
+  [./stress_yy]
     order = CONSTANT
     family = MONOMIAL
   [../]
 
-  [./fp_xy]
+  [./stress_xx]
     order = CONSTANT
     family = MONOMIAL
   [../]
 
-  [./gss]
+  [./stress_zz]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  
-  [./dislov]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]  
-  
-  [./slip_incr_out]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]  
 []
 
 [Functions]
-  [./temperature_load]
-    type = ParsedFunction
-    value = '298.0'
-  [../]
-  [./init_rho_edge_pos]
-    type = ParsedFunction
-	value = 'if(3.0*(x-1.05),0.0,1.0)*if(3.0*(y-0.5),0.0,1.0)'
-  [../]
-  [./init_rho_edge_neg]
-    type = ParsedFunction
-	value = 'if(3.0*(x-0.95),0.0,1.0)*if(3.0*(y-0.5),0.0,1.0)'
-  [../]
   [./disp_load]
-    type = ParsedFunction
-    value = '0.1*t'
+    type = PiecewiseLinear
+    x = '0.0 1.0 2.0 3.0 4.0'
+    y = '0.0 0.0001 0.0001 0.0001 0.0001'
   [../]
 []
 
 [UserObjects]
   [./prop_read]
     type = GrainPropertyReadFile
-    prop_file_name = 'euler_ang_test.inp'
+    prop_file_name = 'Euler1El.txt'
     # Enter file data as prop#1, prop#2, .., prop#nprop
     nprop = 3
-    ngrain = 1
-    read_type = indexgrain
+    read_type = element
+  [../]
+  [./temperature_read]
+    type = LaserTempReadFile
+	temperature_file_name = 'temperature1El.txt'
+	temperature_num_step = 5
   [../]
 []
 
@@ -120,115 +87,76 @@
     use_displaced_mesh = true
     add_variables = true
   [../]
-  [./drho_pos_dt]
-    type = MassLumpedTimeDerivative
-    variable = rho_edge_pos_12
-  [../]
-  [./rho_pos_advection]
-    type = ConservativeAdvectionSchmid
-    variable = rho_edge_pos_12
-    upwinding_type = full
-	slip_sys_index = 11
-	dislo_sign = positive
-  [../]
-  [./drho_neg_dt]
-    type = MassLumpedTimeDerivative
-    variable = rho_edge_neg_12
-  [../]
-  [./rho_neg_advection]
-    type = ConservativeAdvectionSchmid
-    variable = rho_edge_neg_12
-    upwinding_type = full
-	slip_sys_index = 11
-	dislo_sign = negative
-  [../]
 []
 
 [AuxKernels]
 
-  [./stress_xy]
+  [./stress_yy]
     type = RankTwoAux
-    variable = stress_xy
+    variable = stress_yy
     rank_two_tensor = stress
     index_j = 1
-    index_i = 0
+    index_i = 1
     execute_on = timestep_end
     block = 'ANY_BLOCK_ID 0'
   [../]  
 
-  [./fp_xy]
+  [./stress_xx]
     type = RankTwoAux
-    variable = fp_xy
-    rank_two_tensor = fp
-    index_j = 1
+    variable = stress_xx
+    rank_two_tensor = stress
+    index_j = 0
     index_i = 0
+    execute_on = timestep_end
+    block = 'ANY_BLOCK_ID 0'
+  [../]
+
+  [./stress_zz]
+    type = RankTwoAux
+    variable = stress_zz
+    rank_two_tensor = stress
+    index_j = 2
+    index_i = 2
     execute_on = timestep_end
     block = 'ANY_BLOCK_ID 0'
   [../]
 
   [./tempfuncaux]
-    type = FunctionAux
+    type = LaserTempReadFileAux
     variable = temp
-    function = temperature_load
+    temperature_read_user_object = temperature_read
+	temperature_time_step = 1.0
     block = 'ANY_BLOCK_ID 0'
   [../]
-
-  [./gss]
-    type = MaterialStdVectorAux
-    variable = gss
-    property = gss
-    index = 11
-    execute_on = timestep_end
-    block = 'ANY_BLOCK_ID 0'
-  [../]
-  
-  [./dislov]
-    type = MaterialStdVectorAux
-    variable = dislov
-    property = dislo_velocity
-    index = 11
-    execute_on = timestep_end
-    block = 'ANY_BLOCK_ID 0'
-  [../]
-  
-  [./slip_incr_out]
-    type = MaterialStdVectorAux
-    variable = slip_incr_out
-    property = slip_incr_out
-    index = 11
-    execute_on = timestep_end
-    block = 'ANY_BLOCK_ID 0'
-  [../]
-
 []
 
 [BCs]
 
-  [./z_back]
+  [./z_bot]
     type = DirichletBC
     variable = disp_z
     boundary = back
     value = 0.0
   [../]
 
-  [./y_bott]
+  [./y_bot]
     type = DirichletBC
     variable = disp_y
     boundary = bottom
     value = 0.0
   [../]
-  
-  [./x_bott]
+
+  [./x_bot]
     type = DirichletBC
     variable = disp_x
-    boundary = bottom
+    boundary = left
     value = 0.0
   [../]
   
-  [./disp_top]
+  [./z_load]
     type = FunctionDirichletBC
-    variable = disp_x
-    boundary = top
+    variable = disp_z
+    boundary = front
     function = disp_load
   [../]
 
@@ -240,19 +168,28 @@
 
 [Materials]
   [./crysp]
-    type = FiniteStrainCrystalPlasticityDislo
+    type = FiniteStrainCrystalPlasticityThermal
     block = 0
     gtol = 1e-2
     slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
     nss = 12 # Number of slip systems
     num_slip_sys_flowrate_props = 2 #Number of flow rate properties in a slip system
-    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1' # slip rate equations parameters
-	hprops = '1.0 3629.0 216.0 300.5 2.5' # hardening properties
-    gprops = '1 12 216.0' # initial values of slip system resistances (start_slip_sys, end_slip_sys, value)
+    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1' # slip rate equations parameters 
+# Calibrated by comparing with Fig 2b in:
+# Wen Chen et al.
+# Microscale residual stresses in additively
+# manufactured stainless steel
+# NATURE COMMUNICATIONS (2019) 10:4338
+    hprops = '1.0 3839.0 213.0 302.0 2.5' # hardening properties
+    gprops = '1 12 213.0' # initial values of slip system resistances (start_slip_sys, end_slip_sys, value)
     tan_mod_type = exact
-    thermal_expansion = '17e-6'
+    thermal_expansion = '0.0e-6'
     reference_temperature = '298.0'
     temp = temp
+    maxiter = 250
+    maxitergss = 250
+    maximum_substep_iteration = 6
+    gen_random_stress_flag = true
 # Calibrated using table 1 in:
 # M.R. DAYMOND and P.J. BOUCHARD
 # Elastoplastic Deformation of 316 Stainless Steel Under
@@ -262,14 +199,16 @@
 	dCRSS_dT_A = 0.53
 	dCRSS_dT_B = 0.47
 	dCRSS_dT_C = 0.008
-# Hull, Bacon, Dislocations, figure 3.11a
-	dislo_mobility = 1.0 # um/s/MPa
-	burgers_vector_mag = 0.001
-	rho_edge_pos_12 = rho_edge_pos_12
-	rho_edge_neg_12 = rho_edge_neg_12
+# Calibrated using table 1 in:
+# W.Jiang, Y.Zhang and W.Woo
+# Using heat sink technology to decrease residual stress
+# in 316L stainless steel welding joint:Finite element simulation
+# Int.J.Press.Vessel.Pip.
+# VOLUME 92, pp.56-62, 2012
+    dCTE_dT='0.0'
   [../]
   [./elasticity_tensor]
-    type = ComputeElasticityTensorCPGrain
+    type = ComputeElasticityTensorMelting
 # Elastic constants of 316L SS from:
 # Clausen, B., Lorentzen, T. and Leffers, T. 
 # Self-consistent modelling of the plastic
@@ -283,6 +222,8 @@
     dC11_dT = 0.0004415
     dC12_dT = 0.0003275
     dC44_dT = 0.0004103
+	temperature_read_user_object = temperature_read
+	temperature_time_step = 1.0
   [../]
   [./strain]
     type = ComputeFiniteStrain
@@ -314,14 +255,14 @@
   l_tol = 1e-8
 
   start_time = 0.0
-  end_time = 0.002 # 0.35
-  dt = 0.001
-  dtmin = 0.001
+  end_time = 0.2
+  dt = 0.1
+  dtmin = 0.01
 []
 
 [Outputs]
   [./out]
     type = Exodus
-    interval = 2
+    interval = 1
   [../]
 []

@@ -41,7 +41,7 @@
     family = LAGRANGE
     [./InitialCondition]
       type = ConstantIC
-      value = '818.5'
+      value = '800.0'
     [../]
   [../]
 
@@ -117,7 +117,7 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '818.5'
+    value = '800.0'
   [../]
 
   [./disp_load]
@@ -385,7 +385,7 @@
     gprops = '1 4 60.8 5 8 60.8 9 12 60.8' # initial values of slip system resistances (start_slip_sys, end_slip_sys, value)
     tan_mod_type = exact
     thermal_expansion = '17e-6'
-    reference_temperature = '818.5'
+    reference_temperature = '800.0'
     temp = temp
   [../]
   [./elasticity_tensor]

@@ -42,7 +42,7 @@
     family = LAGRANGE
     [./InitialCondition]
       type = ConstantIC
-      value = '293.0'
+      value = '298.0'
     [../]
   [../]
 
@@ -143,7 +143,7 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = 293
+    value = 298
   [../]
   [./disp_load]
     type = ParsedFunction

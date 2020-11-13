@@ -49,8 +49,6 @@ LaserTempReadFileAux::computeValue()
   Real TempValueNext = 0.0;
   unsigned int temperature_step;
   Real FracTimeStep = 0.0; // fraction of temperature time step completed, between 0 and 1
-  bool isGasOrLiquid = false;
-  bool isGasOrLiquidNext = false;
   
   // determine time step to be used from the CFD simulations
   temperature_step = floor(_t / _temperature_time_step);

@@ -1,6 +1,6 @@
 // Nicolo Grilli
 // National University of Singapore
-// 10 Novembre 2020
+// 13 Novembre 2020
 
 #include "ComputeElasticityTensorMelting.h"
 #include "RotationTensor.h"
@@ -21,6 +21,11 @@ ComputeElasticityTensorMelting::validParams()
   params.addParam<Real>("gas_temperature_high", 298.1, "Lowest possible solid temperature = full stiffness.");
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
   params.addParam<Real>("residual_stiffness", 0.1, "Residual stiffness of gas and molten pool (percent).");
+  params.addParam<UserObjectName>("temperature_read_user_object",
+                                  "The LaserTempReadFile "
+                                  "GeneralUserObject to read element "
+                                  "specific temperature values from file");
+  params.addParam<Real>("temperature_time_step",1.0,"Time interval between two temperature data field");
   return params;
 }
 
@@ -30,7 +35,11 @@ ComputeElasticityTensorMelting::ComputeElasticityTensorMelting(const InputParame
 	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
 	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
 	_gas_temperature_low(getParam<Real>("gas_temperature_low")),
-	_residual_stiffness(getParam<Real>("residual_stiffness"))
+	_residual_stiffness(getParam<Real>("residual_stiffness")),
+	_temperature_read_user_object(isParamValid("temperature_read_user_object")
+                                  ? &getUserObject<LaserTempReadFile>("temperature_read_user_object")
+                                  : nullptr),
+    _temperature_time_step(getParam<Real>("temperature_time_step"))
 {
 	// _Cijkl is reinizialized to the unrotated state by the base class
 }
@@ -38,6 +47,9 @@ ComputeElasticityTensorMelting::ComputeElasticityTensorMelting(const InputParame
 void
 ComputeElasticityTensorMelting::computeQpElasticityTensor()
 {
+  Real temp = _temp[_qp]; // Temperature
+  Real deltatemp;	
+	
   // Properties assigned at the beginning of every call to material calculation
   assignEulerAngles();
 
@@ -45,60 +57,108 @@ ComputeElasticityTensorMelting::computeQpElasticityTensor()
 
   _crysrot[_qp] = _R.transpose();
   
-  // Apply temperature dependence on _Cijkl
-  // and save results on _Temp_Cijkl
-  temperatureDependence();
+  // Check phase at the current and next temperature time step
+  checkPhase();
   
-  // Apply degradation of the stiffness matrix
-  // due to melting to _Temp_Cijkl
-  // and save results on _Melt_Cijkl
-  melting();
+  if (_isGas == 0 && _isGasNext == 0) {
+	  
+	// Apply temperature dependence on _Cijkl
+    // and save results on _Temp_Cijkl
+    deltatemp = temp - 298.0;
+    temperatureDependence(deltatemp);
+	
+	_elasticity_tensor[_qp] = _Temp_Cijkl;
+	
+  } else {
+	  
+    // Apply degradation of the stiffness matrix
+    // due to melting or gas to _Temp_Cijkl
+    // and save results on _Melt_Cijkl
+    melting(); 
+	
+    _elasticity_tensor[_qp] = _Melt_Cijkl;
+  }
   
-  _elasticity_tensor[_qp] = _Melt_Cijkl;
-
   _elasticity_tensor[_qp].rotate(_crysrot[_qp]);
+}
+
+void
+ComputeElasticityTensorMelting::checkPhase()
+{
+  // determine time step to be used from the CFD simulations
+  _temperature_step = floor(_t / _temperature_time_step);
+  _FracTimeStep = _t / _temperature_time_step - _temperature_step;
+  
+  _isSolid = 0;
+  _isLiquid = 0;
+  _isGas = 0;
+  _isSolidNext = 0;
+  _isLiquidNext = 0;
+  _isGasNext = 0;
+  
+  if (_temperature_read_user_object)
+  {
+    _TempValue = _temperature_read_user_object->getData(_current_elem, _temperature_step);
+	_TempValueNext = _temperature_read_user_object->getData(_current_elem, _temperature_step+1);
+
+	// Limit temperature in the interval gas to melting temperature
+    // to avoid problem with the temperature dependencies
+    // of elastic constants, CRSS, CTE
+	
+    _TempValue = std::min(_melting_temperature_low,_TempValue);
+	_TempValue = std::max(_gas_temperature_low,_TempValue);
+	
+	_TempValueNext = std::min(_melting_temperature_low,_TempValueNext);
+	_TempValueNext = std::max(_gas_temperature_low,_TempValueNext);
+	
+	// check phases, current and next
+    if (_TempValue < _gas_temperature_high) {
+	  _isGas = 1;
+	} else if (_TempValue < _melting_temperature_low) {
+	  _isSolid = 1;
+	} else {
+	  _isLiquid = 1;	
+	}	
+	
+	if (_TempValueNext < _gas_temperature_high) {
+	  _isGasNext = 1;
+	} else if (_TempValueNext < _melting_temperature_low) {
+	  _isSolidNext = 1;	  
+	} else {
+	  _isLiquidNext = 1;	
+	}	
+  }
 }
 
 void
 ComputeElasticityTensorMelting::melting()
 {	
-  Real temp = _temp[_qp]; // Temperature
-  Real melt_scale_factor;
-  Real temp_interval; // Temperature interval between full and zero stiffness
+  Real deltatemp;
   
-  if (_gas_temperature_high > _melting_temperature_low) {
-	  mooseError("Environment gas temperature cannot be higher than melting temperature");
-  }
+  if (_isGas == 0 && _isGasNext == 1) { // becoming gas
   
-  if (temp > _melting_temperature_low) {
+  	// start from temperature value at the last
+	// temperature time step
+	deltatemp = _TempValue - 298.0;
+	temperatureDependence(deltatemp);
+  
+    _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
+		
+  } else if (_isGas == 1 && _isGasNext == 0) { // back to normal
+  
+    // end at temperature value of the last
+	// temperature time step
+	deltatemp = _TempValueNext - 298.0;
+	temperatureDependence(deltatemp);
+  
+    _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
 	  
-	  // rescale the stiffness linearly with temperature
-	  // in the interval [_melting_temperature_low,_melting_temperature_high]
-	  temp_interval = _melting_temperature_high - _melting_temperature_low;
-	  
-	  if (temp_interval <= 0) {
-		  mooseError("Liquidus temperature must be larger than solidus temperature");
-	  }
-	  
-	  melt_scale_factor = std::min(1.0,(temp-_melting_temperature_low)/temp_interval);
-      _Melt_Cijkl = std::max(_residual_stiffness,(1.0-melt_scale_factor)) * _Temp_Cijkl;
-	  
-  } else if (temp < _gas_temperature_high) {
-	  
-	  // rescale the stiffness linearly with temperature
-	  // in the interval [_gas_temperature_low,_gas_temperature_high]
-	  temp_interval = _gas_temperature_high - _gas_temperature_low;
-	  
-	  if (temp_interval <= 0) {
-		  mooseError("Gas temperatures low and high inverted");
-	  }	  
-	  
-	  melt_scale_factor = std::max(0.0,(temp-_gas_temperature_low)/temp_interval);
-	  _Melt_Cijkl = std::max(_residual_stiffness,melt_scale_factor) * _Temp_Cijkl;
-	  
-  } else {
-	  _Melt_Cijkl = _Temp_Cijkl;
-  }
+  } else if (_isGas == 1 && _isGasNext == 1) { 
+  
+    // gas to gas: _Temp_Cijkl is never calculated in this case
+	_Melt_Cijkl = _residual_stiffness * _Cijkl;
+	
+  }  
 }
 
 

@@ -18,7 +18,7 @@ ComputeElasticityTensorCPGrain::validParams()
                                   "The GrainPropertyReadFile "
                                   "GeneralUserObject to read element "
                                   "specific property values from file");
-  params.addCoupledVar("temp", 293.0,"Temperature, initialize at room temperature");
+  params.addCoupledVar("temp", 298.0,"Temperature, initialize at room temperature");
   params.addParam<Real>("dC11_dT", 0.0, "Change of C11 stiffness tensor component with temperature. "
 									    "Use positive values, minus sign is added in the code. ");  
   params.addParam<Real>("dC12_dT", 0.0, "Change of C12 stiffness tensor component with temperature. "
@@ -68,6 +68,9 @@ ComputeElasticityTensorCPGrain::assignEulerAngles()
 void
 ComputeElasticityTensorCPGrain::computeQpElasticityTensor()
 {
+  Real temp = _temp[_qp]; // Temperature
+  Real deltatemp;
+  
   // Properties assigned at the beginning of every call to material calculation
   assignEulerAngles();
 
@@ -77,7 +80,8 @@ ComputeElasticityTensorCPGrain::computeQpElasticityTensor()
   
   // Apply temperature dependence on _Cijkl
   // and save results on _Temp_Cijkl
-  temperatureDependence();
+  deltatemp = temp - 298.0;
+  temperatureDependence(deltatemp);
   
   _elasticity_tensor[_qp] = _Temp_Cijkl;
 
@@ -87,13 +91,8 @@ ComputeElasticityTensorCPGrain::computeQpElasticityTensor()
 // Temperature dependence of the elasticity tensor
 // always referred to room temperature
 void
-ComputeElasticityTensorCPGrain::temperatureDependence()
+ComputeElasticityTensorCPGrain::temperatureDependence(Real deltatemp)
 {
-  Real temp = _temp[_qp]; // Temperature
-  Real deltatemp; // Temperature variation
-  
-  deltatemp = temp - 293.0;
-  
   // Components with C11 coefficient
   _Temp_Cijkl(0, 0, 0, 0) = (1.0 - _dC11_dT * deltatemp) * _Cijkl(0, 0, 0, 0); // C1111
   _Temp_Cijkl(1, 1, 1, 1) = (1.0 - _dC11_dT * deltatemp) * _Cijkl(1, 1, 1, 1); // C2222

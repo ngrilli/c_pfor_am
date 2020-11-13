@@ -27,7 +27,7 @@ protected:
 
   virtual void assignEulerAngles();
   
-  virtual void temperatureDependence();
+  virtual void temperatureDependence(Real);
 
   /**
    * Element property read user object
