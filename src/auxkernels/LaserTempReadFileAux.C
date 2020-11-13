@@ -60,34 +60,25 @@ LaserTempReadFileAux::computeValue()
   {
     TempValue = _temperature_read_user_object->getData(_current_elem, temperature_step);
 	TempValueNext = _temperature_read_user_object->getData(_current_elem, temperature_step+1);
+
+	// Limit temperature in the interval gas to liquidus
+    // to avoid problem with the temperature dependencies
+    // of elastic constants, CRSS, CTE
 	
-	if (TempValue > _melting_temperature_low || TempValue < _gas_temperature_high) {
-	  isGasOrLiquid = true;	
+	if (TempValue < _gas_temperature_high) {
+		TempValue = _melting_temperature_high;
 	}
 	
-	if (TempValueNext > _melting_temperature_low || TempValueNext < _gas_temperature_high) {
-	  isGasOrLiquidNext = true;	
+	if (TempValueNext < _gas_temperature_high) {
+		TempValueNext = _melting_temperature_high;
 	}
 	
-	if (isGasOrLiquid && isGasOrLiquidNext) {
-	  // This is a transition from liquid to gas
-	  // or gas to liquid
-	  TempValue = TempValueNext;
-		
-	} else {
-	  // Limit temperature in the interval gas to liquidus
-      // to avoid problem with the temperature dependencies
-      // of elastic constants, CRSS, CTE
+    TempValue = std::min(_melting_temperature_high,TempValue);
 	
-      TempValue = std::min(_melting_temperature_high,TempValue);
-      TempValue = std::max(_gas_temperature_low,TempValue);
+	TempValueNext = std::min(_melting_temperature_high,TempValueNext);
 	
-	  TempValueNext = std::min(_melting_temperature_high,TempValueNext);
-	  TempValueNext = std::max(_gas_temperature_low,TempValueNext);
-	
-	  // linear interpolation of the temperature in time
-	  TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
-	}
+	// linear interpolation of the temperature in time
+	TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
   }
   else
   {
