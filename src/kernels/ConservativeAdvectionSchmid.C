@@ -1,6 +1,6 @@
 // Nicolo Grilli
 // National University of Singapore
-// 1 Novembre 2020
+// 16 Novembre 2020
 
 #include "ConservativeAdvectionSchmid.h"
 #include "SystemBase.h"
@@ -28,17 +28,23 @@ ConservativeAdvectionSchmid::validParams()
   MooseEnum dislo_sign("positive negative", "positive");
   params.addRequiredParam<MooseEnum>("dislo_sign",
                                      dislo_sign,
-                                     "Sign of edge dislocations.");
+                                     "Sign of dislocations.");
+  MooseEnum dislo_character("edge screw", "edge");
+  params.addRequiredParam<MooseEnum>("dislo_character",
+                                     dislo_character,
+                                     "Character of dislocations: edge or screw.");
   return params;
 }
 
 ConservativeAdvectionSchmid::ConservativeAdvectionSchmid(const InputParameters & parameters)
   : Kernel(parameters),
-    _slip_direction(getMaterialProperty<std::vector<Real>>("slip_direction")), // Velocity direction
+    _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
+	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
     _upwinding(getParam<MooseEnum>("upwinding_type").getEnum<UpwindingType>()),
 	_slip_sys_index(getParam<int>("slip_sys_index")),
 	_dislo_sign(getParam<MooseEnum>("dislo_sign").getEnum<DisloSign>()),
+	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>()),
     _u_nodal(_var.dofValues()),
     _upwind_node(0),
     _dtotal_mass_out(0)
@@ -61,11 +67,27 @@ ConservativeAdvectionSchmid::negSpeedQp()
   }  
 	
   _velocity.resize(3, 0.0);
-  // Find dislocation velocity based on slip systems index
+  
+  // Find dislocation velocity based on slip systems index and dislocation character
+  switch (_dislo_character)
+  {
+    case DisloCharacter::edge:
+	  for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+	  {
+	    _velocity[j] = _edge_slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // edge direction	  
+	  }
+	  break;
+	case DisloCharacter::screw:
+	  for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+	  {
+	    _velocity[j] = _screw_slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // screw direction	  
+	  }	
+	  break;
+  }
+	
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
   {
-	_velocity[j] = _slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // direction
-	_velocity[j] *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value (positive edge)
+	_velocity[j] *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value
 	_velocity[j] *= edge_sign; // positive or negative dislocation
   }
   

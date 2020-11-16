@@ -1,7 +1,7 @@
 // Nicolo Grilli
 // Daijun Hu 
 // National University of Singapore
-// 1 Novembre 2020
+// 16 Novembre 2020
 
 #include "FiniteStrainCrystalPlasticityDislo.h"
 #include "petscblaslapack.h"
@@ -141,7 +141,7 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_dislo_mobility(getParam<Real>("dislo_mobility")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")), // Magnitude of the Burgers vector
 	_gssT(_nss),
-    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Edge slip directions
+    _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")), // Edge slip directions
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")), // Slip system resistances
 	_dislo_velocity(declareProperty<std::vector<Real>>("dislo_velocity")), // Dislocation velocity
@@ -371,10 +371,11 @@ FiniteStrainCrystalPlasticityDislo::OutputSlipDirection()
     }
   }
  
-  _slip_direction[_qp].resize(LIBMESH_DIM * _nss);
+  _edge_slip_direction[_qp].resize(LIBMESH_DIM * _nss);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _nss);
 
   // Store slip direction (already normalized)
+  // for edge and screw dislocations
   // to couple with dislocation transport
   for (unsigned int i = 0; i < _nss; ++i)
   {
@@ -388,7 +389,7 @@ FiniteStrainCrystalPlasticityDislo::OutputSlipDirection()
 	  
     for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
     {
-  	  _slip_direction[_qp][i * LIBMESH_DIM + j] = mo(i * LIBMESH_DIM + j);
+  	  _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = mo(i * LIBMESH_DIM + j);
 	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
   	}
   }

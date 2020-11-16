@@ -1,7 +1,7 @@
 // Nicolo Grilli
 // Daijun Hu 
 // National University of Singapore
-// 1 Novembre 2020
+// 16 Novembre 2020
 
 #pragma once
 
@@ -121,7 +121,7 @@ protected:
   // Rotated slip direction to couple with dislocation transport
   // to indicate dislocation velocity direction for all slip systems
   // edge dislocations
-  MaterialProperty<std::vector<Real>> & _slip_direction;
+  MaterialProperty<std::vector<Real>> & _edge_slip_direction;
   
   // edge dislocation line direction
   // corresponding to direction of motion of screw dislocations
