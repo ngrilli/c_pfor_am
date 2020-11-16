@@ -45,6 +45,30 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addCoupledVar("rho_edge_neg_11",0.0,"Negative edge dislocation density: slip system 11");
   params.addCoupledVar("rho_edge_pos_12",0.0,"Positive edge dislocation density: slip system 12");
   params.addCoupledVar("rho_edge_neg_12",0.0,"Negative edge dislocation density: slip system 12");
+  params.addCoupledVar("rho_screw_pos_1",0.0,"Positive screw dislocation density: slip system 1");
+  params.addCoupledVar("rho_screw_neg_1",0.0,"Negative screw dislocation density: slip system 1");
+  params.addCoupledVar("rho_screw_pos_2",0.0,"Positive screw dislocation density: slip system 2");
+  params.addCoupledVar("rho_screw_neg_2",0.0,"Negative screw dislocation density: slip system 2");
+  params.addCoupledVar("rho_screw_pos_3",0.0,"Positive screw dislocation density: slip system 3");
+  params.addCoupledVar("rho_screw_neg_3",0.0,"Negative screw dislocation density: slip system 3");
+  params.addCoupledVar("rho_screw_pos_4",0.0,"Positive screw dislocation density: slip system 4");
+  params.addCoupledVar("rho_screw_neg_4",0.0,"Negative screw dislocation density: slip system 4");
+  params.addCoupledVar("rho_screw_pos_5",0.0,"Positive screw dislocation density: slip system 5");
+  params.addCoupledVar("rho_screw_neg_5",0.0,"Negative screw dislocation density: slip system 5");
+  params.addCoupledVar("rho_screw_pos_6",0.0,"Positive screw dislocation density: slip system 6");
+  params.addCoupledVar("rho_screw_neg_6",0.0,"Negative screw dislocation density: slip system 6");
+  params.addCoupledVar("rho_screw_pos_7",0.0,"Positive screw dislocation density: slip system 7");
+  params.addCoupledVar("rho_screw_neg_7",0.0,"Negative screw dislocation density: slip system 7");
+  params.addCoupledVar("rho_screw_pos_8",0.0,"Positive screw dislocation density: slip system 8");
+  params.addCoupledVar("rho_screw_neg_8",0.0,"Negative screw dislocation density: slip system 8");
+  params.addCoupledVar("rho_screw_pos_9",0.0,"Positive screw dislocation density: slip system 9");
+  params.addCoupledVar("rho_screw_neg_9",0.0,"Negative screw dislocation density: slip system 9");
+  params.addCoupledVar("rho_screw_pos_10",0.0,"Positive screw dislocation density: slip system 10");
+  params.addCoupledVar("rho_screw_neg_10",0.0,"Negative screw dislocation density: slip system 10");
+  params.addCoupledVar("rho_screw_pos_11",0.0,"Positive screw dislocation density: slip system 11");
+  params.addCoupledVar("rho_screw_neg_11",0.0,"Negative screw dislocation density: slip system 11");
+  params.addCoupledVar("rho_screw_pos_12",0.0,"Positive screw dislocation density: slip system 12");
+  params.addCoupledVar("rho_screw_neg_12",0.0,"Negative screw dislocation density: slip system 12");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",293.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
@@ -85,6 +109,30 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_rho_edge_neg_11(coupledValue("rho_edge_neg_11")),
     _rho_edge_pos_12(coupledValue("rho_edge_pos_12")),
     _rho_edge_neg_12(coupledValue("rho_edge_neg_12")),	
+    _rho_screw_pos_1(coupledValue("rho_screw_pos_1")),
+	_rho_screw_neg_1(coupledValue("rho_screw_neg_1")),
+    _rho_screw_pos_2(coupledValue("rho_screw_pos_2")),
+	_rho_screw_neg_2(coupledValue("rho_screw_neg_2")),
+    _rho_screw_pos_3(coupledValue("rho_screw_pos_3")),
+	_rho_screw_neg_3(coupledValue("rho_screw_neg_3")),
+    _rho_screw_pos_4(coupledValue("rho_screw_pos_4")),
+	_rho_screw_neg_4(coupledValue("rho_screw_neg_4")),
+    _rho_screw_pos_5(coupledValue("rho_screw_pos_5")),
+	_rho_screw_neg_5(coupledValue("rho_screw_neg_5")),
+    _rho_screw_pos_6(coupledValue("rho_screw_pos_6")),
+	_rho_screw_neg_6(coupledValue("rho_screw_neg_6")),
+    _rho_screw_pos_7(coupledValue("rho_screw_pos_7")),
+	_rho_screw_neg_7(coupledValue("rho_screw_neg_7")),
+    _rho_screw_pos_8(coupledValue("rho_screw_pos_8")),
+	_rho_screw_neg_8(coupledValue("rho_screw_neg_8")),
+    _rho_screw_pos_9(coupledValue("rho_screw_pos_9")),
+	_rho_screw_neg_9(coupledValue("rho_screw_neg_9")),
+    _rho_screw_pos_10(coupledValue("rho_screw_pos_10")),
+	_rho_screw_neg_10(coupledValue("rho_screw_neg_10")),
+    _rho_screw_pos_11(coupledValue("rho_screw_pos_11")),
+	_rho_screw_neg_11(coupledValue("rho_screw_neg_11")),
+    _rho_screw_pos_12(coupledValue("rho_screw_pos_12")),
+    _rho_screw_neg_12(coupledValue("rho_screw_neg_12")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _reference_temperature(getParam<Real>("reference_temperature")),
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
@@ -93,7 +141,8 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_dislo_mobility(getParam<Real>("dislo_mobility")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")), // Magnitude of the Burgers vector
 	_gssT(_nss),
-    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Slip directions
+    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Edge slip directions
+	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")), // Slip system resistances
 	_dislo_velocity(declareProperty<std::vector<Real>>("dislo_velocity")), // Dislocation velocity
 	_ddislo_velocity_dtau(declareProperty<std::vector<Real>>("ddislo_velocity_dtau")) // Derivative of dislo velocity
@@ -182,6 +231,8 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
 {  
   std::vector<Real> rho_edge_pos(_nss);
   std::vector<Real> rho_edge_neg(_nss);
+  std::vector<Real> rho_screw_pos(_nss);
+  std::vector<Real> rho_screw_neg(_nss);
 
   // Assign dislocation density vectors
   rho_edge_pos[0] = _rho_edge_pos_1[_qp];
@@ -209,26 +260,51 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   rho_edge_neg[9] = _rho_edge_neg_10[_qp];
   rho_edge_neg[10] = _rho_edge_neg_11[_qp];
   rho_edge_neg[11] = _rho_edge_neg_12[_qp];
+  
+  rho_screw_pos[0] = _rho_screw_pos_1[_qp];
+  rho_screw_pos[1] = _rho_screw_pos_2[_qp];
+  rho_screw_pos[2] = _rho_screw_pos_3[_qp];
+  rho_screw_pos[3] = _rho_screw_pos_4[_qp];
+  rho_screw_pos[4] = _rho_screw_pos_5[_qp];
+  rho_screw_pos[5] = _rho_screw_pos_6[_qp];
+  rho_screw_pos[6] = _rho_screw_pos_7[_qp];
+  rho_screw_pos[7] = _rho_screw_pos_8[_qp];
+  rho_screw_pos[8] = _rho_screw_pos_9[_qp];
+  rho_screw_pos[9] = _rho_screw_pos_10[_qp];
+  rho_screw_pos[10] = _rho_screw_pos_11[_qp];
+  rho_screw_pos[11] = _rho_screw_pos_12[_qp];
+  
+  rho_screw_neg[0] = _rho_screw_neg_1[_qp];
+  rho_screw_neg[1] = _rho_screw_neg_2[_qp];
+  rho_screw_neg[2] = _rho_screw_neg_3[_qp];
+  rho_screw_neg[3] = _rho_screw_neg_4[_qp];
+  rho_screw_neg[4] = _rho_screw_neg_5[_qp];
+  rho_screw_neg[5] = _rho_screw_neg_6[_qp];
+  rho_screw_neg[6] = _rho_screw_neg_7[_qp];
+  rho_screw_neg[7] = _rho_screw_neg_8[_qp];
+  rho_screw_neg[8] = _rho_screw_neg_9[_qp];
+  rho_screw_neg[9] = _rho_screw_neg_10[_qp];
+  rho_screw_neg[10] = _rho_screw_neg_11[_qp];
+  rho_screw_neg[11] = _rho_screw_neg_12[_qp];
 
   // Positive and negative dislocation give the same
   // contribution to Lp even if their velocity is opposite
+  // same for edge and screw
   for (unsigned int i = 0; i < _nss; ++i)
   {
-    _slip_incr(i) = (rho_edge_pos[i] + rho_edge_neg[i]) * 
+    _slip_incr(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
 	                _dislo_velocity[_qp][i] * _burgers_vector_mag *
                     std::copysign(1.0, _tau(i)) * _dt;
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
     {
       _err_tol = true;
-#ifdef DEBUG
       mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
-#endif
       return;
     }
   }
 
   for (unsigned int i = 0; i < _nss; ++i)
-    _dslipdtau(i) = (rho_edge_pos[i] + rho_edge_neg[i]) * 
+    _dslipdtau(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
                     _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
 					
   // store slip increment for output
@@ -239,7 +315,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   }
 }
 
-// Calculate dislocation velocity as a function
+// Calculate dislocation velocity (edge and screw) as a function
 // of the resolved shear stress and its derivative
 void
 FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
@@ -267,6 +343,13 @@ void
 FiniteStrainCrystalPlasticityDislo::OutputSlipDirection()
 {
   DenseVector<Real> mo(LIBMESH_DIM * _nss);
+  DenseVector<Real> no(LIBMESH_DIM * _nss);
+  
+  // Temporary directions and normals to calculate
+  // screw dislocation slip direction
+  RealVectorValue temp_mo;
+  RealVectorValue temp_no;
+  RealVectorValue temp_screw_mo;
 
   // Update slip direction with crystal orientation
   for (unsigned int i = 0; i < _nss; ++i)
@@ -278,17 +361,35 @@ FiniteStrainCrystalPlasticityDislo::OutputSlipDirection()
         mo(i * LIBMESH_DIM + j) =
             mo(i * LIBMESH_DIM + j) + _crysrot[_qp](j, k) * _mo(i * LIBMESH_DIM + k);
     }
+	
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+    {
+      no(i * LIBMESH_DIM + j) = 0.0;
+      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+        no(i * LIBMESH_DIM + j) =
+            no(i * LIBMESH_DIM + j) + _crysrot[_qp](j, k) * _no(i * LIBMESH_DIM + k);
+    }
   }
  
   _slip_direction[_qp].resize(LIBMESH_DIM * _nss);
+  _screw_slip_direction[_qp].resize(LIBMESH_DIM * _nss);
 
   // Store slip direction (already normalized)
   // to couple with dislocation transport
   for (unsigned int i = 0; i < _nss; ++i)
   {
+	for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+	{
+	  temp_mo(j) = mo(i * LIBMESH_DIM + j);
+	  temp_no(j) = no(i * LIBMESH_DIM + j);
+	}		
+	
+	temp_screw_mo = temp_mo.cross(temp_no);
+	  
     for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
     {
   	  _slip_direction[_qp][i * LIBMESH_DIM + j] = mo(i * LIBMESH_DIM + j);
+	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
   	}
   }
   

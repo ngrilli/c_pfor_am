@@ -80,6 +80,31 @@ protected:
   const VariableValue & _rho_edge_pos_12;
   const VariableValue & _rho_edge_neg_12;
   
+  const VariableValue & _rho_screw_pos_1;
+  const VariableValue & _rho_screw_neg_1;
+  const VariableValue & _rho_screw_pos_2;
+  const VariableValue & _rho_screw_neg_2;
+  const VariableValue & _rho_screw_pos_3;
+  const VariableValue & _rho_screw_neg_3;
+  const VariableValue & _rho_screw_pos_4;
+  const VariableValue & _rho_screw_neg_4;
+  const VariableValue & _rho_screw_pos_5;
+  const VariableValue & _rho_screw_neg_5;
+  const VariableValue & _rho_screw_pos_6;
+  const VariableValue & _rho_screw_neg_6;
+  const VariableValue & _rho_screw_pos_7;
+  const VariableValue & _rho_screw_neg_7;
+  const VariableValue & _rho_screw_pos_8;
+  const VariableValue & _rho_screw_neg_8;
+  const VariableValue & _rho_screw_pos_9;
+  const VariableValue & _rho_screw_neg_9;
+  const VariableValue & _rho_screw_pos_10;
+  const VariableValue & _rho_screw_neg_10;
+  const VariableValue & _rho_screw_pos_11;
+  const VariableValue & _rho_screw_neg_11;
+  const VariableValue & _rho_screw_pos_12;
+  const VariableValue & _rho_screw_neg_12;
+  
   const Real _thermal_expansion;
   const Real _reference_temperature;
 
@@ -95,7 +120,12 @@ protected:
   
   // Rotated slip direction to couple with dislocation transport
   // to indicate dislocation velocity direction for all slip systems
+  // edge dislocations
   MaterialProperty<std::vector<Real>> & _slip_direction;
+  
+  // edge dislocation line direction
+  // corresponding to direction of motion of screw dislocations
+  MaterialProperty<std::vector<Real>> & _screw_slip_direction;
   
   // Slip increment for output
   MaterialProperty<std::vector<Real>> & _slip_incr_out;
