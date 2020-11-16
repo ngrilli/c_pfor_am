@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'EdgeScrewSlip.i'
+    exodiff = 'EdgeScrewSlip_out.e'
+  [../]
+[]
