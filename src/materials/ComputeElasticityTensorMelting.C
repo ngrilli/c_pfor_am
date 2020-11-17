@@ -60,7 +60,7 @@ ComputeElasticityTensorMelting::computeQpElasticityTensor()
   // Check phase at the current and next temperature time step
   checkPhase();
   
-  if (_isGas == 0 && _isGasNext == 0) {
+  if (_isSolid == 1 && _isSolidNext == 1) {
 	  
 	// Apply temperature dependence on _Cijkl
     // and save results on _Temp_Cijkl
@@ -111,7 +111,7 @@ ComputeElasticityTensorMelting::checkPhase()
 	_TempValueNext = std::min(_melting_temperature_low,_TempValueNext);
 	_TempValueNext = std::max(_gas_temperature_low,_TempValueNext);
 	
-	// check phases, current and next
+	// check phases, current and next, only one of the three flags will be activated
     if (_TempValue < _gas_temperature_high) {
 	  _isGas = 1;
 	} else if (_TempValue < _melting_temperature_low) {
@@ -127,6 +127,11 @@ ComputeElasticityTensorMelting::checkPhase()
 	} else {
 	  _isLiquidNext = 1;	
 	}	
+  } else {
+	// Add code here to make this object working
+    // when temperature is not read from external file
+    // but it's just a variable	
+	mooseError("Error in reading temperature file");	  
   }
 }
 
@@ -135,7 +140,7 @@ ComputeElasticityTensorMelting::melting()
 {	
   Real deltatemp;
   
-  if (_isGas == 0 && _isGasNext == 1) { // becoming gas
+  if (_isSolid == 1 && _isSolidNext == 0) { // becoming gas or liquid
   
   	// start from temperature value at the last
 	// temperature time step
@@ -144,7 +149,7 @@ ComputeElasticityTensorMelting::melting()
   
     _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
 		
-  } else if (_isGas == 1 && _isGasNext == 0) { // back to normal
+  } else if (_isSolid == 0 && _isSolidNext == 1) { // back to solid
   
     // end at temperature value of the last
 	// temperature time step
@@ -153,9 +158,10 @@ ComputeElasticityTensorMelting::melting()
   
     _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
 	  
-  } else if (_isGas == 1 && _isGasNext == 1) { 
+  } else if (_isSolid == 0 && _isSolidNext == 0) { 
   
-    // gas to gas: _Temp_Cijkl is never calculated in this case
+    // not solid at previous and next temperature time step:
+	// _Temp_Cijkl is never calculated in this case
 	_Melt_Cijkl = _residual_stiffness * _Cijkl;
 	
   }  

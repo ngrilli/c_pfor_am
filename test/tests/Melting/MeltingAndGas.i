@@ -42,16 +42,6 @@
     [../]
   [../]
 
-  [./stress_yy]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-
-  [./stress_xx]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-
   [./stress_zz]
     order = CONSTANT
     family = MONOMIAL
@@ -59,12 +49,6 @@
 []
 
 [Functions]
-  # first increase, then decrease the temperature
-  [./temperature_load]
-    type = PiecewiseLinear
-    x = '0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0'
-    y = '1000.0 1000.0 1648.15 1673.15 1648.15 298.1 298.0 298.1'
-  [../]
   [./disp_load]
     type = PiecewiseLinear
     x = '0.0 1.0 7.0'
@@ -81,6 +65,11 @@
     ngrain = 1
     read_type = indexgrain
   [../]
+  [./temperature_read]
+    type = LaserTempReadFile
+	temperature_file_name = 'temperature1El.txt'
+	temperature_num_step = 8
+  [../]
 []
 
 [Kernels]
@@ -93,26 +82,6 @@
 
 [AuxKernels]
 
-  [./stress_yy]
-    type = RankTwoAux
-    variable = stress_yy
-    rank_two_tensor = stress
-    index_j = 1
-    index_i = 1
-    execute_on = timestep_end
-    block = 'ANY_BLOCK_ID 0'
-  [../]  
-
-  [./stress_xx]
-    type = RankTwoAux
-    variable = stress_xx
-    rank_two_tensor = stress
-    index_j = 0
-    index_i = 0
-    execute_on = timestep_end
-    block = 'ANY_BLOCK_ID 0'
-  [../]
-
   [./stress_zz]
     type = RankTwoAux
     variable = stress_zz
@@ -124,9 +93,10 @@
   [../]
 
   [./tempfuncaux]
-    type = FunctionAux
+    type = LaserTempReadFileAux
     variable = temp
-    function = temperature_load
+    temperature_read_user_object = temperature_read
+	temperature_time_step = 1.0
     block = 'ANY_BLOCK_ID 0'
   [../]
 []
@@ -223,6 +193,9 @@
     dC11_dT = 0.0004415
     dC12_dT = 0.0003275
     dC44_dT = 0.0004103
+	residual_stiffness = 0.001
+	temperature_read_user_object = temperature_read
+	temperature_time_step = 1.0
   [../]
   [./strain]
     type = ComputeFiniteStrain
@@ -254,7 +227,7 @@
   l_tol = 1e-8
 
   start_time = 0.0
-  end_time = 0.2 #7.0
+  end_time = 0.2
   dt = 0.1
   dtmin = 0.01
 []

@@ -94,10 +94,7 @@
 []
 
 [Functions]
-  [./temperature_load]
-    type = ParsedFunction
-    value = '1000.0'
-  [../]
+
 []
 
 [UserObjects]
@@ -108,6 +105,11 @@
     nprop = 3
     ngrain = 1
     read_type = indexgrain
+  [../]
+  [./temperature_read]
+    type = LaserTempReadFile
+	temperature_file_name = 'temperature1El.txt'
+	temperature_num_step = 8
   [../]
 []
 
@@ -212,9 +214,10 @@
   [../]
 
   [./tempfuncaux]
-    type = FunctionAux
+    type = LaserTempReadFileAux
     variable = temp
-    function = temperature_load
+    temperature_read_user_object = temperature_read
+	temperature_time_step = 1.0
     block = 'ANY_BLOCK_ID 0'
   [../]
 
@@ -302,8 +305,9 @@
     dC11_dT = 0.0004415
     dC12_dT = 0.0003275
     dC44_dT = 0.0004103
-	melting_temperature = 1300.0
-	crystallisation_temperature = 800.0
+	residual_stiffness = 0.001
+	temperature_read_user_object = temperature_read
+	temperature_time_step = 1.0
   [../]
   [./strain]
     type = ComputeFiniteStrain
