@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'TaylorHardening.i'
+    exodiff = 'TaylorHardening_out.e'
+  [../]
+[]

@@ -79,6 +79,7 @@ FiniteStrainCrystalPlasticityDislo::validParams()
                         "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
   params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
   params.addParam<Real>("burgers_vector_mag",0.0,"Magnitude of the Burgers vector");
+  params.addParam<Real>("shear_modulus_hardening",86000.0,"Shear modulus in Taylor hardening law");
   return params;
 }
 
@@ -140,6 +141,7 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
 	_dislo_mobility(getParam<Real>("dislo_mobility")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")), // Magnitude of the Burgers vector
+	_shear_modulus_hardening(getParam<Real>("shear_modulus_hardening")), // Shear modulus in Taylor hardening law
 	_gssT(_nss),
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")), // Edge slip directions
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
@@ -293,7 +295,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   for (unsigned int i = 0; i < _nss; ++i)
   {
     _slip_incr(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
-	                _dislo_velocity[_qp][i] * _burgers_vector_mag *
+	                std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
                     std::copysign(1.0, _tau(i)) * _dt;
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
     {
@@ -303,6 +305,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
     }
   }
 
+  // Derivative is always positive
   for (unsigned int i = 0; i < _nss; ++i)
     _dslipdtau(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
                     _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
@@ -394,5 +397,90 @@ FiniteStrainCrystalPlasticityDislo::OutputSlipDirection()
   	}
   }
   
+}
+
+/**
+ * Calculate slip system resistance (CRSS)
+ * based on Taylor hardening model
+ */
+void
+FiniteStrainCrystalPlasticityDislo::updateGss()
+{
+  Real qab; // Taylor hardening
+  Real TotalRho = 0.0; // total dislocation density
+  
+  std::vector<Real> rho_edge_pos(_nss);
+  std::vector<Real> rho_edge_neg(_nss);
+  std::vector<Real> rho_screw_pos(_nss);
+  std::vector<Real> rho_screw_neg(_nss);
+
+  // Assign dislocation density vectors
+  rho_edge_pos[0] = _rho_edge_pos_1[_qp];
+  rho_edge_pos[1] = _rho_edge_pos_2[_qp];
+  rho_edge_pos[2] = _rho_edge_pos_3[_qp];
+  rho_edge_pos[3] = _rho_edge_pos_4[_qp];
+  rho_edge_pos[4] = _rho_edge_pos_5[_qp];
+  rho_edge_pos[5] = _rho_edge_pos_6[_qp];
+  rho_edge_pos[6] = _rho_edge_pos_7[_qp];
+  rho_edge_pos[7] = _rho_edge_pos_8[_qp];
+  rho_edge_pos[8] = _rho_edge_pos_9[_qp];
+  rho_edge_pos[9] = _rho_edge_pos_10[_qp];
+  rho_edge_pos[10] = _rho_edge_pos_11[_qp];
+  rho_edge_pos[11] = _rho_edge_pos_12[_qp];
+  
+  rho_edge_neg[0] = _rho_edge_neg_1[_qp];
+  rho_edge_neg[1] = _rho_edge_neg_2[_qp];
+  rho_edge_neg[2] = _rho_edge_neg_3[_qp];
+  rho_edge_neg[3] = _rho_edge_neg_4[_qp];
+  rho_edge_neg[4] = _rho_edge_neg_5[_qp];
+  rho_edge_neg[5] = _rho_edge_neg_6[_qp];
+  rho_edge_neg[6] = _rho_edge_neg_7[_qp];
+  rho_edge_neg[7] = _rho_edge_neg_8[_qp];
+  rho_edge_neg[8] = _rho_edge_neg_9[_qp];
+  rho_edge_neg[9] = _rho_edge_neg_10[_qp];
+  rho_edge_neg[10] = _rho_edge_neg_11[_qp];
+  rho_edge_neg[11] = _rho_edge_neg_12[_qp];
+  
+  rho_screw_pos[0] = _rho_screw_pos_1[_qp];
+  rho_screw_pos[1] = _rho_screw_pos_2[_qp];
+  rho_screw_pos[2] = _rho_screw_pos_3[_qp];
+  rho_screw_pos[3] = _rho_screw_pos_4[_qp];
+  rho_screw_pos[4] = _rho_screw_pos_5[_qp];
+  rho_screw_pos[5] = _rho_screw_pos_6[_qp];
+  rho_screw_pos[6] = _rho_screw_pos_7[_qp];
+  rho_screw_pos[7] = _rho_screw_pos_8[_qp];
+  rho_screw_pos[8] = _rho_screw_pos_9[_qp];
+  rho_screw_pos[9] = _rho_screw_pos_10[_qp];
+  rho_screw_pos[10] = _rho_screw_pos_11[_qp];
+  rho_screw_pos[11] = _rho_screw_pos_12[_qp];
+  
+  rho_screw_neg[0] = _rho_screw_neg_1[_qp];
+  rho_screw_neg[1] = _rho_screw_neg_2[_qp];
+  rho_screw_neg[2] = _rho_screw_neg_3[_qp];
+  rho_screw_neg[3] = _rho_screw_neg_4[_qp];
+  rho_screw_neg[4] = _rho_screw_neg_5[_qp];
+  rho_screw_neg[5] = _rho_screw_neg_6[_qp];
+  rho_screw_neg[6] = _rho_screw_neg_7[_qp];
+  rho_screw_neg[7] = _rho_screw_neg_8[_qp];
+  rho_screw_neg[8] = _rho_screw_neg_9[_qp];
+  rho_screw_neg[9] = _rho_screw_neg_10[_qp];
+  rho_screw_neg[10] = _rho_screw_neg_11[_qp];
+  rho_screw_neg[11] = _rho_screw_neg_12[_qp];
+
+  // Is this update necessary
+  // for the constitutive model
+  _accslip_tmp = _accslip_tmp_old;
+  for (unsigned int i = 0; i < _nss; ++i)
+    _accslip_tmp += std::abs(_slip_incr(i));
+
+  for (unsigned int i = 0; i < _nss; ++i)
+    TotalRho += (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]);
+
+  qab = 0.4 * _shear_modulus_hardening * _burgers_vector_mag * std::sqrt(TotalRho);
+  
+  for (unsigned int i = 0; i < _nss; ++i)
+  {
+    _gss_tmp[i] = qab;
+  }
 }
 

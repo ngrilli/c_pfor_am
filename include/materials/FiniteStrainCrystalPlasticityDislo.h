@@ -52,6 +52,13 @@ protected:
   * to couple with dislocation transport
   */
   virtual void OutputSlipDirection();
+  
+  // Old function: Kept to avoid code break in computeQpStress
+  /**
+   * This function updates the slip system resistances
+   * based on Taylor hardening model
+   */
+  virtual void updateGss();
 
   const VariableValue & _temp;
   
@@ -113,6 +120,7 @@ protected:
   const Real _dCRSS_dT_C;
   const Real _dislo_mobility;
   const Real _burgers_vector_mag;
+  const Real _shear_modulus_hardening;
   
   // critical resolved shear stress
   // exponentially decreased with temperature
