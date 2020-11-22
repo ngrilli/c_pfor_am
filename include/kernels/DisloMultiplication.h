@@ -29,11 +29,17 @@ private:
   const VariableValue & _rho_mult_1;
   const VariableValue & _rho_mult_2;
   
+  // Slip system index to determine slip system velocity
+  const unsigned int _slip_sys_index;
+  
   const bool _rho_mult_1_coupled;
   const bool _rho_mult_2_coupled;
   
   unsigned int _rho_mult_1_var;
   unsigned int _rho_mult_2_var;
+  
+  // Dislocation velocity value (signed) on all slip systems
+  const MaterialProperty<std::vector<Real>> & _dislo_velocity;
 
 };
 
