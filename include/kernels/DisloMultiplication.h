@@ -32,6 +32,9 @@ private:
   // Slip system index to determine slip system velocity
   const unsigned int _slip_sys_index;
   
+  // Characteristic length of dislocation loops
+  const Real _Lc;
+  
   const bool _rho_mult_1_coupled;
   const bool _rho_mult_2_coupled;
   

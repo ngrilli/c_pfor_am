@@ -1,0 +1,7 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'DisloMultiplication.i'
+    exodiff = 'DisloMultiplication_out.e'
+  [../]
+[]
