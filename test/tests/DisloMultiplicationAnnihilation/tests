@@ -1,7 +1,13 @@
 [Tests]
-  [./test]
+  [./test_multiplication]
     type = 'Exodiff'
     input = 'DisloMultiplication.i'
     exodiff = 'DisloMultiplication_out.e'
+  [../]
+  
+  [./test_annihilation]
+    type = 'Exodiff'
+    input = 'DisloAnnihilation.i'
+    exodiff = 'DisloAnnihilation_out.e'
   [../]
 []
