@@ -297,18 +297,24 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
     _slip_incr(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
 	                std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
                     std::copysign(1.0, _tau(i)) * _dt;
-    if (std::abs(_slip_incr(i)) > _slip_incr_tol)
-    {
-      _err_tol = true;
-      mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
-      return;
-    }
   }
 
   // Derivative is always positive
   for (unsigned int i = 0; i < _nss; ++i)
     _dslipdtau(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
                     _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
+		
+  for (unsigned int i = 0; i < _nss; ++i)
+  {
+    if (std::abs(_slip_incr(i)) > _slip_incr_tol)
+    {
+      //_err_tol = true;
+      //mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
+	  
+	  _slip_incr(i) = _slip_incr_tol * std::copysign(1.0, _tau(i));
+	  
+    }	  
+  }	  
 					
   // store slip increment for output
   _slip_incr_out[_qp].resize(_nss);
