@@ -1,0 +1,7 @@
+[Tests]
+  [./test_delete_elements_restart]
+    type = 'Exodiff'
+    input = 'DummyVarRestart.i'
+    exodiff = 'DummyVarRestart_out.e'
+  [../]
+[]
