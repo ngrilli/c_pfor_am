@@ -1,0 +1,12 @@
+[Tests]
+  [./test_add_elements_disp_z]
+    type = 'Exodiff'
+    input = 'ElementAdditionByTemperature.i'
+    exodiff = 'ElementAdditionByTemperature_out.e'
+  [../]
+  [./test_add_elements_disp_x]
+    type = 'Exodiff'
+    input = 'ElementAdditionByTemperatureDispX.i'
+    exodiff = 'ElementAdditionByTemperatureDispX_out.e'
+  [../]
+[]

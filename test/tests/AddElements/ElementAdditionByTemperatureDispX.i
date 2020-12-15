@@ -75,13 +75,13 @@
     family = MONOMIAL
   [../]
   
-  [./stress_zz]
+  [./stress_xx]
     order = CONSTANT
     family = MONOMIAL
 	block = '1'
   [../]
   
-  [./strain_zz]
+  [./strain_xx]
     order = CONSTANT
     family = MONOMIAL
 	block = '1'
@@ -107,7 +107,7 @@
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = '-0.00001*t'	
+    value = 'max(0.001*t,0.001)'	
   [../]
 []
 
@@ -127,22 +127,22 @@
     function = temperature_load
   [../]
   
-  [./stress_zz]
+  [./stress_xx]
     type = RankTwoAux
-    variable = stress_zz
+    variable = stress_xx
     rank_two_tensor = stress
-    index_j = 2
-    index_i = 2
+    index_j = 0
+    index_i = 0
     execute_on = timestep_end
 	block = '1'
   [../]
   
-  [./strain_zz]
+  [./strain_xx]
     type = RankTwoAux
-    variable = strain_zz
+    variable = strain_xx
     rank_two_tensor = total_strain
-    index_j = 2
-    index_i = 2
+    index_j = 0
+    index_i = 0
     execute_on = timestep_end
 	block = '1'
   [../]
@@ -173,6 +173,13 @@
 []
 
 [BCs]
+  [./z0]
+    type = DirichletBC
+    variable = disp_z
+    boundary = back
+	value = 0.0
+  [../]
+
   [./y0]
     type = DirichletBC
     variable = disp_y
@@ -187,10 +194,10 @@
     value = 0.0
   [../]
   
-  [./z1]
+  [./x1]
     type = FunctionDirichletBC
-    variable = disp_z
-    boundary = back
+    variable = disp_x
+    boundary = right
     function = disp_load
   [../]
 []
