@@ -123,11 +123,11 @@ FiniteStrainCrystalPlasticityThermal::getSlipIncrements()
                     std::copysign(1.0, _tau(i)) * _dt;
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
     {
-      _err_tol = true;
-#ifdef DEBUG
-      mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
-#endif
-      return;
+      //_err_tol = true;
+      //mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
+	  
+	  _slip_incr(i) = _slip_incr_tol * std::copysign(1.0, _tau(i));
+
     }
   }
 
