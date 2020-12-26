@@ -1,0 +1,7 @@
+[Tests]
+  [./test_add_delete_elements_disp_x]
+    type = 'Exodiff'
+    input = 'ElementAddDeleteDispX.i'
+    exodiff = 'ElementAddDeleteDispX_out.e'
+  [../]
+[]
