@@ -4,4 +4,10 @@
     input = 'ElementAddDeleteDispX.i'
     exodiff = 'ElementAddDeleteDispX_out.e'
   [../]
+  
+  [./test_add_delete_elements_plastic]
+    type = 'Exodiff'
+    input = 'Plastic.i'
+    exodiff = 'Plastic_out.e'
+  [../]
 []
