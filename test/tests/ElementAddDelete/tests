@@ -10,4 +10,10 @@
     input = 'Plastic.i'
     exodiff = 'Plastic_out.e'
   [../]
+  
+  [./test_add_delete_elements_read_T_from_file]
+    type = 'Exodiff'
+    input = 'MeltingAndGas.i'
+    exodiff = 'MeltingAndGas_out.e'
+  [../]
 []
