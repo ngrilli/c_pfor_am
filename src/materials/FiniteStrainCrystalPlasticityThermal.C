@@ -132,10 +132,18 @@ FiniteStrainCrystalPlasticityThermal::getSlipIncrements()
   }
 
   for (unsigned int i = 0; i < _nss; ++i)
+  {
     _dslipdtau(i) = _a0(i) / _xm(i) *
                     std::pow(std::abs(_tau(i) / _gssT[i]), 1.0 / _xm(i) - 1.0) / _gssT[i] *
                     _dt;
-					
+	if (std::abs(_slip_incr(i)) > 0.99*_slip_incr_tol) 
+	{
+	  _dslipdtau(i) = _a0(i) / _xm(i) *
+					  std::pow(std::abs(_slip_incr_tol / _a0(i) / _dt), 1.0 - _xm(i)) / 
+					  _gssT[i] * _dt;	
+	}
+  }
+
   // store slip increment for output
   _slip_incr_out[_qp].resize(_nss);
   
