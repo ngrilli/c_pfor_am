@@ -36,6 +36,8 @@ protected:
   const Real _melting_temperature_low;
   const Real _gas_temperature_high;
   const Real _gas_temperature_low;
+  
+  bool _deact_temp_next;
 
   virtual Real computeValue();
 

@@ -23,6 +23,7 @@ TempActDeactElemsCFDStepsAux::validParams()
   params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus = full stiffness.");
   params.addParam<Real>("gas_temperature_high", 298.1, "Lowest possible solid temperature = full stiffness.");
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
+  params.addParam<bool>("deact_temp_next",false,"Use both previous and next temperature steps to deactivate elements");
   return params;
 }
 
@@ -36,7 +37,8 @@ TempActDeactElemsCFDStepsAux::TempActDeactElemsCFDStepsAux(const InputParameters
 	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
 	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
 	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
-	_gas_temperature_low(getParam<Real>("gas_temperature_low"))
+	_gas_temperature_low(getParam<Real>("gas_temperature_low")),
+	_deact_temp_next(getParam<bool>("deact_temp_next"))
 {
 }
 
@@ -46,6 +48,7 @@ Real
 TempActDeactElemsCFDStepsAux::computeValue()
 {
   Real TempValue = 0.0;
+  Real TempValueNext = 0.0;
   unsigned int temperature_step;
   
   // determine time step to be used from the CFD simulations
@@ -60,6 +63,20 @@ TempActDeactElemsCFDStepsAux::computeValue()
 	// Limit temperature in the interval gas to liquidus
     TempValue = std::min(_melting_temperature_high,TempValue);
 	TempValue = std::max(_gas_temperature_low,TempValue);
+	
+	if (_deact_temp_next) {
+	  TempValueNext = _temperature_read_user_object->getData(_current_elem, temperature_step+1);
+	  
+	  // Limit temperature in the interval gas to liquidus
+      TempValueNext = std::min(_melting_temperature_high,TempValueNext);
+	  TempValueNext = std::max(_gas_temperature_low,TempValueNext);
+
+	  // If previous or next temperature time steps is solid
+	  // then element should not be deactivated
+	  if (TempValueNext <= _melting_temperature_low && TempValueNext >= _gas_temperature_high) {
+	    TempValue = TempValueNext;	  
+	  }
+	}
   }
   else
   {
