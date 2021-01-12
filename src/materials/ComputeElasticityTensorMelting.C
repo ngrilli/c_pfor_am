@@ -114,7 +114,7 @@ ComputeElasticityTensorMelting::checkPhase()
 	// check phases, current and next, only one of the three flags will be activated
     if (_TempValue < _gas_temperature_high) {
 	  _isGas = 1;
-	} else if (_TempValue <= _melting_temperature_low) {
+	} else if (_TempValue < _melting_temperature_low) {
 	  _isSolid = 1;
 	} else {
 	  _isLiquid = 1;	
@@ -122,7 +122,7 @@ ComputeElasticityTensorMelting::checkPhase()
 	
 	if (_TempValueNext < _gas_temperature_high) {
 	  _isGasNext = 1;
-	} else if (_TempValueNext <= _melting_temperature_low) {
+	} else if (_TempValueNext < _melting_temperature_low) {
 	  _isSolidNext = 1;	  
 	} else {
 	  _isLiquidNext = 1;	
