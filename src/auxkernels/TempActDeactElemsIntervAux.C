@@ -98,9 +98,13 @@ TempActDeactElemsIntervAux::computeValue()
 			TempValue = _gas_temperature_low;
 		
 		} else if (TempValueNext <= _melting_temperature_low) { // ... to solid
+		
+			if (FracTimeStep > 1.0 - _deact_interval) {
 			
-			TempValue = ((1.0-FracTimeStep)/_deact_interval) * TempValue 
-				      + ((_deact_interval-1.0+FracTimeStep)/_deact_interval) * TempValueNext;
+				TempValue = ((1.0-FracTimeStep)/_deact_interval) * TempValue 
+						  + ((_deact_interval-1.0+FracTimeStep)/_deact_interval) * TempValueNext;
+			
+			} // else TempValue remains the one read from file
 			
 		} else { // ... to liquid
 			
