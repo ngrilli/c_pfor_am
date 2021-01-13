@@ -1,0 +1,7 @@
+[Tests]
+  [./test_FunctionDTGrowth]
+    type = 'Exodiff'
+    input = 'FunctionDTGrowth.i'
+    exodiff = 'FunctionDTGrowth_out.e'
+  [../]
+[]
