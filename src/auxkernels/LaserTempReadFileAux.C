@@ -23,6 +23,8 @@ LaserTempReadFileAux::validParams()
   params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus = full stiffness.");
   params.addParam<Real>("gas_temperature_high", 298.1, "Lowest possible solid temperature = full stiffness.");
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
+  params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
+  params.addParam<bool>("degrade_eigenstrain",false,"If liquid or gas, output room temperature to degrade eigenstrain");
   return params;
 }
 
@@ -36,7 +38,9 @@ LaserTempReadFileAux::LaserTempReadFileAux(const InputParameters & parameters)
 	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
 	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
 	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
-	_gas_temperature_low(getParam<Real>("gas_temperature_low"))
+	_gas_temperature_low(getParam<Real>("gas_temperature_low")),
+    _reference_temperature(getParam<Real>("reference_temperature")),
+	_degrade_eigenstrain(getParam<bool>("degrade_eigenstrain"))
 {
 }
 
@@ -63,14 +67,74 @@ LaserTempReadFileAux::computeValue()
     // to avoid problem with the temperature dependencies
     // of elastic constants, CRSS, CTE
 	
-    TempValue = std::min(_melting_temperature_low,TempValue);
+    TempValue = std::min(_melting_temperature_high,TempValue);
 	TempValue = std::max(_gas_temperature_low,TempValue);
 	
-	TempValueNext = std::min(_melting_temperature_low,TempValueNext);
+	TempValueNext = std::min(_melting_temperature_high,TempValueNext);
 	TempValueNext = std::max(_gas_temperature_low,TempValueNext);
 	
-	// linear interpolation of the temperature in time
-	TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;
+	if (_degrade_eigenstrain) {
+	  // If phase transition at the previous or next CFD step
+      // then transform linearly the temperature to room temperature
+      // to degrade the eigenstrain to 0 in FiniteStrainCrystalPlasticityThermal
+
+	  if (TempValue < _gas_temperature_high) { // from gas ...
+	
+		if (TempValueNext < _gas_temperature_high) { // ... to gas
+		
+			TempValue = _reference_temperature;
+		
+		} else if (TempValueNext <= _melting_temperature_low) { // ... to solid
+		
+		  TempValue = (1.0-FracTimeStep) * _reference_temperature 
+				    + FracTimeStep * TempValueNext;
+							
+		} else { // ... to liquid
+		
+			TempValue = _reference_temperature;
+			
+		}	
+
+	  } else if (TempValue <= _melting_temperature_low) { // from solid ...
+	
+	    if (TempValueNext < _gas_temperature_high) { // ... to gas
+	
+	      TempValue = (1.0-FracTimeStep) * TempValue 
+		            + FracTimeStep * _reference_temperature;
+					
+		} else if (TempValueNext <= _melting_temperature_low) { // ... to solid
+		  
+ 	      TempValue = (1.0-FracTimeStep) * TempValue 
+		            + FracTimeStep * TempValueNext;         
+		  
+		} else { // ... to liquid
+		
+	      TempValue = (1.0-FracTimeStep) * TempValue 
+		            + FracTimeStep * _reference_temperature;
+					
+		}
+		
+	  } else { // from liquid ...
+	
+		if (TempValueNext < _gas_temperature_high) { // ... to gas
+		
+		  TempValue = _reference_temperature;
+		
+		} else if (TempValueNext <= _melting_temperature_low) { // ... to solid
+		
+		  TempValue = (1.0-FracTimeStep) * _reference_temperature 
+				    + FracTimeStep * TempValueNext;
+			
+		} else { // ... to liquid
+			
+		  TempValue = _reference_temperature;
+			
+		}
+	  } 
+	} else {
+	  // linear interpolation of the temperature in time
+	  TempValue = (1.0 - FracTimeStep) * TempValue + FracTimeStep * TempValueNext;		
+	}
   }
   else
   {

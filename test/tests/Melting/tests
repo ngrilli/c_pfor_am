@@ -9,4 +9,9 @@
     input = 'MeltingAndGas.i'
     exodiff = 'MeltingAndGas_out.e'
   [../]
+  [./eigenstrain_degraded]
+    type = 'Exodiff'
+	input = 'MeltingEigenstrainDegraded.i'
+	exodiff = 'MeltingEigenstrainDegraded_out.e'
+  [../]
 []

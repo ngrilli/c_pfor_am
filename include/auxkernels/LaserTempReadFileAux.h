@@ -34,6 +34,10 @@ protected:
   const Real _melting_temperature_low;
   const Real _gas_temperature_high;
   const Real _gas_temperature_low;
+  
+  const Real _reference_temperature;
+  
+  bool _degrade_eigenstrain;
 
   virtual Real computeValue();
 
