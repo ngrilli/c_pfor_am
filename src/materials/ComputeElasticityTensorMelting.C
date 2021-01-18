@@ -64,7 +64,7 @@ ComputeElasticityTensorMelting::computeQpElasticityTensor()
 	  
 	// Apply temperature dependence on _Cijkl
     // and save results on _Temp_Cijkl
-    deltatemp = temp - 298.0;
+    deltatemp = temp - _reference_temperature;
     temperatureDependence(deltatemp);
 	
 	_elasticity_tensor[_qp] = _Temp_Cijkl;
@@ -144,7 +144,7 @@ ComputeElasticityTensorMelting::melting()
   
   	// start from temperature value at the last
 	// temperature time step
-	deltatemp = _TempValue - 298.0;
+	deltatemp = _TempValue - _reference_temperature;
 	temperatureDependence(deltatemp);
   
     _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
@@ -153,7 +153,7 @@ ComputeElasticityTensorMelting::melting()
   
     // end at temperature value of the last
 	// temperature time step
-	deltatemp = _TempValueNext - 298.0;
+	deltatemp = _TempValueNext - _reference_temperature;
 	temperatureDependence(deltatemp);
   
     _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;

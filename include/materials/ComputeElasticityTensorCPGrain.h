@@ -39,6 +39,8 @@ protected:
   
   const VariableValue & _temp;
   
+  const Real _reference_temperature;
+  
   const Real _dC11_dT;
   const Real _dC12_dT;
   const Real _dC44_dT;

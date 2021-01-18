@@ -18,7 +18,8 @@ ComputeElasticityTensorCPGrain::validParams()
                                   "The GrainPropertyReadFile "
                                   "GeneralUserObject to read element "
                                   "specific property values from file");
-  params.addCoupledVar("temp", 298.0,"Temperature, initialize at room temperature");
+  params.addCoupledVar("temp", 303.0,"Temperature, initialize at room temperature");
+  params.addParam<Real>("reference_temperature",303.0,"reference temperature for elastic constants");
   params.addParam<Real>("dC11_dT", 0.0, "Change of C11 stiffness tensor component with temperature. "
 									    "Use positive values, minus sign is added in the code. ");  
   params.addParam<Real>("dC12_dT", 0.0, "Change of C12 stiffness tensor component with temperature. "
@@ -35,6 +36,7 @@ ComputeElasticityTensorCPGrain::ComputeElasticityTensorCPGrain(const InputParame
                                : nullptr),
     _Euler_angles_mat_prop(declareProperty<RealVectorValue>("Euler_angles")),
 	_temp(coupledValue("temp")),
+    _reference_temperature(getParam<Real>("reference_temperature")),
 	_dC11_dT(getParam<Real>("dC11_dT")),
 	_dC12_dT(getParam<Real>("dC12_dT")),
 	_dC44_dT(getParam<Real>("dC44_dT")),
@@ -80,7 +82,7 @@ ComputeElasticityTensorCPGrain::computeQpElasticityTensor()
   
   // Apply temperature dependence on _Cijkl
   // and save results on _Temp_Cijkl
-  deltatemp = temp - 298.0;
+  deltatemp = temp - _reference_temperature;
   temperatureDependence(deltatemp);
   
   _elasticity_tensor[_qp] = _Temp_Cijkl;
