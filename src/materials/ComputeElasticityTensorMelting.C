@@ -26,6 +26,7 @@ ComputeElasticityTensorMelting::validParams()
                                   "GeneralUserObject to read element "
                                   "specific temperature values from file");
   params.addParam<Real>("temperature_time_step",1.0,"Time interval between two temperature data field");
+  params.addParam<bool>("activate_elems",false,"Using the element activation user object");
   return params;
 }
 
@@ -39,7 +40,8 @@ ComputeElasticityTensorMelting::ComputeElasticityTensorMelting(const InputParame
 	_temperature_read_user_object(isParamValid("temperature_read_user_object")
                                   ? &getUserObject<LaserTempReadFile>("temperature_read_user_object")
                                   : nullptr),
-    _temperature_time_step(getParam<Real>("temperature_time_step"))
+    _temperature_time_step(getParam<Real>("temperature_time_step")),
+    _activate_elems(getParam<bool>("activate_elems"))
 {
 	// _Cijkl is reinizialized to the unrotated state by the base class
 }
@@ -60,7 +62,7 @@ ComputeElasticityTensorMelting::computeQpElasticityTensor()
   // Check phase at the current and next temperature time step
   checkPhase();
   
-  if (_isSolid == 1 && _isSolidNext == 1) {
+  if (_isSolidPrevious == 1 && _isSolid == 1 && _isSolidNext == 1) {
 	  
 	// Apply temperature dependence on _Cijkl
     // and save results on _Temp_Cijkl
@@ -96,10 +98,28 @@ ComputeElasticityTensorMelting::checkPhase()
   _isLiquidNext = 0;
   _isGasNext = 0;
   
+  _isSolidPrevious = 1;
+  
   if (_temperature_read_user_object)
   {
     _TempValue = _temperature_read_user_object->getData(_current_elem, _temperature_step);
 	_TempValueNext = _temperature_read_user_object->getData(_current_elem, _temperature_step+1);
+	
+	if (_temperature_step > 0 && _activate_elems) { // check previous time step
+      _TempValuePrevious = _temperature_read_user_object->getData(_current_elem, _temperature_step-1);
+	  
+	  _TempValuePrevious = std::min(_melting_temperature_high,_TempValuePrevious);
+	  _TempValuePrevious = std::max(_gas_temperature_low,_TempValuePrevious);
+	  
+	  // check phase at the previous time step
+	  if (_TempValuePrevious < _gas_temperature_high) {
+	    _isSolidPrevious = 0;
+	  } else if (_TempValuePrevious <= _melting_temperature_low) {
+	    _isSolidPrevious = 1;
+	  } else {
+	    _isSolidPrevious = 0;	
+	  }	
+	}
 
 	// Limit temperature in the interval gas to melting temperature
     // to avoid problem with the temperature dependencies
@@ -140,31 +160,53 @@ ComputeElasticityTensorMelting::melting()
 {	
   Real deltatemp;
   
-  if (_isSolid == 1 && _isSolidNext == 0) { // becoming gas or liquid
-  
-  	// start from temperature value at the last
-	// temperature time step
-	deltatemp = _TempValue - _reference_temperature;
-	temperatureDependence(deltatemp);
-  
-    _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
-		
-  } else if (_isSolid == 0 && _isSolidNext == 1) { // back to solid
-  
-    // end at temperature value of the last
-	// temperature time step
-	deltatemp = _TempValueNext - _reference_temperature;
-	temperatureDependence(deltatemp);
-  
-    _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+  if (_isSolidPrevious == 1) { // case without element activation or previous solid CFD step
 	  
-  } else if (_isSolid == 0 && _isSolidNext == 0) { 
+    if (_isSolid == 1 && _isSolidNext == 0) { // becoming gas or liquid
   
-    // not solid at previous and next temperature time step:
-	// _Temp_Cijkl is never calculated in this case
-	_Melt_Cijkl = _residual_stiffness * _Cijkl;
+  	  // start from temperature value at the last
+	  // temperature time step
+	  deltatemp = _TempValue - _reference_temperature;
+	  temperatureDependence(deltatemp);
+  
+      _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
+		
+    } else if (_isSolid == 0 && _isSolidNext == 1) { // back to solid
+  
+      // end at temperature value of the last
+	  // temperature time step
+	  deltatemp = _TempValueNext - _reference_temperature;
+	  temperatureDependence(deltatemp);
+  
+      _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+	  
+    } else if (_isSolid == 0 && _isSolidNext == 0) { 
+  
+      // not solid at previous and next temperature time step:
+	  // _Temp_Cijkl is never calculated in this case
+	  _Melt_Cijkl = _residual_stiffness * _Cijkl;
 	
-  }  
+    }	  
+  } else { // case with element activation: stiffness degraded at current CFD step
+  
+      // In this case the phase of current CFD step is not important
+	  if (_isSolidNext == 1) {
+		  
+        // end at temperature value of the last
+	    // temperature time step
+	    deltatemp = _TempValueNext - _reference_temperature;
+	    temperatureDependence(deltatemp);
+	    
+        _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+		
+	  } else {
+		  
+        // not solid at previous and next temperature time step:
+	    // _Temp_Cijkl is never calculated in this case
+	    _Melt_Cijkl = _residual_stiffness * _Cijkl;
+		  
+	  }
+  }
 }
 
 

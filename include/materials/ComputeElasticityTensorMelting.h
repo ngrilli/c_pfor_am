@@ -43,6 +43,10 @@ protected:
   
   /// Time interval between two temperature data field
   const Real _temperature_time_step;
+  
+  /// Using the element activation feature
+  /// Elements must be activated with degraded stiffness
+  bool _activate_elems;  
 
   /// Stiffness tensor modified by melting
   /// to model laser scanning
@@ -57,10 +61,17 @@ protected:
   unsigned int _isLiquidNext;
   unsigned int _isGasNext;
   
+  /// Flags to indicate the phase at the previous temperature time step 
+  /// to understand if element was activated at this temperature time step
+  unsigned int _isSolidPrevious;  
+  
   // Temperature values at the current and 
   // next temperature time step
   Real _TempValue;
   Real _TempValueNext;
+  
+  // Temperature value at the previous temperature time step
+  Real _TempValuePrevious;
   
   // temperature time step to be used from the CFD simulations
   unsigned int _temperature_step;
