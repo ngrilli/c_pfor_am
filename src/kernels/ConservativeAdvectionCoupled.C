@@ -119,9 +119,8 @@ ConservativeAdvectionCoupled::computeQpJacobian()
 Real
 ConservativeAdvectionCoupled::computeQpOffDiagJacobian(unsigned int jvar)
 {
-  Real val;	
-
   // This is the no-upwinded version
+  // It gets called via Kernel::computeOffDiagJacobian()
   if (_rho_coupled_coupled && jvar == _rho_coupled_var)
   {
 	
@@ -152,15 +151,22 @@ ConservativeAdvectionCoupled::computeResidual()
 void
 ConservativeAdvectionCoupled::computeJacobian()
 {
+  // Always return zero in this case
+  Kernel::computeJacobian();
+}
+
+void
+ConservativeAdvectionCoupled::computeOffDiagJacobian(const unsigned int jvar_num)
+{
   switch (_upwinding)
   {
     case UpwindingType::none:
-      Kernel::computeJacobian();
+      Kernel::computeOffDiagJacobian(jvar_num);
       break;
     case UpwindingType::full:
       fullUpwind(JacRes::CALCULATE_JACOBIAN);
       break;
-  }
+  }	
 }
 
 void

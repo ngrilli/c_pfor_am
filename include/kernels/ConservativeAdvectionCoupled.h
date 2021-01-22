@@ -32,6 +32,7 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar) override;
   virtual void computeResidual() override;
   virtual void computeJacobian() override;
+  virtual void computeOffDiagJacobian(unsigned int jvar) override;
 
   /// advection velocity
   std::vector<Real> _velocity;
