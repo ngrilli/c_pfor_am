@@ -177,10 +177,10 @@ ConservativeAdvectionCoupled::fullUpwind(JacRes res_or_jac)
 
   // Even if we are computing the Jacobian we still need to compute the outflow from each node to
   // see which nodes are upwind and which are downwind
-  prepareVectorTag(_assembly, getVar("rho_coupled", 0)->number()); // _var.number()
+  prepareVectorTag(_assembly, _var.number());
 
   if (res_or_jac == JacRes::CALCULATE_JACOBIAN)
-    prepareMatrixTag(_assembly, getVar("rho_coupled", 0)->number(), getVar("rho_coupled", 0)->number());
+    prepareMatrixTag(_assembly, _var.number(), getVar("rho_coupled", 0)->number());
 
   // Compute the outflux from each node and store in _local_re
   // If _local_re is positive at the node, mass (or whatever the Variable represents) is flowing out
