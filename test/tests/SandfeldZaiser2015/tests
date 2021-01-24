@@ -1,7 +1,12 @@
 [Tests]
-  [./test]
+  [./test_q0]
     type = 'Exodiff'
     input = 'SandfeldQ0.i'
     exodiff = 'SandfeldQ0_out.e'
+  [../]
+  [./test_qconstant]
+    type = 'Exodiff'
+    input = 'SandfeldQconst.i'
+	exodiff = 'SandfeldQconst_out.e'
   [../]
 []
