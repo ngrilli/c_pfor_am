@@ -9,4 +9,9 @@
     input = 'SandfeldQconst.i'
 	exodiff = 'SandfeldQconst_out.e'
   [../]
+  [./test_qadvection]
+    type = 'Exodiff'
+	input = 'SandfeldCurvatureAdvection.i'
+	exodiff = 'SandfeldCurvatureAdvection_out.e'
+  [../]
 []
