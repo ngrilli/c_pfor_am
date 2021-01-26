@@ -491,7 +491,15 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
   for (unsigned int i = 0; i < _nss; ++i)
     TotalRho += (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]);
 
-  qab = 0.4 * _shear_modulus_hardening * _burgers_vector_mag * std::sqrt(TotalRho);
+  if (TotalRho >= 0.0) {
+	  
+    qab = 0.4 * _shear_modulus_hardening * _burgers_vector_mag * std::sqrt(TotalRho);	  
+  
+  } else {
+	  
+	qab = 0.0;
+	
+  }
   
   for (unsigned int i = 0; i < _nss; ++i)
   {
