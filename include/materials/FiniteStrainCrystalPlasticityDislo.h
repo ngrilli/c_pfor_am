@@ -121,6 +121,7 @@ protected:
   const Real _dislo_mobility;
   const Real _burgers_vector_mag;
   const Real _shear_modulus_hardening;
+  const Real _dislo_max_velocity;
   
   // critical resolved shear stress
   // exponentially decreased with temperature

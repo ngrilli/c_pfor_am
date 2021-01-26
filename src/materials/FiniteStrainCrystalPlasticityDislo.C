@@ -80,6 +80,7 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
   params.addParam<Real>("burgers_vector_mag",0.0,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus_hardening",86000.0,"Shear modulus in Taylor hardening law");
+  params.addParam<Real>("dislo_max_velocity",1000.0,"Maximum dislocation velocity (phonon drag)");
   return params;
 }
 
@@ -142,6 +143,7 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_dislo_mobility(getParam<Real>("dislo_mobility")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")), // Magnitude of the Burgers vector
 	_shear_modulus_hardening(getParam<Real>("shear_modulus_hardening")), // Shear modulus in Taylor hardening law
+    _dislo_max_velocity(getParam<Real>("dislo_max_velocity")), // Maximum dislocation velocity (phonon drag)
 	_gssT(_nss),
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")), // Edge slip directions
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
@@ -342,6 +344,13 @@ FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
 	                            * std::copysign(1.0, _tau(i));
 	  // Derivative is always positive
 	  _ddislo_velocity_dtau[_qp][i] = _dislo_mobility;
+	  
+	  if (std::abs(_dislo_velocity[_qp][i]) > _dislo_max_velocity) {
+
+		_dislo_velocity[_qp][i] = _dislo_max_velocity * std::copysign(1.0, _tau(i));
+		_ddislo_velocity_dtau[_qp][i] = 0.0;
+		
+	  }
 	}
   }
 }
