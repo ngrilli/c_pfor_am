@@ -165,11 +165,21 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	
 	ddiagterm_drhox = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+3.0*_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
 	ddiagterm_drhox = 0.5 * _rho_gnd_edge[_qp] * ddiagterm_drhox;
-	ddiagterm_drhox = ddiagterm_drhox / ksabs3;
+	
+	if (ksabs3 > 0.001) {
+	  ddiagterm_drhox = ddiagterm_drhox / ksabs3;
+	} else {
+	  ddiagterm_drhox = 0.0;	
+	}
 		
 	doutofdiagterm_drhox = _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
-	doutofdiagterm_drhox = doutofdiagterm_drhox / ksabs3;
-
+	
+	if (ksabs3 > 0.001) {
+	  doutofdiagterm_drhox = doutofdiagterm_drhox / ksabs3;
+	} else {
+	  doutofdiagterm_drhox = 0.0;	
+	}
+	
     switch (_dislo_character)
     {
       case DisloCharacter::edge:
@@ -199,10 +209,20 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	
 	ddiagterm_drhoy = _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]+3.0*_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
 	ddiagterm_drhoy = (-0.5) * _rho_gnd_screw[_qp] * ddiagterm_drhoy;
-	ddiagterm_drhoy = ddiagterm_drhoy / ksabs3;
+	
+	if (ksabs3 > 0.001) {
+	  ddiagterm_drhoy = ddiagterm_drhoy / ksabs3;
+	} else {
+      ddiagterm_drhoy = 0.0;
+	}
 		
 	doutofdiagterm_drhoy = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
-	doutofdiagterm_drhoy = doutofdiagterm_drhoy / ksabs3;	
+	
+	if (ksabs3 > 0.001) {
+	  doutofdiagterm_drhoy = doutofdiagterm_drhoy / ksabs3;
+	} else {
+      doutofdiagterm_drhoy = 0.0;
+	}	
 	
     switch (_dislo_character)
     {
