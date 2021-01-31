@@ -237,6 +237,8 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   std::vector<Real> rho_edge_neg(_nss);
   std::vector<Real> rho_screw_pos(_nss);
   std::vector<Real> rho_screw_neg(_nss);
+  
+  Real RhoTotSlip; // total dislocation density in the current slip system   
 
   // Assign dislocation density vectors
   rho_edge_pos[0] = _rho_edge_pos_1[_qp];
@@ -296,16 +298,28 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   // same for edge and screw
   for (unsigned int i = 0; i < _nss; ++i)
   {
-    _slip_incr(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
-	                std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
-                    std::copysign(1.0, _tau(i)) * _dt;
+	// temporary variable  
+	RhoTotSlip = rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i];   
+	
+	if (RhoTotSlip > 0.0) {
+
+      _slip_incr(i) = RhoTotSlip * 
+	                  std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
+                      std::copysign(1.0, _tau(i)) * _dt;
+					  
+      // Derivative is always positive
+      _dslipdtau(i) = RhoTotSlip * 
+                      _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
+					  
+	} else {
+		
+	  _slip_incr(i) = 0.0;
+	  _dslipdtau(i) = 0.0;
+	  
+	}
+	
   }
 
-  // Derivative is always positive
-  for (unsigned int i = 0; i < _nss; ++i)
-    _dslipdtau(i) = (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]) * 
-                    _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
-		
   for (unsigned int i = 0; i < _nss; ++i)
   {
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
