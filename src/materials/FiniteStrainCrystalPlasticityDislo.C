@@ -161,7 +161,6 @@ FiniteStrainCrystalPlasticityDislo::calcResidual( RankTwoTensor &resid )
   Real thermal_expansion = _thermal_expansion; 
   Real reference_temperature = _reference_temperature;
 
-
   iden.zero();
   iden.addIa(1.0);
 
