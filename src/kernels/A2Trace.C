@@ -77,7 +77,11 @@ A2Trace::negSpeedQp()
 	case DisloCharacter::screw:
 	  for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
 	  {
-	    _velocity[j] = _screw_slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // screw direction	  
+		// note that the definition of _screw_slip_direction in FiniteStrainCrystalPlasticityDislo
+		// is -y, because +x is _edge_slip_direction and +z is slip plane normal
+		// but derivative must be taken along +y
+		// therefore a sign change is needed
+	    _velocity[j] = - _screw_slip_direction[_qp][_slip_sys_index * LIBMESH_DIM + j]; // screw direction	  
 	  }	
 	  break;
   }
