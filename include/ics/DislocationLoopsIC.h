@@ -34,6 +34,7 @@ protected:
   std::vector<Real> _centrey;
   std::vector<Real> _radii;
   std::vector<Real> _width;
+  std::vector<Real> _rho_max;
   
   // Type of variable for the dislocation loop
   MooseEnum _variable_type;
