@@ -14,4 +14,9 @@
 	input = 'SandfeldCurvatureAdvection.i'
 	exodiff = 'SandfeldCurvatureAdvection_out.e'
   [../]
+  [./SandfeldZaiser_loop]
+    type = 'Exodiff'
+	input = 'SandfeldLoop.i'
+	exodiff = 'SandfeldLoop_out.e'
+  [../]
 []
