@@ -58,6 +58,10 @@
       width = '1.0'
       rho_max = '0.01'
       variable_type = 'qtot'
+	  slip_sys_index = 0
+	  read_prop_user_object = prop_read
+	  slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
+	  nss = 12
     [../]
   [../]
   
@@ -72,6 +76,10 @@
       width = '1.0'
       rho_max = '0.01'
       variable_type = 'rhotot'
+	  slip_sys_index = 0
+	  read_prop_user_object = prop_read
+	  slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
+	  nss = 12
     [../]
   [../]
   
@@ -86,6 +94,10 @@
       width = '1.0'
       rho_max = '0.01'
       variable_type = 'rhoedgegnd'
+	  slip_sys_index = 0
+	  read_prop_user_object = prop_read
+	  slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
+	  nss = 12
     [../]
   [../]
   
@@ -100,6 +112,10 @@
       width = '1.0'
       rho_max = '0.01'
       variable_type = 'rhoscrewgnd'
+	  slip_sys_index = 0
+	  read_prop_user_object = prop_read
+	  slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
+	  nss = 12
     [../]
   [../]
 []
