@@ -21,6 +21,8 @@ DislocationLoopsIC::validParams()
   params.addParam<std::vector<Real>>("radii", "Radii of the loops");
   params.addParam<std::vector<Real>>("width", "Width of the loops");
   params.addParam<std::vector<Real>>("rho_max", "Max dislocation density in one loop");
+  params.addParam<std::vector<Real>>("depth", "Depth at which slip planes are placed");
+  params.addParam<std::vector<Real>>("thickness", "Thickness of the slip planes");
   MooseEnum var_options("rhotot rhoedgegnd rhoscrewgnd qtot", "rhotot");
   params.addParam<MooseEnum>("variable_type",
                              var_options,
@@ -33,7 +35,8 @@ DislocationLoopsIC::validParams()
                                   "specific property values from file");
   params.addRequiredParam<FileName>("slip_sys_file_name",
                                     "Name of the file containing the slip system");		
-  params.addRequiredParam<int>("nss", "Number of slip systems");									
+  params.addRequiredParam<int>("nss", "Number of slip systems");	
+  params.addParam<bool>("is3D",false,"Initial dislocation density on parallel slip planes in 3D");  
   params.addClassDescription("Initialize dislocation loops.");
   return params;
 }
@@ -45,6 +48,8 @@ DislocationLoopsIC::DislocationLoopsIC(const InputParameters & parameters)
 	_radii(getParam<std::vector<Real>>("radii")),
 	_width(getParam<std::vector<Real>>("width")),
 	_rho_max(getParam<std::vector<Real>>("rho_max")),
+	_depth(getParam<std::vector<Real>>("depth")),
+	_thickness(getParam<std::vector<Real>>("thickness")),
     _variable_type(getParam<MooseEnum>("variable_type")),
 	_slip_sys_index(getParam<int>("slip_sys_index")),
     _read_prop_user_object(isParamValid("read_prop_user_object")
@@ -52,6 +57,7 @@ DislocationLoopsIC::DislocationLoopsIC(const InputParameters & parameters)
                                : nullptr),
     _slip_sys_file_name(getParam<FileName>("slip_sys_file_name")),
     _nss(getParam<int>("nss")),
+	_is3D(getParam<bool>("is3D")),
     _mo(_nss * LIBMESH_DIM),
     _no(_nss * LIBMESH_DIM),
 	_rot_mo(_nss * LIBMESH_DIM),
@@ -75,10 +81,21 @@ DislocationLoopsIC::value(const Point & p)
   Real radialvy; // Temporary Y component of the unit radial vector
   Real val;
   
+  bool OutOfSlipPlane = true; // point is out of the slip plane -> no initialisation
+  
   Point pp;	
 	
   if (_centrex.size() <= 0 || _centrey.size() <= 0 || _radii.size() <= 0 || _width.size() <= 0)
     mooseError("Error in reading dislocation loops properties");
+
+  if (_is3D) {
+    if (_depth.size() <= 0 || _thickness.size() <= 0) {
+	  mooseError("Error in reading parallel slip planes properties");	
+	}	  
+	if (_depth.size() != _thickness.size()) {
+	  mooseError("Size of _depth must be the same as size of _thickness");	
+	}
+  }
 
   // get coordinates on the slip system
   pp = projectOnSlipPlane(p);
@@ -124,7 +141,27 @@ DislocationLoopsIC::value(const Point & p)
       break;	
   }
   
-  return val;
+  // return 0 if the point is out of the selected
+  // parallel slip planes in 3D
+  if (_is3D) {
+    for (unsigned int i = 0; i < _depth.size(); ++i) {
+      if ((pp(2) > _depth[i]) && (pp(2) < (_depth[i] + _thickness[i]))) {
+	    OutOfSlipPlane = false;	  
+      }	
+	}	  
+  } else {
+	OutOfSlipPlane = false;  
+  }
+  
+  if (OutOfSlipPlane) {
+	  
+    return 0.0;
+	
+  } else {
+
+    return val; 
+
+  }
 
 }
 
@@ -145,11 +182,15 @@ DislocationLoopsIC::projectOnSlipPlane(const Point & p)
   projectedp(0) += p(1) * _rot_mo(_slip_sys_index * LIBMESH_DIM + 1);
   projectedp(0) += p(2) * _rot_mo(_slip_sys_index * LIBMESH_DIM + 2);
   
+  // _rot_to points towards -y direction
+  // therefore a change of sign is needed
   projectedp(1) = p(0) * (-1.0) * _rot_to(_slip_sys_index * LIBMESH_DIM);
   projectedp(1) += p(1) * (-1.0) * _rot_to(_slip_sys_index * LIBMESH_DIM + 1);
   projectedp(1) += p(2) * (-1.0) * _rot_to(_slip_sys_index * LIBMESH_DIM + 2);
   
-  projectedp(2) = 0.0; 
+  projectedp(2) = p(0) * _rot_no(_slip_sys_index * LIBMESH_DIM); 
+  projectedp(2) += p(1) * _rot_no(_slip_sys_index * LIBMESH_DIM + 1);
+  projectedp(2) += p(2) * _rot_no(_slip_sys_index * LIBMESH_DIM + 2);
 	
   return projectedp;
 }

@@ -46,6 +46,8 @@ protected:
   std::vector<Real> _radii;
   std::vector<Real> _width;
   std::vector<Real> _rho_max;
+  std::vector<Real> _depth;
+  std::vector<Real> _thickness;
   
   // Type of variable for the dislocation loop
   MooseEnum _variable_type;
@@ -65,6 +67,9 @@ protected:
   
   /// Number of slip system
   const unsigned int _nss;
+  
+  /// Dislocation loops on parallel slip planes in 3D
+  bool _is3D;  
   
   /// Rotation matrix (passive)
   RotationTensor _R;
