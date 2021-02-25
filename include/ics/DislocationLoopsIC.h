@@ -71,12 +71,6 @@ protected:
   /// Dislocation loops on parallel slip planes in 3D
   bool _is3D;  
   
-  /// Rotation matrix (passive)
-  RotationTensor _R;
-  
-  /// Rotation matrix (active) 
-  RankTwoTensor _Rt;
-  
   /// Euler angles
   /// works only for single crystal
   RealVectorValue _Euler_angles_sc;
@@ -91,5 +85,11 @@ protected:
   DenseVector<Real> _rot_mo;
   DenseVector<Real> _rot_no;
   DenseVector<Real> _rot_to;
+
+  /// Rotation matrix (passive)
+  RotationTensor _R;
+  
+  /// Rotation matrix (active) 
+  RankTwoTensor _Rt;
 
 };
