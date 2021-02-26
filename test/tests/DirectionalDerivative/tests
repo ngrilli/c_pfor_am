@@ -1,0 +1,7 @@
+[Tests]
+  [./DirectionalDerivative]
+    type = 'Exodiff'
+    input = 'DirectionalDerivative.i'
+    exodiff = 'DirectionalDerivative_out.e'
+  [../]
+[]
