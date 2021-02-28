@@ -539,6 +539,15 @@ FiniteStrainCrystalPlasticityDislo::getMatRot(const RankTwoTensor & a)
   LAPACKsyev_("V", "U", &nd, &cmat[0][0], &nd, w, work, &lwork, &info);
 
   if (info != 0) {
+    mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](0,0));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](0,1));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](0,2));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](1,0));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](1,1));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](1,2));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,0));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,1));
+	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,2));
 	std::cout << "Deformation gradient components" << std::endl;
 	std::cout << _deformation_gradient[_qp](0,0) << std::endl;
 	std::cout << _deformation_gradient[_qp](0,1) << std::endl;
