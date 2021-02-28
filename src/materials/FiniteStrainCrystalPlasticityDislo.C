@@ -20,7 +20,7 @@ FiniteStrainCrystalPlasticityDislo::validParams()
                              "Temperature dependence of the CRSS. "
 							 "Dislocation based model. "
 							 "Stress dependent dislocation velocity. ");
-  params.addCoupledVar("temp",293.0,"Temperature");
+  params.addCoupledVar("temp",303.0,"Temperature");
   params.addCoupledVar("rho_edge_pos_1",0.0,"Positive edge dislocation density: slip system 1");
   params.addCoupledVar("rho_edge_neg_1",0.0,"Negative edge dislocation density: slip system 1");
   params.addCoupledVar("rho_edge_pos_2",0.0,"Positive edge dislocation density: slip system 2");
@@ -70,7 +70,7 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addCoupledVar("rho_screw_pos_12",0.0,"Positive screw dislocation density: slip system 12");
   params.addCoupledVar("rho_screw_neg_12",0.0,"Negative screw dislocation density: slip system 12");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
-  params.addParam<Real>("reference_temperature",293.0,"reference temperature for thermal expansion");
+  params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
   params.addParam<Real>("dCRSS_dT_B",0.0,"B coefficient for the exponential decrease of the critical "
@@ -213,7 +213,7 @@ FiniteStrainCrystalPlasticityDislo::calcResidual( RankTwoTensor &resid )
 }
 
 // Critical resolved shear stress decreases exponentially with temperature
-// A + B exp(- C * (T - 293.0))
+// A + B exp(- C * (T - 303.0))
 void
 FiniteStrainCrystalPlasticityDislo::TempDependCRSS()
 {
@@ -223,7 +223,7 @@ FiniteStrainCrystalPlasticityDislo::TempDependCRSS()
   // refers always to room temperature
   for (unsigned int i = 0; i < _nss; ++i)
   {
-    _gssT[i] = ( _dCRSS_dT_A + _dCRSS_dT_B * std::exp(- _dCRSS_dT_C * (temp - 293.0))) * 
+    _gssT[i] = ( _dCRSS_dT_A + _dCRSS_dT_B * std::exp(- _dCRSS_dT_C * (temp - _reference_temperature))) * 
 	           _gss_tmp[i];
   }
 }
@@ -324,8 +324,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
     {
       //_err_tol = true;
-      //mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
-	  
+	  mooseWarning("Maximum allowable slip increment exceeded ", std::abs(_slip_incr(i)));
 	  _slip_incr(i) = _slip_incr_tol * std::copysign(1.0, _tau(i));
 	  
     }	  
@@ -518,5 +517,52 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
   {
     _gss_tmp[i] = qab;
   }
+}
+
+// Performs RU factorization of a tensor
+// Added debug information when RU decomposition fails
+RankTwoTensor
+FiniteStrainCrystalPlasticityDislo::getMatRot(const RankTwoTensor & a)
+{
+  RankTwoTensor rot;
+  RankTwoTensor c, diag, evec;
+  PetscScalar cmat[LIBMESH_DIM][LIBMESH_DIM], work[10];
+  PetscReal w[LIBMESH_DIM];
+  PetscBLASInt nd = LIBMESH_DIM, lwork = 10, info;
+
+  c = a.transpose() * a;
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      cmat[i][j] = c(i, j);
+
+  LAPACKsyev_("V", "U", &nd, &cmat[0][0], &nd, w, work, &lwork, &info);
+
+  if (info != 0) {
+	std::cout << "Deformation gradient components" << std::endl;
+	std::cout << _deformation_gradient[_qp](0,0) << std::endl;
+	std::cout << _deformation_gradient[_qp](0,1) << std::endl;
+	std::cout << _deformation_gradient[_qp](0,2) << std::endl;
+	std::cout << _deformation_gradient[_qp](1,0) << std::endl;
+	std::cout << _deformation_gradient[_qp](1,1) << std::endl;
+	std::cout << _deformation_gradient[_qp](1,2) << std::endl;
+	std::cout << _deformation_gradient[_qp](2,0) << std::endl;
+	std::cout << _deformation_gradient[_qp](2,1) << std::endl;
+	std::cout << _deformation_gradient[_qp](2,2) << std::endl;
+    mooseError("FiniteStrainCrystalPLasticity: DSYEV function call in getMatRot function failed");
+  }
+  
+  diag.zero();
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    diag(i, i) = std::sqrt(w[i]);
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      evec(i, j) = cmat[i][j];
+
+  rot = a * ((evec.transpose() * diag * evec).inverse());
+
+  return rot;
 }
 

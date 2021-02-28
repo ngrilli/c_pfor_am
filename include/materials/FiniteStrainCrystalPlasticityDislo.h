@@ -59,6 +59,12 @@ protected:
    * based on Taylor hardening model
    */
   virtual void updateGss();
+  
+  /**
+   * This function perform RU decomposition to obtain the rotation tensor.
+   * Added debug information when RU decomposition fails
+   */
+  RankTwoTensor getMatRot(const RankTwoTensor & a);
 
   const VariableValue & _temp;
   
