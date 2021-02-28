@@ -558,7 +558,7 @@ FiniteStrainCrystalPlasticityDislo::getMatRot(const RankTwoTensor & a)
 	std::cout << _deformation_gradient[_qp](2,0) << std::endl;
 	std::cout << _deformation_gradient[_qp](2,1) << std::endl;
 	std::cout << _deformation_gradient[_qp](2,2) << std::endl;
-    mooseError("FiniteStrainCrystalPLasticity: DSYEV function call in getMatRot function failed");
+    mooseError("FiniteStrainCrystalPlasticityDislo: DSYEV function call in getMatRot function failed");
   }
   
   diag.zero();
