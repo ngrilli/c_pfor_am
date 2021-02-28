@@ -519,6 +519,46 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
   }
 }
 
+void
+FiniteStrainCrystalPlasticityDislo::postSolveQp()
+{
+  if (_err_tol)
+  {
+    _err_tol = false;
+    if (_gen_rndm_stress_flag)
+    {
+      if (!_input_rndm_scale_var)
+        _rndm_scale_var = _elasticity_tensor[_qp](0, 0, 0, 0);
+
+      _stress[_qp] = RankTwoTensor::genRandomSymmTensor(_rndm_scale_var, 1.0);
+    }
+    else
+      mooseError("FiniteStrainCrystalPlasticity: Constitutive failure");
+  }
+  else
+  {
+    _stress[_qp] = _fe * _pk2[_qp] * _fe.transpose() / _fe.det();
+
+    _Jacobian_mult[_qp] += calcTangentModuli(); // Calculate jacobian for preconditioner
+
+    RankTwoTensor iden(RankTwoTensor::initIdentity);
+
+    _lag_e[_qp] = _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] - iden;
+    _lag_e[_qp] = _lag_e[_qp] * 0.5;
+
+    RankTwoTensor rot;
+    rot = get_current_rotation(_deformation_gradient[_qp]); // Calculate material rotation
+    _update_rot[_qp] = rot * _crysrot[_qp];
+  }
+}
+
+// Calls getMatRot to perform RU factorization of a tensor.
+RankTwoTensor
+FiniteStrainCrystalPlasticityDislo::get_current_rotation(const RankTwoTensor & a)
+{
+  return getMatRot(a);
+}
+
 // Performs RU factorization of a tensor
 // Added debug information when RU decomposition fails
 RankTwoTensor
@@ -548,16 +588,6 @@ FiniteStrainCrystalPlasticityDislo::getMatRot(const RankTwoTensor & a)
 	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,0));
 	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,1));
 	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,2));
-	std::cout << "Deformation gradient components" << std::endl;
-	std::cout << _deformation_gradient[_qp](0,0) << std::endl;
-	std::cout << _deformation_gradient[_qp](0,1) << std::endl;
-	std::cout << _deformation_gradient[_qp](0,2) << std::endl;
-	std::cout << _deformation_gradient[_qp](1,0) << std::endl;
-	std::cout << _deformation_gradient[_qp](1,1) << std::endl;
-	std::cout << _deformation_gradient[_qp](1,2) << std::endl;
-	std::cout << _deformation_gradient[_qp](2,0) << std::endl;
-	std::cout << _deformation_gradient[_qp](2,1) << std::endl;
-	std::cout << _deformation_gradient[_qp](2,2) << std::endl;
     mooseError("FiniteStrainCrystalPlasticityDislo: DSYEV function call in getMatRot function failed");
   }
   

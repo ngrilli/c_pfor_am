@@ -61,6 +61,16 @@ protected:
   virtual void updateGss();
   
   /**
+   * This function update stress and internal variable after solve.
+   */
+  virtual void postSolveQp();  
+  
+  /**
+   * This function perform RU decomposition to obtain the rotation tensor.
+   */
+  RankTwoTensor get_current_rotation(const RankTwoTensor & a);  
+  
+  /**
    * This function perform RU decomposition to obtain the rotation tensor.
    * Added debug information when RU decomposition fails
    */
