@@ -300,7 +300,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
 	// temporary variable  
 	RhoTotSlip = rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i];   
 	
-	if (RhoTotSlip > 0.0) {
+	// if (RhoTotSlip > 0.0) {
 
       _slip_incr(i) = RhoTotSlip * 
 	                  std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
@@ -310,12 +310,12 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
       _dslipdtau(i) = RhoTotSlip * 
                       _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
 					  
-	} else {
+	//} else {
 		
-	  _slip_incr(i) = 0.0;
-	  _dslipdtau(i) = 0.0;
+	//  _slip_incr(i) = 0.0;
+	//  _dslipdtau(i) = 0.0;
 	  
-	}
+	//}
 	
   }
 
@@ -349,7 +349,7 @@ FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
   for (unsigned int i = 0; i < _nss; ++i)
   {
 	_dislo_velocity[_qp][i] = 0.0;
-	_ddislo_velocity_dtau[_qp][i] = 0.0;
+	_ddislo_velocity_dtau[_qp][i] = _dislo_mobility; // 0.0;
 	
 	if (std::abs(_tau(i)) > _gssT[i]) {
       _dislo_velocity[_qp][i] = _dislo_mobility * (std::abs(_tau(i)) - _gssT[i])
@@ -360,7 +360,7 @@ FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
 	  if (std::abs(_dislo_velocity[_qp][i]) > _dislo_max_velocity) {
 
 		_dislo_velocity[_qp][i] = _dislo_max_velocity * std::copysign(1.0, _tau(i));
-		_ddislo_velocity_dtau[_qp][i] = 0.0;
+		_ddislo_velocity_dtau[_qp][i] = _dislo_mobility; // 0.0;
 		
 	  }
 	}
@@ -588,6 +588,18 @@ FiniteStrainCrystalPlasticityDislo::getMatRot(const RankTwoTensor & a)
 	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,0));
 	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,1));
 	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,2));
+	mooseWarning("Slip increment ", _slip_incr(0));
+	mooseWarning("Slip increment ", _slip_incr(1));
+	mooseWarning("Slip increment ", _slip_incr(2));
+	mooseWarning("Slip increment ", _slip_incr(3));
+	mooseWarning("Slip increment ", _slip_incr(4));
+	mooseWarning("Slip increment ", _slip_incr(5));
+	mooseWarning("Slip increment ", _slip_incr(6));
+	mooseWarning("Slip increment ", _slip_incr(7));
+	mooseWarning("Slip increment ", _slip_incr(8));
+	mooseWarning("Slip increment ", _slip_incr(9));
+	mooseWarning("Slip increment ", _slip_incr(10));
+	mooseWarning("Slip increment ", _slip_incr(11));
     mooseError("FiniteStrainCrystalPlasticityDislo: DSYEV function call in getMatRot function failed");
   }
   
