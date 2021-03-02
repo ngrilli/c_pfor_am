@@ -300,7 +300,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
 	// temporary variable  
 	RhoTotSlip = rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i];   
 	
-	// if (RhoTotSlip > 0.0) {
+	if (RhoTotSlip > 0.0) {
 
       _slip_incr(i) = RhoTotSlip * 
 	                  std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
@@ -310,12 +310,12 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
       _dslipdtau(i) = RhoTotSlip * 
                       _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag * _dt;
 					  
-	//} else {
+	} else {
 		
-	//  _slip_incr(i) = 0.0;
-	//  _dslipdtau(i) = 0.0;
+	  _slip_incr(i) = 0.0;
+	  _dslipdtau(i) = 0.0;
 	  
-	//}
+	}
 	
   }
 
@@ -349,7 +349,7 @@ FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
   for (unsigned int i = 0; i < _nss; ++i)
   {
 	_dislo_velocity[_qp][i] = 0.0;
-	_ddislo_velocity_dtau[_qp][i] = _dislo_mobility; // 0.0;
+	_ddislo_velocity_dtau[_qp][i] = 0.0;
 	
 	if (std::abs(_tau(i)) > _gssT[i]) {
       _dislo_velocity[_qp][i] = _dislo_mobility * (std::abs(_tau(i)) - _gssT[i])
@@ -360,7 +360,7 @@ FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
 	  if (std::abs(_dislo_velocity[_qp][i]) > _dislo_max_velocity) {
 
 		_dislo_velocity[_qp][i] = _dislo_max_velocity * std::copysign(1.0, _tau(i));
-		_ddislo_velocity_dtau[_qp][i] = _dislo_mobility; // 0.0;
+		_ddislo_velocity_dtau[_qp][i] = 0.0;
 		
 	  }
 	}
@@ -579,15 +579,63 @@ FiniteStrainCrystalPlasticityDislo::getMatRot(const RankTwoTensor & a)
   LAPACKsyev_("V", "U", &nd, &cmat[0][0], &nd, w, work, &lwork, &info);
 
   if (info != 0) {
-    mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](0,0));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](0,1));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](0,2));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](1,0));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](1,1));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](1,2));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,0));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,1));
-	mooseWarning("Deformation gradient components ", _deformation_gradient[_qp](2,2));
+    mooseWarning("Deformation gradient components (0,0)", _deformation_gradient[_qp](0,0));
+	mooseWarning("Deformation gradient components (0,1)", _deformation_gradient[_qp](0,1));
+	mooseWarning("Deformation gradient components (0,2)", _deformation_gradient[_qp](0,2));
+	mooseWarning("Deformation gradient components (1,0)", _deformation_gradient[_qp](1,0));
+	mooseWarning("Deformation gradient components (1,1)", _deformation_gradient[_qp](1,1));
+	mooseWarning("Deformation gradient components (1,2)", _deformation_gradient[_qp](1,2));
+	mooseWarning("Deformation gradient components (2,0)", _deformation_gradient[_qp](2,0));
+	mooseWarning("Deformation gradient components (2,1)", _deformation_gradient[_qp](2,1));
+	mooseWarning("Deformation gradient components (2,2)", _deformation_gradient[_qp](2,2));
+	mooseWarning("Rho edge pos 1 ", _rho_edge_pos_1[_qp]);
+	mooseWarning("Rho edge pos 2 ", _rho_edge_pos_2[_qp]);
+	mooseWarning("Rho edge pos 3 ", _rho_edge_pos_3[_qp]);
+	mooseWarning("Rho edge pos 4 ", _rho_edge_pos_4[_qp]);
+	mooseWarning("Rho edge pos 5 ", _rho_edge_pos_5[_qp]);
+	mooseWarning("Rho edge pos 6 ", _rho_edge_pos_6[_qp]);
+	mooseWarning("Rho edge pos 7 ", _rho_edge_pos_7[_qp]);
+	mooseWarning("Rho edge pos 8 ", _rho_edge_pos_8[_qp]);
+	mooseWarning("Rho edge pos 9 ", _rho_edge_pos_9[_qp]);
+	mooseWarning("Rho edge pos 10 ", _rho_edge_pos_10[_qp]);
+	mooseWarning("Rho edge pos 11 ", _rho_edge_pos_11[_qp]);
+	mooseWarning("Rho edge pos 12 ", _rho_edge_pos_12[_qp]);
+	mooseWarning("Rho edge neg 1 ", _rho_edge_neg_1[_qp]);
+	mooseWarning("Rho edge neg 2 ", _rho_edge_neg_2[_qp]);
+	mooseWarning("Rho edge neg 3 ", _rho_edge_neg_3[_qp]);
+	mooseWarning("Rho edge neg 4 ", _rho_edge_neg_4[_qp]);
+	mooseWarning("Rho edge neg 5 ", _rho_edge_neg_5[_qp]);
+	mooseWarning("Rho edge neg 6 ", _rho_edge_neg_6[_qp]);
+	mooseWarning("Rho edge neg 7 ", _rho_edge_neg_7[_qp]);
+	mooseWarning("Rho edge neg 8 ", _rho_edge_neg_8[_qp]);
+	mooseWarning("Rho edge neg 9 ", _rho_edge_neg_9[_qp]);
+	mooseWarning("Rho edge neg 10 ", _rho_edge_neg_10[_qp]);
+	mooseWarning("Rho edge neg 11 ", _rho_edge_neg_11[_qp]);
+	mooseWarning("Rho edge neg 12 ", _rho_edge_neg_12[_qp]);
+	mooseWarning("Rho screw pos 1 ", _rho_screw_pos_1[_qp]);
+	mooseWarning("Rho screw pos 2 ", _rho_screw_pos_2[_qp]);
+	mooseWarning("Rho screw pos 3 ", _rho_screw_pos_3[_qp]);
+	mooseWarning("Rho screw pos 4 ", _rho_screw_pos_4[_qp]);
+	mooseWarning("Rho screw pos 5 ", _rho_screw_pos_5[_qp]);
+	mooseWarning("Rho screw pos 6 ", _rho_screw_pos_6[_qp]);
+	mooseWarning("Rho screw pos 7 ", _rho_screw_pos_7[_qp]);
+	mooseWarning("Rho screw pos 8 ", _rho_screw_pos_8[_qp]);
+	mooseWarning("Rho screw pos 9 ", _rho_screw_pos_9[_qp]);
+	mooseWarning("Rho screw pos 10 ", _rho_screw_pos_10[_qp]);
+	mooseWarning("Rho screw pos 11 ", _rho_screw_pos_11[_qp]);
+	mooseWarning("Rho screw pos 12 ", _rho_screw_pos_12[_qp]);
+	mooseWarning("Rho screw neg 1 ", _rho_screw_neg_1[_qp]);
+	mooseWarning("Rho screw neg 2 ", _rho_screw_neg_2[_qp]);
+	mooseWarning("Rho screw neg 3 ", _rho_screw_neg_3[_qp]);
+	mooseWarning("Rho screw neg 4 ", _rho_screw_neg_4[_qp]);
+	mooseWarning("Rho screw neg 5 ", _rho_screw_neg_5[_qp]);
+	mooseWarning("Rho screw neg 6 ", _rho_screw_neg_6[_qp]);
+	mooseWarning("Rho screw neg 7 ", _rho_screw_neg_7[_qp]);
+	mooseWarning("Rho screw neg 8 ", _rho_screw_neg_8[_qp]);
+	mooseWarning("Rho screw neg 9 ", _rho_screw_neg_9[_qp]);
+	mooseWarning("Rho screw neg 10 ", _rho_screw_neg_10[_qp]);
+	mooseWarning("Rho screw neg 11 ", _rho_screw_neg_11[_qp]);
+	mooseWarning("Rho screw neg 12 ", _rho_screw_neg_12[_qp]);
 	mooseWarning("Slip increment ", _slip_incr(0));
 	mooseWarning("Slip increment ", _slip_incr(1));
 	mooseWarning("Slip increment ", _slip_incr(2));
