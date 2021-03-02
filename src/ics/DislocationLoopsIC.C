@@ -141,6 +141,19 @@ DislocationLoopsIC::value(const Point & p)
       break;	
   }
   
+  // catch possible NaN values
+  if (val != val) {
+	mooseWarning("Projected coordinate X ", pp(0));
+	mooseWarning("Projected coordinate Y ", pp(1));
+	mooseWarning("Projected coordinate Z ", pp(2));
+	mooseWarning("Distance from point R ", R);
+	mooseWarning("Total dislocation density ", rhotot);
+	mooseWarning("Edge GND density ", rhoedgegnd);
+	mooseWarning("Screw GND density ", rhoscrewgnd);
+	mooseWarning("Curvature density ", qtot);
+	mooseError("NaN detected in DislocationLoopsIC");
+  }
+  
   // return 0 if the point is out of the selected
   // parallel slip planes in 3D
   if (_is3D) {
