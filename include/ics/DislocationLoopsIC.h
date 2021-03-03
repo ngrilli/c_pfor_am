@@ -43,7 +43,7 @@ protected:
   
   std::vector<Real> _centrex;
   std::vector<Real> _centrey;
-  std::vector<Real> _radii;
+  std::vector<Real> _radii; // signed for positive/negative loops
   std::vector<Real> _width;
   std::vector<Real> _rho_max;
   std::vector<Real> _depth;
