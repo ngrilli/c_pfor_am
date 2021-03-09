@@ -128,6 +128,9 @@ protected:
   const VariableValue & _rho_screw_pos_12;
   const VariableValue & _rho_screw_neg_12;
   
+  // Forest dislocation density
+  const VariableValue & _rho_forest;
+  
   const Real _thermal_expansion;
   const Real _reference_temperature;
 

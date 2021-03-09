@@ -69,6 +69,7 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addCoupledVar("rho_screw_neg_11",0.0,"Negative screw dislocation density: slip system 11");
   params.addCoupledVar("rho_screw_pos_12",0.0,"Positive screw dislocation density: slip system 12");
   params.addCoupledVar("rho_screw_neg_12",0.0,"Negative screw dislocation density: slip system 12");
+  params.addCoupledVar("rho_forest",0.0,"Forest dislocation density");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
@@ -135,6 +136,7 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_rho_screw_neg_11(coupledValue("rho_screw_neg_11")),
     _rho_screw_pos_12(coupledValue("rho_screw_pos_12")),
     _rho_screw_neg_12(coupledValue("rho_screw_neg_12")),
+	_rho_forest(coupledValue("rho_forest")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _reference_temperature(getParam<Real>("reference_temperature")),
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
@@ -237,7 +239,7 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
   std::vector<Real> rho_screw_pos(_nss);
   std::vector<Real> rho_screw_neg(_nss);
   
-  Real RhoTotSlip; // total dislocation density in the current slip system   
+  Real RhoTotSlip; // total dislocation density in the current slip system 
 
   // Assign dislocation density vectors
   rho_edge_pos[0] = _rho_edge_pos_1[_qp];
@@ -435,6 +437,7 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
 {
   Real qab; // Taylor hardening
   Real TotalRho = 0.0; // total dislocation density
+  Real rho_forest; // forest dislocation density  
   
   std::vector<Real> rho_edge_pos(_nss);
   std::vector<Real> rho_edge_neg(_nss);
@@ -493,6 +496,8 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
   rho_screw_neg[9] = _rho_screw_neg_10[_qp];
   rho_screw_neg[10] = _rho_screw_neg_11[_qp];
   rho_screw_neg[11] = _rho_screw_neg_12[_qp];
+  
+  rho_forest = _rho_forest[_qp];
 
   // Is this update necessary
   // for the constitutive model
@@ -502,6 +507,8 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
 
   for (unsigned int i = 0; i < _nss; ++i)
     TotalRho += (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]);
+
+  TotalRho += rho_forest;
 
   if (TotalRho >= 0.0) {
 	  
