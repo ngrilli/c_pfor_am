@@ -138,6 +138,7 @@ protected:
   const Real _dCRSS_dT_B;
   const Real _dCRSS_dT_C;
   const Real _dislo_mobility;
+  const Real _reduced_mobility;
   const Real _burgers_vector_mag;
   const Real _shear_modulus_hardening;
   const Real _dislo_max_velocity;

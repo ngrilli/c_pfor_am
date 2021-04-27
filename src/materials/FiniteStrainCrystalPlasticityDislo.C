@@ -79,6 +79,7 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 293.0))");
   params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
+  params.addParam<Real>("reduced_mobility",0.0,"Ratio between mobility above vmax and mobility");
   params.addParam<Real>("burgers_vector_mag",0.0,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus_hardening",86000.0,"Shear modulus in Taylor hardening law");
   params.addParam<Real>("dislo_max_velocity",1000.0,"Maximum dislocation velocity (phonon drag)");
@@ -143,6 +144,7 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
 	_dislo_mobility(getParam<Real>("dislo_mobility")),
+	_reduced_mobility(getParam<Real>("reduced_mobility")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")), // Magnitude of the Burgers vector
 	_shear_modulus_hardening(getParam<Real>("shear_modulus_hardening")), // Shear modulus in Taylor hardening law
     _dislo_max_velocity(getParam<Real>("dislo_max_velocity")), // Maximum dislocation velocity (phonon drag)
@@ -345,28 +347,51 @@ FiniteStrainCrystalPlasticityDislo::getSlipIncrements()
 void
 FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
 {
+  Real tau0; // resolved shear stress at max velocity _dislo_max_velocity	
+	
   _dislo_velocity[_qp].resize(_nss);
   _ddislo_velocity_dtau[_qp].resize(_nss);
   
   for (unsigned int i = 0; i < _nss; ++i)
   {
-	_dislo_velocity[_qp][i] = 0.0;
-	_ddislo_velocity_dtau[_qp][i] = 0.0;
+	  
+	tau0 = 0.0;
 	
-	if (std::abs(_tau(i)) > _gssT[i]) {
+	if (_dislo_mobility > 0.0) {
+	  tau0 = _dislo_max_velocity / _dislo_mobility; // temporary variable for this slip system
+	  tau0 += _gssT[i];		
+	}
+	
+	if (std::abs(_tau(i)) > tau0) {
+		
+	  _dislo_velocity[_qp][i] = (_dislo_max_velocity + _reduced_mobility * (std::abs(_tau(i)) - tau0))
+	                          * std::copysign(1.0, _tau(i));
+	  
+	  // Derivative is always positive
+	  _ddislo_velocity_dtau[_qp][i] = _reduced_mobility;
+		
+	} else if (std::abs(_tau(i)) > _gssT[i]) {
+		
       _dislo_velocity[_qp][i] = _dislo_mobility * (std::abs(_tau(i)) - _gssT[i])
-	                            * std::copysign(1.0, _tau(i));
+	                          * std::copysign(1.0, _tau(i));
 	  // Derivative is always positive
 	  _ddislo_velocity_dtau[_qp][i] = _dislo_mobility;
 	  
-	  if (std::abs(_dislo_velocity[_qp][i]) > _dislo_max_velocity) {
+	  //if (std::abs(_dislo_velocity[_qp][i]) > _dislo_max_velocity) {
 
-		_dislo_velocity[_qp][i] = _dislo_max_velocity * std::copysign(1.0, _tau(i));
-		_ddislo_velocity_dtau[_qp][i] = 0.0;
+	  //	_dislo_velocity[_qp][i] = _dislo_max_velocity * std::copysign(1.0, _tau(i));
+	  //	_ddislo_velocity_dtau[_qp][i] = 0.0;
 		
-	  }
+	  //}
+	  
+	} else {
+		
+	  _dislo_velocity[_qp][i] = 0.0;
+	  _ddislo_velocity_dtau[_qp][i] = 0.0;
+	  
 	}
-  }
+	
+  } // end cycle over slip systems
 }
 
 // Store slip direction
