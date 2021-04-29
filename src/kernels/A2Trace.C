@@ -20,6 +20,8 @@ A2Trace::validParams()
   params.addCoupledVar("rho_tot", 0.0, "Total dislocation density: rho_t.");
   params.addCoupledVar("dv_dx", 0.0, "Derivative of the velocity with respect to edge slip direction.");
   params.addCoupledVar("dv_dy", 0.0, "Derivative of the velocity with respect to screw slip direction.");
+  params.addParam<Real>("dv_dx_max",1e9,"Max absolute value of dv_dx");
+  params.addParam<Real>("dv_dy_max",1e9,"Max absolute value of dv_dy");  
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_sign("positive negative", "positive");
@@ -39,7 +41,9 @@ A2Trace::A2Trace(const InputParameters & parameters)
     _rho_tot_coupled(isCoupled("rho_tot")),
     _rho_tot_var(_rho_tot_coupled ? coupled("rho_tot") : 0),
     _dv_dx(coupledValue("dv_dx")), // Derivative of the velocity with respect to edge slip direction
-    _dv_dy(coupledValue("dv_dy")), // Derivative of the velocity with respect to screw slip direction	
+    _dv_dy(coupledValue("dv_dy")), // Derivative of the velocity with respect to screw slip direction
+    _dv_dx_max(getParam<Real>("dv_dx_max")),
+	_dv_dy_max(getParam<Real>("dv_dy_max")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
 	_slip_sys_index(getParam<int>("slip_sys_index")),
@@ -99,14 +103,22 @@ Real
 A2Trace::computeQpResidual()
 {
   Real val;
+  Real dv_dx;
+  Real dv_dy;
+  
+  dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
+  dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
+  
+  dv_dx = dv_dx * std::copysign(1.0, _dv_dx[_qp]);
+  dv_dy = dv_dy * std::copysign(1.0, _dv_dy[_qp]);
   
   switch (_dislo_character)
   {
     case DisloCharacter::edge:
-      val = 0.5 * _rho_tot[_qp] * _dv_dx[_qp];
+      val = 0.5 * _rho_tot[_qp] * dv_dx;
 	  break;
 	case DisloCharacter::screw:
-      val = 0.5 * _rho_tot[_qp] * _dv_dy[_qp];
+      val = 0.5 * _rho_tot[_qp] * dv_dy;
 	  break;	  
   }
 
@@ -126,6 +138,14 @@ Real
 A2Trace::computeQpOffDiagJacobian(unsigned int jvar)
 {
   Real val;
+  Real dv_dx;
+  Real dv_dy;
+  
+  dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
+  dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
+  
+  dv_dx = dv_dx * std::copysign(1.0, _dv_dx[_qp]);
+  dv_dy = dv_dy * std::copysign(1.0, _dv_dy[_qp]);
   
   if (_rho_tot_coupled && jvar == _rho_tot_var)
   {
@@ -133,10 +153,10 @@ A2Trace::computeQpOffDiagJacobian(unsigned int jvar)
     switch (_dislo_character)
     {
       case DisloCharacter::edge:
-        val = 0.5 * _phi[_j][_qp] * _dv_dx[_qp];
+        val = 0.5 * _phi[_j][_qp] * dv_dx;
 	    break;
 	  case DisloCharacter::screw:
-        val = 0.5 * _phi[_j][_qp] * _dv_dy[_qp];
+        val = 0.5 * _phi[_j][_qp] * dv_dy;
 	    break;	  
     }
 	
