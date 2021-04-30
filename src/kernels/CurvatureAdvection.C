@@ -19,6 +19,7 @@ CurvatureAdvection::validParams()
 							 "Modelling Simul. Mater. Sci. Eng. 23 (2015) 065005 (18pp). ");
   params.addCoupledVar("rho_gnd", 0.0, "GND dislocation density: rho_x or rho_y for edge or screw.");
   params.addCoupledVar("rho_tot", 0.0, "Total dislocation density: rho_t.");
+  params.addParam<Real>("rho_tot_tol",0.000001,"Tolerance on small values of rho_tot.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_sign("positive negative", "positive");
@@ -40,6 +41,7 @@ CurvatureAdvection::CurvatureAdvection(const InputParameters & parameters)
     _rho_tot(coupledValue("rho_tot")), // Total dislocation density: rho_t
     _rho_tot_coupled(isCoupled("rho_tot")),
     _rho_tot_var(_rho_tot_coupled ? coupled("rho_tot") : 0),
+	_rho_tot_tol(getParam<Real>("rho_tot_tol")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
@@ -102,7 +104,7 @@ CurvatureAdvection::computeQpResidual()
 {
   Real val;
   
-  if (_rho_tot[_qp] > 0.000001) {
+  if (_rho_tot[_qp] > _rho_tot_tol) {
 	  
 	val = _rho_gnd[_qp] * _u[_qp] / _rho_tot[_qp];  
 	
@@ -121,7 +123,7 @@ CurvatureAdvection::computeQpJacobian()
 {
   Real val;
   
-  if (_rho_tot[_qp] > 0.000001) {
+  if (_rho_tot[_qp] > _rho_tot_tol) {
 	  
     val = _rho_gnd[_qp] / _rho_tot[_qp];  
 	  
@@ -141,12 +143,27 @@ CurvatureAdvection::computeQpOffDiagJacobian(unsigned int jvar)
   if (_rho_gnd_coupled && jvar == _rho_gnd_var)
   {
 	
-    return negSpeedQp() * _phi[_j][_qp] * _u[_qp] / _rho_tot[_qp];
-
-  }
-  else if (_rho_tot_coupled && jvar == _rho_tot_var) {
+	if (_rho_tot[_qp] > _rho_tot_tol) {
+	
+      return negSpeedQp() * _phi[_j][_qp] * _u[_qp] / _rho_tot[_qp];
+	
+	} else {
+		
+	  return 0.0;	
+		
+	}
+	
+  } else if (_rho_tot_coupled && jvar == _rho_tot_var) {
 	  
-	return (-1.0) * negSpeedQp() * _phi[_j][_qp] * _rho_gnd[_qp] * _u[_qp] / (_rho_tot[_qp] * _rho_tot[_qp]);
+	if (_rho_tot[_qp] > _rho_tot_tol) {
+	  
+	  return (-1.0) * negSpeedQp() * _phi[_j][_qp] * _rho_gnd[_qp] * _u[_qp] / (_rho_tot[_qp] * _rho_tot[_qp]);
+	
+	} else {
+		
+	  return 0.0;	
+		
+	}
 	
   } else {
 	  

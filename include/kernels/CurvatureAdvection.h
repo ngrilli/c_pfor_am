@@ -44,6 +44,9 @@ protected:
   const bool _rho_tot_coupled;
   unsigned int _rho_tot_var;
   
+  // Tolerance on small values of rho_tot
+  const Real _rho_tot_tol;
+  
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;
 
