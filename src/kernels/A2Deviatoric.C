@@ -23,6 +23,8 @@ A2Deviatoric::validParams()
   params.addCoupledVar("rho_gnd_screw", 0.0, "Screw dislocation density: rho_y.");  
   params.addCoupledVar("dv_dx", 0.0, "Derivative of the velocity with respect to edge slip direction.");
   params.addCoupledVar("dv_dy", 0.0, "Derivative of the velocity with respect to screw slip direction.");
+  params.addParam<Real>("dv_dx_max",1e9,"Max absolute value of dv_dx");
+  params.addParam<Real>("dv_dy_max",1e9,"Max absolute value of dv_dy");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_sign("positive negative", "positive");
@@ -45,7 +47,9 @@ A2Deviatoric::A2Deviatoric(const InputParameters & parameters)
     _rho_gnd_screw_coupled(isCoupled("rho_gnd_screw")),
     _rho_gnd_screw_var(_rho_gnd_screw_coupled ? coupled("rho_gnd_screw") : 0),	
     _dv_dx(coupledValue("dv_dx")), // Derivative of the velocity with respect to edge slip direction
-    _dv_dy(coupledValue("dv_dy")), // Derivative of the velocity with respect to screw slip direction	
+    _dv_dy(coupledValue("dv_dy")), // Derivative of the velocity with respect to screw slip direction
+    _dv_dx_max(getParam<Real>("dv_dx_max")),
+	_dv_dy_max(getParam<Real>("dv_dy_max")),	
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
 	_slip_sys_index(getParam<int>("slip_sys_index")),
@@ -108,6 +112,8 @@ A2Deviatoric::computeQpResidual()
   Real ksabs; // modulus of k GND vector
   Real diagterm; // diagonal term of deviatoric A2 matrix
   Real outofdiagterm; // otu of diagonal term of deviatoric A2 matrix
+  Real dv_dx;
+  Real dv_dy;
   
   // sqrt(rho_x^2 + rho_y^2)
   ksabs = std::sqrt(_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]);
@@ -126,15 +132,21 @@ A2Deviatoric::computeQpResidual()
 	outofdiagterm = 0.0;
   }
   
+  dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
+  dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
+  
+  dv_dx = dv_dx * std::copysign(1.0, _dv_dx[_qp]);
+  dv_dy = dv_dy * std::copysign(1.0, _dv_dy[_qp]);
+  
   switch (_dislo_character)
   {
     case DisloCharacter::edge:
-	  val = (-1.0) * diagterm * _dv_dx[_qp];
-	  val = val - outofdiagterm * _dv_dy[_qp];
+	  val = (-1.0) * diagterm * dv_dx;
+	  val = val - outofdiagterm * dv_dy;
 	  break;
 	case DisloCharacter::screw:
-      val = diagterm * _dv_dy[_qp];
-	  val = val - outofdiagterm * _dv_dx[_qp];
+      val = diagterm * dv_dy;
+	  val = val - outofdiagterm * dv_dx;
 	  break;	  
   }
 
@@ -159,9 +171,17 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
   Real doutofdiagterm_drhox;
   Real ddiagterm_drhoy;
   Real doutofdiagterm_drhoy;
+  Real dv_dx;
+  Real dv_dy;
   
   // (rho_x^2 + rho_y^2)^(3/2)
   ksabs3 = std::pow(_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp],1.5);
+  
+  dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
+  dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
+  
+  dv_dx = dv_dx * std::copysign(1.0, _dv_dx[_qp]);
+  dv_dy = dv_dy * std::copysign(1.0, _dv_dy[_qp]);  
   
   if (_rho_gnd_edge_coupled && jvar == _rho_gnd_edge_var)
   {
@@ -191,7 +211,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	    // Residual is:
 	  	// - diagterm * _dv_dx[_qp] - outofdiagterm * _dv_dy[_qp]
 
-        val = (-1.0) * ddiagterm_drhox * _dv_dx[_qp] - doutofdiagterm_drhox * _dv_dy[_qp];
+        val = (-1.0) * ddiagterm_drhox * dv_dx - doutofdiagterm_drhox * dv_dy;
 		
 	    break;
 		
@@ -200,7 +220,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	  	// Residual is:
 	  	// - outofdiagterm * _dv_dx[_qp] + diagterm * _dv_dy[_qp]
 		
-        val = (-1.0) * doutofdiagterm_drhox * _dv_dx[_qp] + ddiagterm_drhox * _dv_dy[_qp];
+        val = (-1.0) * doutofdiagterm_drhox * dv_dx + ddiagterm_drhox * dv_dy;
 		
 	    break;	  
     }
@@ -235,7 +255,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	    // Residual is:
 	  	// - diagterm * _dv_dx[_qp] - outofdiagterm * _dv_dy[_qp]
 		
-        val = (-1.0) * ddiagterm_drhoy * _dv_dx[_qp] - doutofdiagterm_drhoy * _dv_dy[_qp];
+        val = (-1.0) * ddiagterm_drhoy * dv_dx - doutofdiagterm_drhoy * dv_dy;
 		
 	    break;
 		
@@ -244,7 +264,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	  	// Residual is:
 	  	// - outofdiagterm * _dv_dx[_qp] + diagterm * _dv_dy[_qp]
 	  
-        val = (-1.0) * doutofdiagterm_drhoy * _dv_dx[_qp] + ddiagterm_drhoy * _dv_dy[_qp];
+        val = (-1.0) * doutofdiagterm_drhoy * dv_dx + ddiagterm_drhoy * dv_dy;
 		
 	    break;	  
     }

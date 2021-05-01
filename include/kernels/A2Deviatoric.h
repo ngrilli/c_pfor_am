@@ -48,6 +48,10 @@ protected:
   const VariableValue & _dv_dx;
   const VariableValue & _dv_dy;
   
+  // Max absolute value of dv_dx and dv_dy
+  const Real _dv_dx_max;
+  const Real _dv_dy_max;    
+  
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;
 
