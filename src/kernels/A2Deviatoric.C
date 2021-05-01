@@ -25,6 +25,7 @@ A2Deviatoric::validParams()
   params.addCoupledVar("dv_dy", 0.0, "Derivative of the velocity with respect to screw slip direction.");
   params.addParam<Real>("dv_dx_max",1e9,"Max absolute value of dv_dx");
   params.addParam<Real>("dv_dy_max",1e9,"Max absolute value of dv_dy");
+  params.addParam<Real>("ksabs_tol",0.000001,"Tolerance on small values of ksabs.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_sign("positive negative", "positive");
@@ -50,6 +51,7 @@ A2Deviatoric::A2Deviatoric(const InputParameters & parameters)
     _dv_dy(coupledValue("dv_dy")), // Derivative of the velocity with respect to screw slip direction
     _dv_dx_max(getParam<Real>("dv_dx_max")),
 	_dv_dy_max(getParam<Real>("dv_dy_max")),	
+	_ksabs_tol(getParam<Real>("ksabs_tol")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
 	_slip_sys_index(getParam<int>("slip_sys_index")),
@@ -124,7 +126,7 @@ A2Deviatoric::computeQpResidual()
   // rho_x rho_y
   outofdiagterm = _rho_gnd_edge[_qp]*_rho_gnd_screw[_qp];
   
-  if (ksabs > 0.001) {
+  if (ksabs > _ksabs_tol) {
     diagterm = 0.5 * diagterm / ksabs;
 	outofdiagterm = outofdiagterm / ksabs;
   } else {
@@ -190,7 +192,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	ddiagterm_drhox = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+3.0*_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
 	ddiagterm_drhox = 0.5 * _rho_gnd_edge[_qp] * ddiagterm_drhox;
 	
-	if (ksabs3 > 0.001) {
+	if (ksabs3 > std::pow(_ksabs_tol,3.0)) {
 	  ddiagterm_drhox = ddiagterm_drhox / ksabs3;
 	} else {
 	  ddiagterm_drhox = 0.0;	
@@ -198,7 +200,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 		
 	doutofdiagterm_drhox = _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
 	
-	if (ksabs3 > 0.001) {
+	if (ksabs3 > std::pow(_ksabs_tol,3.0)) {
 	  doutofdiagterm_drhox = doutofdiagterm_drhox / ksabs3;
 	} else {
 	  doutofdiagterm_drhox = 0.0;	
@@ -234,7 +236,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 	ddiagterm_drhoy = _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]+3.0*_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
 	ddiagterm_drhoy = (-0.5) * _rho_gnd_screw[_qp] * ddiagterm_drhoy;
 	
-	if (ksabs3 > 0.001) {
+	if (ksabs3 > std::pow(_ksabs_tol,3.0)) {
 	  ddiagterm_drhoy = ddiagterm_drhoy / ksabs3;
 	} else {
       ddiagterm_drhoy = 0.0;
@@ -242,7 +244,7 @@ A2Deviatoric::computeQpOffDiagJacobian(unsigned int jvar)
 		
 	doutofdiagterm_drhoy = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
 	
-	if (ksabs3 > 0.001) {
+	if (ksabs3 > std::pow(_ksabs_tol,3.0)) {
 	  doutofdiagterm_drhoy = doutofdiagterm_drhoy / ksabs3;
 	} else {
       doutofdiagterm_drhoy = 0.0;

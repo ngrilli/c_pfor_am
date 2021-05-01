@@ -50,7 +50,10 @@ protected:
   
   // Max absolute value of dv_dx and dv_dy
   const Real _dv_dx_max;
-  const Real _dv_dy_max;    
+  const Real _dv_dy_max;  
+
+  // Tolerance on small values of ksabs
+  const Real _ksabs_tol;
   
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;
