@@ -39,6 +39,10 @@ private:
   // Slip system index to determine slip system velocity
   const unsigned int _slip_sys_index;
   
+  // Check that dislocation density is positive
+  // if it went below zero, it should not be further decreased
+  bool _check_rho_positive;  
+  
   const bool _curvature_coupled;
   
   unsigned int _curvature_var;
