@@ -70,6 +70,10 @@ protected:
   
   // Character of dislocations (edge or screw)
   const enum class DisloCharacter { edge, screw } _dislo_character;
+  
+  // Check that dislocation density is positive
+  // if it went below zero, it should not be further decreased
+  bool _check_rho_positive; 
 
   /// Nodal value of u, used for full upwinding
   const VariableValue & _u_coupled_nodal;

@@ -35,6 +35,7 @@ ConservativeAdvectionCoupled::validParams()
   params.addRequiredParam<MooseEnum>("dislo_character",
                                      dislo_character,
                                      "Character of dislocations: edge or screw.");
+  params.addParam<bool>("check_rho_positive",false,"Check positive dislocation density");
   return params;
 }
 
@@ -50,6 +51,7 @@ ConservativeAdvectionCoupled::ConservativeAdvectionCoupled(const InputParameters
 	_slip_sys_index(getParam<int>("slip_sys_index")),
 	_dislo_sign(getParam<MooseEnum>("dislo_sign").getEnum<DisloSign>()),
 	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>()),
+	_check_rho_positive(getParam<bool>("check_rho_positive")),
 	_u_coupled_nodal(getVar("rho_coupled", 0)->dofValues()), // nodal values of coupled dislocation density
     //_u_nodal(_var.dofValues()), // is this useful?
     _upwind_node(0),
@@ -109,7 +111,18 @@ ConservativeAdvectionCoupled::computeQpResidual()
 {
   // This is the no-upwinded version
   // It gets called via Kernel::computeResidual()
-  return negSpeedQp() * _rho_coupled[_qp];
+  
+  // Check that dislocation density is positive
+  // if it went below zero, it should not be further decreased
+  if (_check_rho_positive && _u[_qp] <= 0.0) {
+	  
+	  return 0.0;
+	  
+  }	else {
+	  
+	  return negSpeedQp() * _rho_coupled[_qp];
+	  
+  }   
 }
 
 Real
@@ -127,9 +140,19 @@ ConservativeAdvectionCoupled::computeQpOffDiagJacobian(unsigned int jvar)
   // It gets called via Kernel::computeOffDiagJacobian()
   if (_rho_coupled_coupled && jvar == _rho_coupled_var)
   {
+	  
+	// Check that dislocation density is positive
+    // if it went below zero, it should not be further decreased
+    if (_check_rho_positive && _u[_qp] <= 0.0) {
+		
+		return 0.0;
+	  
+    } else {
+		
+		return negSpeedQp() * _phi[_j][_qp];
+		
+	}
 	
-    return negSpeedQp() * _phi[_j][_qp];
-
   }
   else {
 	  
