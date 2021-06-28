@@ -20,6 +20,7 @@ CurvatureAdvection::validParams()
   params.addCoupledVar("rho_gnd", 0.0, "GND dislocation density: rho_x or rho_y for edge or screw.");
   params.addCoupledVar("rho_tot", 0.0, "Total dislocation density: rho_t.");
   params.addParam<Real>("rho_tot_tol",0.000001,"Tolerance on small values of rho_tot.");
+  params.addParam<Real>("q_limit",1000.0,"Limit on the absolute value of the curvature");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_sign("positive negative", "positive");
@@ -42,6 +43,7 @@ CurvatureAdvection::CurvatureAdvection(const InputParameters & parameters)
     _rho_tot_coupled(isCoupled("rho_tot")),
     _rho_tot_var(_rho_tot_coupled ? coupled("rho_tot") : 0),
 	_rho_tot_tol(getParam<Real>("rho_tot_tol")),
+	_q_limit(getParam<Real>("q_limit")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
@@ -106,7 +108,15 @@ CurvatureAdvection::computeQpResidual()
   
   if (_rho_tot[_qp] > _rho_tot_tol) {
 	  
-	val = _rho_gnd[_qp] * _u[_qp] / _rho_tot[_qp];  
+	if (std::abs(_u[_qp]) < _q_limit) {
+		
+	  val = _rho_gnd[_qp] * _u[_qp] / _rho_tot[_qp];
+	  
+	} else {
+		
+	  val = 0.0;
+		
+	}
 	
   } else {
 	  
@@ -125,7 +135,15 @@ CurvatureAdvection::computeQpJacobian()
   
   if (_rho_tot[_qp] > _rho_tot_tol) {
 	  
-    val = _rho_gnd[_qp] / _rho_tot[_qp];  
+	if (std::abs(_u[_qp]) < _q_limit) {
+	  
+      val = _rho_gnd[_qp] / _rho_tot[_qp];
+	
+	} else {
+		
+	  val = 0.0;
+		
+	}	  
 	  
   } else {
 	  
@@ -144,8 +162,16 @@ CurvatureAdvection::computeQpOffDiagJacobian(unsigned int jvar)
   {
 	
 	if (_rho_tot[_qp] > _rho_tot_tol) {
+		
+	  if (std::abs(_u[_qp]) < _q_limit) {
 	
-      return negSpeedQp() * _phi[_j][_qp] * _u[_qp] / _rho_tot[_qp];
+        return negSpeedQp() * _phi[_j][_qp] * _u[_qp] / _rho_tot[_qp];
+		
+	  } else {
+		  
+		return 0.0;
+		  
+	  }
 	
 	} else {
 		
@@ -156,8 +182,16 @@ CurvatureAdvection::computeQpOffDiagJacobian(unsigned int jvar)
   } else if (_rho_tot_coupled && jvar == _rho_tot_var) {
 	  
 	if (_rho_tot[_qp] > _rho_tot_tol) {
+		
+	  if (std::abs(_u[_qp]) < _q_limit) {
 	  
-	  return (-1.0) * negSpeedQp() * _phi[_j][_qp] * _rho_gnd[_qp] * _u[_qp] / (_rho_tot[_qp] * _rho_tot[_qp]);
+	    return (-1.0) * negSpeedQp() * _phi[_j][_qp] * _rho_gnd[_qp] * _u[_qp] / (_rho_tot[_qp] * _rho_tot[_qp]);
+	
+	  } else {
+		  
+	    return 0.0;	  
+		  
+	  }
 	
 	} else {
 		

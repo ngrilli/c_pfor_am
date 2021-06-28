@@ -47,6 +47,9 @@ protected:
   // Tolerance on small values of rho_tot
   const Real _rho_tot_tol;
   
+  // Upper limit on the absolute value of the curvature
+  const Real _q_limit;
+  
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;
 
