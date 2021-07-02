@@ -1,0 +1,7 @@
+[Tests]
+  [./DGKernels_VConst]
+    type = 'Exodiff'
+    input = 'DGtestVConst.i'
+    exodiff = 'DGtestVConst_out.e'
+  [../]
+[]
