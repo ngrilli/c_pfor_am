@@ -25,7 +25,7 @@ DGAdvectionCoupled::validParams()
 
 DGAdvectionCoupled::DGAdvectionCoupled(const InputParameters & parameters)
   : DGKernel(parameters),
-    _rho_coupled(coupledValue("rho_coupled")), // Coupled dislocation density in the flux term
+    _rho_coupled(coupledValue("rho_coupled")), // Coupled dislocation density in the flux term 
     _rho_coupled_coupled(isCoupled("rho_coupled")),
     _rho_coupled_var(_rho_coupled_coupled ? coupled("rho_coupled") : 0),
 	_rho_neighbor(coupledNeighborValue("rho_coupled")),
