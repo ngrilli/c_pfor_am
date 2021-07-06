@@ -4,4 +4,16 @@
     input = 'DGtestVConst.i'
     exodiff = 'DGtestVConst_out.e'
   [../]
+  
+  # DG kernels together with standard advection kernels
+  [./DGKernels_ConstMonomial]
+    type = 'Exodiff'
+    input = 'DGtestConstMonomial.i'
+    exodiff = 'DGtestConstMonomial_out.e'
+  [../]
+  [./DGKernels_FirstMonomial]
+    type = 'Exodiff'
+    input = 'DGtestFirstMonomial.i'
+    exodiff = 'DGtestFirstMonomial_out.e'
+  [../]
 []
