@@ -15,6 +15,7 @@
  * Temperature dependence of the CRSS.
  * Dislocation based model.
  * Calculation of the dislocation velocity depending on resolved shear stress.
+ * CRSS is calculated using Taylor hardening law and bow-out curvature term for line tension.
  */
 class FiniteStrainCrystalPlasticityDislo : public FiniteStrainCrystalPlasticity
 {
@@ -77,6 +78,9 @@ protected:
   RankTwoTensor getMatRot(const RankTwoTensor & a);
 
   const VariableValue & _temp;
+  
+  // coupled curvature (only one slip system, could be extended to 12 by adding more coupled vars)
+  const VariableValue & _q_t;
   
   const VariableValue & _rho_edge_pos_1;
   const VariableValue & _rho_edge_neg_1;
@@ -142,6 +146,11 @@ protected:
   const Real _burgers_vector_mag;
   const Real _shear_modulus_hardening;
   const Real _dislo_max_velocity;
+  
+  // Bow-out curvature term for line tension
+  // See Hull, Bacon, Dislocations book equation 4.30
+  const Real _bowout_coef;
+  const Real _bowout_rho_threshold;  
   
   // critical resolved shear stress
   // exponentially decreased with temperature

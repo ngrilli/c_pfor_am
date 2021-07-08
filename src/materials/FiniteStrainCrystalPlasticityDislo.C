@@ -19,8 +19,10 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addClassDescription("Crystal Plasticity with thermal eigenstrain. "
                              "Temperature dependence of the CRSS. "
 							 "Dislocation based model. "
-							 "Stress dependent dislocation velocity. ");
+							 "Stress dependent dislocation velocity. "
+							 "CRSS with Taylor hardening law and bow-out line tension. ");
   params.addCoupledVar("temp",303.0,"Temperature");
+  params.addCoupledVar("q_t",0.0,"Curvature density (only one slip system)");
   params.addCoupledVar("rho_edge_pos_1",0.0,"Positive edge dislocation density: slip system 1");
   params.addCoupledVar("rho_edge_neg_1",0.0,"Negative edge dislocation density: slip system 1");
   params.addCoupledVar("rho_edge_pos_2",0.0,"Positive edge dislocation density: slip system 2");
@@ -83,12 +85,15 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addParam<Real>("burgers_vector_mag",0.0,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus_hardening",86000.0,"Shear modulus in Taylor hardening law");
   params.addParam<Real>("dislo_max_velocity",1000.0,"Maximum dislocation velocity (phonon drag)");
+  params.addParam<Real>("bowout_coef",0.0,"bow-out coefficient: alpha in 4.30 of Hull-Bacon book");
+  params.addParam<Real>("bowout_rho_threshold",0.2,"dislo density threshold to apply bow-out");
   return params;
 }
 
 FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const InputParameters & parameters) :
     FiniteStrainCrystalPlasticity(parameters),
     _temp(coupledValue("temp")),
+	_q_t(coupledValue("q_t")),
     _rho_edge_pos_1(coupledValue("rho_edge_pos_1")),
 	_rho_edge_neg_1(coupledValue("rho_edge_neg_1")),
     _rho_edge_pos_2(coupledValue("rho_edge_pos_2")),
@@ -148,6 +153,8 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")), // Magnitude of the Burgers vector
 	_shear_modulus_hardening(getParam<Real>("shear_modulus_hardening")), // Shear modulus in Taylor hardening law
     _dislo_max_velocity(getParam<Real>("dislo_max_velocity")), // Maximum dislocation velocity (phonon drag)
+	_bowout_coef(getParam<Real>("bowout_coef")),
+	_bowout_rho_threshold(getParam<Real>("bowout_rho_threshold")),
 	_gssT(_nss),
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")), // Edge slip directions
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
@@ -377,13 +384,6 @@ FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
 	  // Derivative is always positive
 	  _ddislo_velocity_dtau[_qp][i] = _dislo_mobility;
 	  
-	  //if (std::abs(_dislo_velocity[_qp][i]) > _dislo_max_velocity) {
-
-	  //	_dislo_velocity[_qp][i] = _dislo_max_velocity * std::copysign(1.0, _tau(i));
-	  //	_ddislo_velocity_dtau[_qp][i] = 0.0;
-		
-	  //}
-	  
 	} else {
 		
 	  _dislo_velocity[_qp][i] = 0.0;
@@ -460,9 +460,11 @@ FiniteStrainCrystalPlasticityDislo::OutputSlipDirection()
 void
 FiniteStrainCrystalPlasticityDislo::updateGss()
 {
-  Real qab; // Taylor hardening
+  Real qab; // Taylor hardening + bow-out line tension
   Real TotalRho = 0.0; // total dislocation density
   Real rho_forest; // forest dislocation density  
+  
+  Real q_t = _q_t[_qp]; // curvature density of the active slip system (only 1)
   
   std::vector<Real> rho_edge_pos(_nss);
   std::vector<Real> rho_edge_neg(_nss);
@@ -534,8 +536,15 @@ FiniteStrainCrystalPlasticityDislo::updateGss()
     TotalRho += (rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i]);
 
   TotalRho += rho_forest;
-
-  if (TotalRho >= 0.0) {
+  
+  if (TotalRho >= _bowout_rho_threshold) { // avoid that bow-out term becomes too large
+	  
+	// Taylor hardening + bow-out term
+	// See Hull, Bacon, Dislocations book equation 4.30
+    qab = 0.4 * _shear_modulus_hardening * _burgers_vector_mag 
+	    * (std::sqrt(TotalRho) + _bowout_coef * (q_t / TotalRho));	  
+  
+  } else if (TotalRho >= 0.0) {
 	  
     qab = 0.4 * _shear_modulus_hardening * _burgers_vector_mag * std::sqrt(TotalRho);	  
   
