@@ -58,10 +58,10 @@ protected:
   // Character of dislocations (edge or screw)
   const enum class DisloCharacter { edge, screw } _dislo_character;
   
-  // Check that dislocation density is positive
-  // if it went below zero, it should not be used for
-  // residual calculation
-  bool _check_rho_positive; 
+  // Check if the variable is edge or screw, or total density
+  // true = it is edge or screw
+  // false = it is total density
+  bool _is_edge_or_screw; 
   
 };
 

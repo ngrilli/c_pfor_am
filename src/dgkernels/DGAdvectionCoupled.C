@@ -20,7 +20,7 @@ DGAdvectionCoupled::validParams()
   params.addRequiredParam<MooseEnum>("dislo_character",
                                      dislo_character,
                                      "Character of dislocations: edge or screw.");
-  params.addParam<bool>("check_rho_positive",false,"Check positive dislocation density");
+  params.addParam<bool>("is_edge_or_screw",false,"Check if is edge or screw, or total density");
   return params;
 }
 
@@ -35,7 +35,7 @@ DGAdvectionCoupled::DGAdvectionCoupled(const InputParameters & parameters)
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
 	_slip_sys_index(getParam<int>("slip_sys_index")),
 	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>()),
-    _check_rho_positive(getParam<bool>("check_rho_positive"))	
+    _is_edge_or_screw(getParam<bool>("is_edge_or_screw"))	
 {
 }
 
@@ -81,37 +81,50 @@ DGAdvectionCoupled::computeQpResidual(Moose::DGResidualType type)
   getDislocationVelocity();
 
   Real vdotn = _velocity * _normals[_qp];
+  Real rhocvdotn = vdotn * _rho_coupled[_qp];
+  Real rhovdotn = vdotn * _u[_qp];
+  Real neighrhocvdotn = vdotn * _rho_neighbor[_qp];
 
   switch (type)
   {
-    case Moose::Element:
-	  if (_check_rho_positive && _u[_qp] <= -0.01) {	
+    case Moose::Element:	
 	  
-	    r += 0.0;
+	  if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 	  
-	  } else {
-		  
-		if (vdotn >= 0)
-          r += vdotn * _rho_coupled[_qp] * _test[_i][_qp];
+	    if (rhovdotn >= 0)
+          r += rhocvdotn * _test[_i][_qp];
         else
-          r += vdotn * _rho_neighbor[_qp] * _test[_i][_qp];
+          r += neighrhocvdotn * _test[_i][_qp];
+		  
+	  } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
+		  
+	    if (rhocvdotn >= 0)
+          r += rhocvdotn * _test[_i][_qp];
+        else
+          r += neighrhocvdotn * _test[_i][_qp];	
 	  
 	  }
+
       break;
 
     case Moose::Neighbor:
-	  if (_check_rho_positive && _u_neighbor[_qp] <= -0.01) {
+	
+	  if (_is_edge_or_screw) {
 		  
-		r += 0.0;  
+	    if (rhovdotn >= 0)
+          r -= rhocvdotn * _test_neighbor[_i][_qp];
+        else
+          r -= neighrhocvdotn * _test_neighbor[_i][_qp];
 		  
 	  } else {
 		  
-        if (vdotn >= 0)
-          r -= vdotn * _rho_coupled[_qp] * _test_neighbor[_i][_qp];
+        if (rhocvdotn >= 0)
+          r -= rhocvdotn * _test_neighbor[_i][_qp];
         else
-          r -= vdotn * _rho_neighbor[_qp] * _test_neighbor[_i][_qp];	
+          r -= neighrhocvdotn * _test_neighbor[_i][_qp];	
 	  
 	  }
+	  
       break;
   }
 
@@ -126,66 +139,83 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 {
   Real r = 0;
   Real vdotn;
+  Real rhocvdotn;
+  Real rhovdotn;
 
   if (_rho_coupled_coupled && jvar == _rho_coupled_var) {
 	  
     getDislocationVelocity();
 
     vdotn = _velocity * _normals[_qp];
+	rhocvdotn = vdotn * _rho_coupled[_qp];
+	rhovdotn = vdotn * _u[_qp];
 
     switch (type)
     {
       case Moose::ElementElement:
-	    if (_check_rho_positive && _u[_qp] <= -0.01) {
+	  
+	    if (_is_edge_or_screw) {
 			
-		  r += 0.0;  
+	      if (rhovdotn >= 0)
+            r += vdotn * _phi[_j][_qp] * _test[_i][_qp];
 			
 		} else {
 			
-		  if (vdotn >= 0)
-          r += vdotn * _phi[_j][_qp] * _test[_i][_qp];
+		  if (rhocvdotn >= 0)
+            r += vdotn * _phi[_j][_qp] * _test[_i][_qp];
 	  
 		}
+		
         break;
 
       case Moose::ElementNeighbor:
-	    if (_check_rho_positive && _u[_qp] <= -0.01) {
+	  
+	    if (_is_edge_or_screw) {
 			
-		  r += 0.0; 
+	      if (rhovdotn < 0)
+            r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];
 			
 		} else {
 			
-          if (vdotn < 0)
+          if (rhocvdotn < 0)
             r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];	
 		
 		}
+		
         break;
 
       case Moose::NeighborElement:
-	    if (_check_rho_positive && _u_neighbor[_qp] <= -0.01) {
+	  
+	    if (_is_edge_or_screw) {
 			
-		  r += 0.0;
+	      if (rhovdotn >= 0)
+            r -= vdotn * _phi[_j][_qp] * _test_neighbor[_i][_qp];
 			
 		} else {
 			
-          if (vdotn >= 0)
+          if (rhocvdotn >= 0)
             r -= vdotn * _phi[_j][_qp] * _test_neighbor[_i][_qp];
 		
 		}
+		
         break;
 
       case Moose::NeighborNeighbor:
-        if (_check_rho_positive && _u_neighbor[_qp] <= -0.01) {
+	  
+        if (_is_edge_or_screw) {
 			
-		  r += 0.0;
+	      if (rhovdotn < 0)
+            r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
 			
 		} else {
 			
-          if (vdotn < 0)
+          if (rhocvdotn < 0)
             r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];	
 		
 		}
+		
         break;
+
     }
 
   }
