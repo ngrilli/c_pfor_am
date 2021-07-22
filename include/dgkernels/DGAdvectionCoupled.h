@@ -1,6 +1,6 @@
 // Nicolò Grilli
 // University of Bristol
-// 30 Giugno 2021
+// 21 Luglio 2021
 
 // DG upwinding for the advection of a coupled variable
 // It is assumed that upwind scheme is always used
@@ -8,6 +8,8 @@
 // This kernel implements the term (on LHS): 
 // d(rho_coupled v)/dx if dislo_character = edge
 // d(rho_coupled v)/dy if dislo_character = screw
+// Upwind condition is calculated both on edge/screw dislocations
+// in this element and on the neighbouring element
 
 #pragma once
 

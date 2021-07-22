@@ -1,6 +1,6 @@
 // Nicolò Grilli
 // University of Bristol
-// 30 Giugno 2021
+// 21 Luglio 2021
 
 #include "DGAdvectionCoupled.h"
 
@@ -12,7 +12,9 @@ InputParameters
 DGAdvectionCoupled::validParams()
 {
   InputParameters params = DGKernel::validParams();
-  params.addClassDescription("DG upwinding for the advection of a coupled variable");
+  params.addClassDescription("DG upwinding for the advection of a coupled variable. "
+                             "Upwind condition is calculated both on edge/screw dislocations "
+							 "in this element and on the neighbouring element.");
   params.addCoupledVar("rho_coupled", 0.0, "Coupled dislocation density in the flux term.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
@@ -83,11 +85,8 @@ DGAdvectionCoupled::computeQpResidual(Moose::DGResidualType type)
   Real vdotn = _velocity * _normals[_qp];
   Real rhoc_vdotn = vdotn * _rho_coupled[_qp];
   Real u_vdotn = vdotn * _u[_qp];
+  Real neigh_u_vdotn = vdotn * _u_neighbor[_qp];
   Real neigh_rhoc_vdotn = vdotn * _rho_neighbor[_qp];
-  Real rhoc_plus_neigh = _rho_coupled[_qp] + _rho_neighbor[_qp];
-  Real avg_rhoc_vdotn = rhoc_plus_neigh * vdotn;
-  Real u_plus_neigh = _u[_qp] + _u_neighbor[_qp];
-  Real avg_u_vdotn = u_plus_neigh * vdotn;
 
   switch (type)
   {
@@ -95,22 +94,19 @@ DGAdvectionCoupled::computeQpResidual(Moose::DGResidualType type)
 	  
 	  if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 	  
-	    if (avg_u_vdotn > 0)
+	    if (u_vdotn >= 0)
           r += rhoc_vdotn * _test[_i][_qp];
-	    else if (avg_u_vdotn == 0.0)
-		  r += 0.0;	
-        else
-          r += neigh_rhoc_vdotn * _test[_i][_qp];
+	  
+	    if (neigh_u_vdotn < 0)
+		  r += neigh_rhoc_vdotn * _test[_i][_qp];
 		  
 	  } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
 		  
-	    if (avg_rhoc_vdotn > 0.0)
-          r += rhoc_vdotn * _test[_i][_qp];
-	    else if (avg_rhoc_vdotn == 0.0) 
-		  r += 0.0;	
-        else
-          r += neigh_rhoc_vdotn * _test[_i][_qp];	
+	    if (rhoc_vdotn >= 0.0)
+          r += rhoc_vdotn * _test[_i][_qp];	
 	  
+	    if (neigh_rhoc_vdotn < 0.0)
+	      r += neigh_rhoc_vdotn * _test[_i][_qp];	
 	  }
 
       break;
@@ -119,22 +115,19 @@ DGAdvectionCoupled::computeQpResidual(Moose::DGResidualType type)
 	
 	  if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 		  
-	    if (avg_u_vdotn > 0)
+	    if (u_vdotn >= 0)
           r -= rhoc_vdotn * _test_neighbor[_i][_qp];
-	    else if (avg_u_vdotn == 0.0)
-		  r -= 0.0;
-        else
-          r -= neigh_rhoc_vdotn * _test_neighbor[_i][_qp];
+	  
+	  	if (neigh_u_vdotn < 0)
+		  r -= neigh_rhoc_vdotn * _test_neighbor[_i][_qp];
 		  
 	  } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
 		  
-        if (avg_rhoc_vdotn > 0.0)
+        if (rhoc_vdotn >= 0.0)
           r -= rhoc_vdotn * _test_neighbor[_i][_qp];
-	    else if (avg_rhoc_vdotn == 0.0) 
-		  r -= 0.0;	
-        else
-          r -= neigh_rhoc_vdotn * _test_neighbor[_i][_qp];	
 	  
+	    if (neigh_rhoc_vdotn < 0.0)
+	      r -= neigh_rhoc_vdotn * _test_neighbor[_i][_qp];
 	  }
 	  
       break;
@@ -153,11 +146,8 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
   Real vdotn;
   Real rhoc_vdotn;
   Real u_vdotn;
+  Real neigh_u_vdotn;
   Real neigh_rhoc_vdotn;
-  Real rhoc_plus_neigh;
-  Real avg_rhoc_vdotn;
-  Real u_plus_neigh;
-  Real avg_u_vdotn;
 
   if (_rho_coupled_coupled && jvar == _rho_coupled_var) {
 	  
@@ -166,11 +156,8 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
     vdotn = _velocity * _normals[_qp];
 	rhoc_vdotn = vdotn * _rho_coupled[_qp];
 	u_vdotn = vdotn * _u[_qp];
+	neigh_u_vdotn = vdotn * _u_neighbor[_qp];
 	neigh_rhoc_vdotn = vdotn * _rho_neighbor[_qp];
-	rhoc_plus_neigh = _rho_coupled[_qp] + _rho_neighbor[_qp];
-	avg_rhoc_vdotn = rhoc_plus_neigh * vdotn;
-	u_plus_neigh = _u[_qp] + _u_neighbor[_qp];
-	avg_u_vdotn = u_plus_neigh * vdotn;
 
     switch (type)
     {
@@ -178,12 +165,12 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 	  
 	    if (_is_edge_or_screw) {
 			
-	      if (avg_u_vdotn > 0)
+	      if (u_vdotn >= 0)
             r += vdotn * _phi[_j][_qp] * _test[_i][_qp];
 			
 		} else {
 			
-		  if (avg_rhoc_vdotn > 0)
+	      if (rhoc_vdotn >= 0.0)
             r += vdotn * _phi[_j][_qp] * _test[_i][_qp];
 	  
 		}
@@ -192,17 +179,16 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 
       case Moose::ElementNeighbor:
 	  
-	    if (_is_edge_or_screw) {
-			
-	      if (avg_u_vdotn < 0)
-            r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];
-			
-		} else {
-			
-          if (avg_rhoc_vdotn < 0)
-            r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];	
-		
-		}
+	    if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
+	  
+	      if (neigh_u_vdotn < 0)
+		    r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];
+		  
+	    } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]	
+	  
+	      if (neigh_rhoc_vdotn < 0.0)
+	        r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];	
+	    }
 		
         break;
 
@@ -210,12 +196,12 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 	  
 	    if (_is_edge_or_screw) {
 			
-	      if (avg_u_vdotn > 0)
+	      if (u_vdotn >= 0)
             r -= vdotn * _phi[_j][_qp] * _test_neighbor[_i][_qp];
 			
 		} else {
 			
-          if (avg_rhoc_vdotn > 0)
+          if (rhoc_vdotn >= 0.0)
             r -= vdotn * _phi[_j][_qp] * _test_neighbor[_i][_qp];
 		
 		}
@@ -224,17 +210,16 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 
       case Moose::NeighborNeighbor:
 	  
-        if (_is_edge_or_screw) {
-			
-	      if (avg_u_vdotn < 0)
-            r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
-			
-		} else {
-			
-          if (avg_rhoc_vdotn < 0)
-            r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];	
-		
-		}
+	    if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
+	  
+	  	  if (neigh_u_vdotn < 0)
+		    r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
+		  
+	    } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
+	  
+	      if (neigh_rhoc_vdotn < 0.0)
+	        r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
+	    }
 		
         break;
 

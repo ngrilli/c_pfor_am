@@ -1,6 +1,6 @@
 // Nicolò Grilli
 // University of Bristol
-// 21 Luglio 2021
+// 30 Giugno 2021
 
 // DG upwinding for the advection of a coupled variable
 // It is assumed that upwind scheme is always used
@@ -8,23 +8,26 @@
 // This kernel implements the term (on LHS): 
 // d(rho_coupled v)/dx if dislo_character = edge
 // d(rho_coupled v)/dy if dislo_character = screw
-// Residual given by neighbouring coupled variable not considered
+// The upwind scheme is based on the average of the edge/screw
+// dislocation density in the element and its neighbour
+// Therefore, the sign of that average density and the sign of the velocity
+// determine the advection direction
 
 #pragma once
 
 #include "DGKernel.h"
 
-class DGAdvectionCoupledNN;
+class DGAdvectionCoupledAvg;
 
 template <>
-InputParameters validParams<DGAdvectionCoupledNN>();
+InputParameters validParams<DGAdvectionCoupledAvg>();
 
-class DGAdvectionCoupledNN : public DGKernel
+class DGAdvectionCoupledAvg : public DGKernel
 {
 public:
   static InputParameters validParams();
 
-  DGAdvectionCoupledNN(const InputParameters & parameters);
+  DGAdvectionCoupledAvg(const InputParameters & parameters);
 
 protected:
   virtual void getDislocationVelocity();
