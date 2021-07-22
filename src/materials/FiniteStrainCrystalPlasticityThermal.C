@@ -88,7 +88,7 @@ FiniteStrainCrystalPlasticityThermal::calcResidual( RankTwoTensor &resid )
 // Unit of temperature is K, b is the CTE value at 0K estimated by the linear fitting parts from reference
   RankTwoTensor thermal_eigenstrain;
   thermal_eigenstrain = (1.0 / 2.0) * (std::exp((2.0/3.0) 
-                      * ((1.0/2.0) * dCTE_dT * (temp-reference_temperature)*(temp+reference_temperature)
+                      * ((1.0/2.0) * dCTE_dT * (temp-reference_temperature)*(temp-reference_temperature)
                       + thermal_expansion * (temp - reference_temperature))) - 1.0) * iden;
   pk2_new = _elasticity_tensor[_qp] * (ee - thermal_eigenstrain);
   
