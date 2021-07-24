@@ -1,9 +1,9 @@
-// Nicolò Grilli
+// Nicolo Grilli
 // University of Bristol
 // Daijun Hu 
 // Dai Shi
 // National University of Singapore
-// 10 Luglio 2021
+// 24 Luglio 2021
 
 #pragma once
 
@@ -16,7 +16,7 @@
  * Backward Euler integration rule is used for the rate equations.
  *
  * Constitutive model from:
- * Nicolò Grilli , Alan C.F. Cocks , Edmund Tarleton
+ * Nicolo Grilli , Alan C.F. Cocks , Edmund Tarleton
  * Crystal plasticity finite element modelling of coarse-grained alpha-uranium
  * Computational Materials Science 171 (2020) 109276
  *
@@ -61,13 +61,6 @@ protected:
   virtual void getSlipIncrements();
   
   /**
-  * This function
-  * stores the dislocation velocity
-  * to couple with dislocation transport
-  */
-  virtual void OutputSlipDirection();
-  
-  /**
    * This function updates the slip system resistances
    * based on Taylor hardening model
    */
@@ -87,17 +80,26 @@ protected:
   const Real _dCRSS_dT_C;
   const Real _dCTE_dT;
   
+  const Real _k_bol; // Boltzmann constant, k in equation (8) of the CMS paper
+  const Real _da0; // Constant dislocation annihilation length, \hat{d}_\alpha^0 in equation (8)
+  const Real _ka; // Pre-factor for dislocation multiplication, k_\alpha^1 in equation (6)
+  const Real _burgers_vector; // Burgers vector magnitude, b_\alpha in equation (5)
+  const Real _projected_mu; // Projected shear modulus on the slip systems, \mu_\alpha in eq. (5)
+  const Real _tau0; // Constant friction stress, tau_\alpha^0 in equation (5) of the CMS paper
+  
+  // Logarithm of the strain rate ratio in equation (8) of the CMS paper
+  // \ln \left ( \frac{ \dot{\varepsilon}_0 }{ \dot{\varepsilon} } \right )
+  const Real _log_strain_rate_ratio;
+  
+  const Real _drag_stress; // Drag stress, D_\alpha in equation (8) of the CMS paper
+  
   // critical resolved shear stress
   // exponentially decreased with temperature
   std::vector<Real> _gssT;
   
   // Green-Lagrange strain tensor expressed in the
   // lattice coordinate system
-  MaterialProperty<RankTwoTensor> & _lattice_strain; 
-  
-  // Rotated slip direction to couple with dislocation transport
-  // to indicate dislocation velocity direction for all slip systems
-  MaterialProperty<std::vector<Real>> & _slip_direction;
+  MaterialProperty<RankTwoTensor> & _lattice_strain;
   
   // Slip increment for output
   MaterialProperty<std::vector<Real>> & _slip_incr_out;

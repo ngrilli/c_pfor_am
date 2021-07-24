@@ -1,10 +1,12 @@
 // Nicolo Grilli
+// University of Bristol
 // Daijun Hu 
+// Dai Shi
 // National University of Singapore
-// 27 Ottobre 2020
+// 24 Luglio 2021
 
 // Constitutive model from:
-// Nicolò Grilli , Alan C.F. Cocks , Edmund Tarleton
+// Nicolo Grilli , Alan C.F. Cocks , Edmund Tarleton
 // Crystal plasticity finite element modelling of coarse-grained alpha-uranium
 // Computational Materials Science 171 (2020) 109276
 
@@ -33,6 +35,14 @@ FiniteStrainCrystalPlasticityUranium::validParams()
   params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
   params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
+  params.addParam<Real>("k_bol", 1.38e-23, "Boltzmann constant"); 
+  params.addParam<Real>("da0", 0.0, "Constant dislocation annihilation length");
+  params.addParam<Real>("log_strain_rate_ratio", 1.0, "Logarithm of the strain rate ratio");
+  params.addParam<Real>("drag_stress", 900.0, "Drag stress");
+  params.addParam<Real>("ka", 0.0, "Pre-factor for dislocation multiplication");
+  params.addParam<Real>("burgers_vector", 0.0, "Burgers vector magnitude");
+  params.addParam<Real>("projected_mu", 74000.0, "Projected shear modulus on the slip systems");
+  params.addParam<Real>("tau0", 7.0, "Constant friction stress");
   return params;
 }
 
@@ -45,9 +55,16 @@ FiniteStrainCrystalPlasticityUranium::FiniteStrainCrystalPlasticityUranium(const
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
     _dCTE_dT(getParam<Real>("dCTE_dT")),
+	_k_bol(getParam<Real>("k_bol")), // Boltzmann constant
+	_da0(getParam<Real>("da0")), // Constant dislocation annihilation length
+	_log_strain_rate_ratio(getParam<Real>("log_strain_rate_ratio")),
+	_drag_stress(getParam<Real>("drag_stress")), // Drag stress
+	_ka(getParam<Real>("ka")), // Pre-factor for dislocation multiplication
+	_burgers_vector(getParam<Real>("burgers_vector")), // Burgers vector magnitude
+	_projected_mu(getParam<Real>("projected_mu")), // Projected shear modulus on the slip systems
+	_tau0(getParam<Real>("tau0")), // Constant friction stress
 	_gssT(_nss),
     _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
-    _slip_direction(declareProperty<std::vector<Real>>("slip_direction")), // Slip directions
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")),   // Slip system resistances
 	_rho_for(declareProperty<std::vector<Real>>("rho_for")), // Forest dislocation density
 	_rho_for_old(getMaterialPropertyOld<std::vector<Real>>("rho_for")), 
@@ -180,16 +197,11 @@ FiniteStrainCrystalPlasticityUranium::calcResidual( RankTwoTensor &resid )
 // Unit of temperature is K, b is the CTE value at 0K estimated by the linear fitting parts from reference
   RankTwoTensor thermal_eigenstrain;
   thermal_eigenstrain = (1.0 / 2.0) * (std::exp((2.0/3.0) 
-                      * ((1.0/2.0) * dCTE_dT * (temp-reference_temperature)*(temp+reference_temperature)
+                      * ((1.0/2.0) * dCTE_dT * (temp-reference_temperature)*(temp-reference_temperature)
                       + thermal_expansion * (temp - reference_temperature))) - 1.0) * iden;
   pk2_new = _elasticity_tensor[_qp] * (ee - thermal_eigenstrain);
   
   resid = _pk2_tmp - pk2_new;
-  
-  // It would be better to call the following lines in postSolveQp()
-  // so it is not called more times than necessary
-  // No need to output slip directions in this model
-  // OutputSlipDirection();
   
   _lattice_strain[_qp] = _crysrot[_qp].transpose() * ee * _crysrot[_qp];
 }
@@ -251,49 +263,16 @@ FiniteStrainCrystalPlasticityUranium::getSlipIncrements()
   
 }
 
-// Store slip direction
-// to couple with dislocation transport
-void
-FiniteStrainCrystalPlasticityUranium::OutputSlipDirection()
-{
-  DenseVector<Real> mo(LIBMESH_DIM * _nss);
-
-  // Update slip direction with crystal orientation
-  for (unsigned int i = 0; i < _nss; ++i)
-  {
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-    {
-      mo(i * LIBMESH_DIM + j) = 0.0;
-      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
-        mo(i * LIBMESH_DIM + j) =
-            mo(i * LIBMESH_DIM + j) + _crysrot[_qp](j, k) * _mo(i * LIBMESH_DIM + k);
-    }
-  }
- 
-  _slip_direction[_qp].resize(LIBMESH_DIM * _nss);
-
-  // Store slip direction (already normalized)
-  // to couple with dislocation transport
-  for (unsigned int i = 0; i < _nss; ++i)
-  {
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-    {
-  	  _slip_direction[_qp][i * LIBMESH_DIM + j] = mo(i * LIBMESH_DIM + j);
-  	}
-  }
-  
-}
-
 // Calculate slip system resistance (CRSS)
 // based on Taylor hardening model
 // see equation (5) in:
-// Nicolò Grilli , Alan C.F. Cocks , Edmund Tarleton
+// Nicolo Grilli , Alan C.F. Cocks , Edmund Tarleton
 // Crystal plasticity finite element modelling of coarse-grained alpha-uranium
 // Computational Materials Science 171 (2020) 109276
 void
 FiniteStrainCrystalPlasticityUranium::updateGss()
 {
-  Real qab; // Taylor hardening
+  Real qab; // temporary variable to calculate Taylor hardening
   
   std::vector<Real> rho_for(_nss); // forest dislocation density
   Real rho_sub; // substructure dislocation density
@@ -314,10 +293,15 @@ FiniteStrainCrystalPlasticityUranium::updateGss()
   // qab must get the value in equation (5)
   // without the exponential of the temperature
   // because getSlipIncrements is taking care of that
-  qab = 0.0; // Dai Shi complete here
   
   for (unsigned int i = 0; i < _nss; ++i)
   {
+	qab = 0.0; // temporary variable
+	qab += _tau0;
+	qab += 0.9 * _burgers_vector * _projected_mu * std::sqrt(rho_for[i]);
+	qab -= 0.086 * _burgers_vector * _projected_mu * std::sqrt(rho_sub) 
+	             * std::log(_burgers_vector * std::sqrt(rho_sub));
+	
     _gss_tmp[i] = qab;
   }
 }
@@ -330,20 +314,54 @@ FiniteStrainCrystalPlasticityUranium::updateGss()
 // Computational Materials Science 171 (2020) 109276
 void
 FiniteStrainCrystalPlasticityUranium::updateDisloDensity()
-{
+{ 
+  Real temp = _temp[_qp];
+  Real da_tmp; // temporary variable to store the temperature dependent annihilation length	
+  Real drho_for_tmp; // temporary variable to store the forest dislocation density increment
+  Real drho_sub_tmp; // temporary variable to store the substructure dislocation density increment
+  Real sum_rho_for; // sum of the forest dislocation density on all slip systems
+  Real sum_slip_incr; // sum of the plastic slip increments on all slip systems
+	
   for (unsigned int i = 0; i < _nss; ++i)	
     _rho_for_tmp[i] = _rho_for_tmp_old[i];
 
   _rho_sub_tmp = _rho_sub_tmp_old;
-
+  
+  sum_rho_for = 0.0;
+  sum_slip_incr = 0.0;
+  for (unsigned int i = 0; i < _nss; ++i) {
+    sum_rho_for += _rho_for_tmp[i];
+    sum_slip_incr += _slip_incr(i);
+  }
+  
+  // equation (8) in the paper to define temperature dependent annihilation length 
+  // note that in this implementation the annihilation length does not depend
+  // on the specific slip system, it is realistic in FCC crystals  
+  da_tmp = (_k_bol * temp) / (_drag_stress * std::pow(_burgers_vector,3.0));		 
+  da_tmp *= _log_strain_rate_ratio; 
+  da_tmp += 1.0;
+  da_tmp *= _da0;
+  
   // equation (6) in the paper
   // _dt is the substep of the crystal plasticity solver
   // rate equation must be multiplied by _dt to obtain time integration
+  // otherwise use _slip_incr(i), which is the plastic strain rate
+  // already multiplied by _dt  
   for (unsigned int i = 0; i < _nss; ++i) {
-	_rho_for_tmp[i] += 0.0 * _dt; // Dai Shi completes
+ 
+	drho_for_tmp = std::sqrt(_rho_for_tmp[i]) - da_tmp * _rho_for_tmp[i];
+	drho_for_tmp *= _ka;
+	drho_for_tmp *= _slip_incr(i);
+
+	_rho_for_tmp[i] += drho_for_tmp;
   }    
   
-  // equation (7) in the paper
-  _rho_sub_tmp += 0.0 * _dt; // Dai Shi completes
+  // equation (7) in the paper, but in this implementation not only the
+  // first slip system contributes to the substructure dislocation density increase
+  // but all the slip systems do, therefore multiply by sum_rho_for and 
+  drho_sub_tmp = 1800.0 * _ka * _burgers_vector * da_tmp * sum_rho_for * std::sqrt(_rho_sub_tmp);
+  drho_sub_tmp *= sum_slip_incr;
+  
+  _rho_sub_tmp += drho_sub_tmp;
 	
 }
