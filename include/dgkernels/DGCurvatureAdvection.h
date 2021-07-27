@@ -42,8 +42,11 @@ protected:
   unsigned int _rho_tot_var;
   
   // Coupled dislocation densities in the neighbouring element
-  const VariableValue & _rho_tot_neighbor;
   const VariableValue & _rho_gnd_neighbor;
+  const VariableValue & _rho_tot_neighbor;
+
+  // Tolerance on small values of rho_tot
+  const Real _rho_tot_tol;
   
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;

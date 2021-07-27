@@ -19,6 +19,7 @@ DGCurvatureAdvection::validParams()
 							 "in this element and on the neighbouring element.");
   params.addCoupledVar("rho_gnd", 0.0, "GND dislocation density: rho_x or rho_y for edge or screw.");
   params.addCoupledVar("rho_tot", 0.0, "Total dislocation density: rho_t.");
+  params.addParam<Real>("rho_tot_tol",0.000001,"Tolerance on small values of rho_tot.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_character("edge screw", "edge");
@@ -38,6 +39,7 @@ DGCurvatureAdvection::DGCurvatureAdvection(const InputParameters & parameters)
     _rho_tot_var(_rho_tot_coupled ? coupled("rho_tot") : 0),
 	_rho_gnd_neighbor(coupledNeighborValue("rho_gnd")),
     _rho_tot_neighbor(coupledNeighborValue("rho_tot")),
+	_rho_tot_tol(getParam<Real>("rho_tot_tol")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
@@ -96,11 +98,11 @@ DGCurvatureAdvection::computeQpResidual(Moose::DGResidualType type)
   {
     case Moose::Element:
 	  	  
-	  if (rho_gnd_vdotn >= 0.0)
+	  if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
         r += ((_rho_gnd[_qp] * _u[_qp]) / _rho_tot[_qp]) 
 	         * _test[_i][_qp];
 	    
-      if (neigh_rho_gnd_vdotn < 0.0)
+      if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	    r += ((_rho_gnd_neighbor[_qp] * _u_neighbor[_qp]) / _rho_tot_neighbor[_qp]) 
 	         * _test[_i][_qp];	
 		  
@@ -108,11 +110,11 @@ DGCurvatureAdvection::computeQpResidual(Moose::DGResidualType type)
 
     case Moose::Neighbor:
 	  		  
-	  if (rho_gnd_vdotn >= 0.0)
+	  if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
         r -= ((_rho_gnd[_qp] * _u[_qp]) / _rho_tot[_qp]) 
 	         * _test_neighbor[_i][_qp];
 	  
-	  if (neigh_rho_gnd_vdotn < 0.0)
+	  if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	    r -= ((_rho_gnd_neighbor[_qp] * _u_neighbor[_qp]) / _rho_tot_neighbor[_qp])  
 	         * _test_neighbor[_i][_qp];
 		  
@@ -139,7 +141,7 @@ DGCurvatureAdvection::computeQpJacobian(Moose::DGJacobianType type)
   {
     case Moose::ElementElement:
 	  	  
-	  if (rho_gnd_vdotn >= 0.0)
+	  if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
         jac += ((_rho_gnd[_qp] * _phi[_j][_qp]) / _rho_tot[_qp]) 
 	           * _test[_i][_qp];	
 		  
@@ -147,7 +149,7 @@ DGCurvatureAdvection::computeQpJacobian(Moose::DGJacobianType type)
 
     case Moose::ElementNeighbor:
 	    
-      if (neigh_rho_gnd_vdotn < 0.0)
+      if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	    jac += ((_rho_gnd_neighbor[_qp] * _phi_neighbor[_j][_qp]) / _rho_tot_neighbor[_qp]) 
 	           * _test[_i][_qp];	
 		  
@@ -155,7 +157,7 @@ DGCurvatureAdvection::computeQpJacobian(Moose::DGJacobianType type)
 	  
 	case Moose::NeighborElement:
 	
-	  if (rho_gnd_vdotn >= 0.0)
+	  if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
         jac -= ((_rho_gnd[_qp] * _phi[_j][_qp]) / _rho_tot[_qp]) 
 	           * _test_neighbor[_i][_qp];
 	
@@ -163,7 +165,7 @@ DGCurvatureAdvection::computeQpJacobian(Moose::DGJacobianType type)
 	
 	case Moose::NeighborNeighbor:
 	
-	  if (neigh_rho_gnd_vdotn < 0.0)
+	  if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	    jac -= ((_rho_gnd_neighbor[_qp] * _phi_neighbor[_j][_qp]) / _rho_tot_neighbor[_qp])  
 	           * _test_neighbor[_i][_qp];	
 	
@@ -193,7 +195,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
     {
       case Moose::ElementElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0)
+	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
           jac += ((_phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
 	             * _test[_i][_qp];	  
 		
@@ -201,7 +203,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
 
       case Moose::ElementNeighbor:
 	  
-        if (neigh_rho_gnd_vdotn < 0.0)
+        if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	      jac += ((_phi_neighbor[_j][_qp] * _u_neighbor[_qp]) / _rho_tot_neighbor[_qp]) 
 	             * _test[_i][_qp];	  
 		
@@ -209,7 +211,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
 	  
 	  case Moose::NeighborElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0)
+	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
           jac -= ((_phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
 	           * _test_neighbor[_i][_qp];	  
 		
@@ -217,7 +219,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
 
 	  case Moose::NeighborNeighbor:
 	  
-	    if (neigh_rho_gnd_vdotn < 0.0)
+	    if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	      jac -= ((_phi_neighbor[_j][_qp] * _u_neighbor[_qp]) / _rho_tot_neighbor[_qp])  
 	           * _test_neighbor[_i][_qp];	  
 		
@@ -231,7 +233,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
     {
 	  case Moose::ElementElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0)
+	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
           jac += (-1.0) * ((_rho_gnd[_qp] * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
 	             * _phi[_j][_qp] * _test[_i][_qp];	  
 	  
@@ -239,7 +241,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
 		
 	  case Moose::ElementNeighbor:
 	  
-        if (neigh_rho_gnd_vdotn < 0.0)
+        if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	      jac += (-1.0) * ((_rho_gnd_neighbor[_qp] * _u_neighbor[_qp]) 
 	             / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp])) 
 	             * _phi_neighbor[_j][_qp] * _test[_i][_qp];		  
@@ -248,7 +250,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
 		
 	  case Moose::NeighborElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0)
+	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
           jac -= (-1.0) * ((_rho_gnd[_qp] * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
 	             * _phi[_j][_qp] * _test_neighbor[_i][_qp];	  
 	  
@@ -256,7 +258,7 @@ DGCurvatureAdvection::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsig
 		
 	  case Moose::NeighborNeighbor:	
 	  
-	    if (neigh_rho_gnd_vdotn < 0.0)
+	    if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
 	      jac -= (-1.0) * ((_rho_gnd_neighbor[_qp] * _u_neighbor[_qp]) 
 	             / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp]))  
 	             * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];	  
