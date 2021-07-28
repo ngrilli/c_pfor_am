@@ -65,5 +65,10 @@ protected:
   // false = it is total density
   bool _is_edge_or_screw; 
   
+  // Tolerance on small values of rho_tot
+  // In this kernel it is used to avoid further outgoing dislocation flux
+  // when the total dislocation density is very close to zero
+  const Real _rho_tot_tol;
+  
 };
 
