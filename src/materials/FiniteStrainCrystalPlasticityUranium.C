@@ -69,7 +69,9 @@ FiniteStrainCrystalPlasticityUranium::FiniteStrainCrystalPlasticityUranium(const
 	_rho_for(declareProperty<std::vector<Real>>("rho_for")), // Forest dislocation density
 	_rho_for_old(getMaterialPropertyOld<std::vector<Real>>("rho_for")), 
 	_rho_sub(declareProperty<Real>("rho_sub")), // Substructure dislocation density
-	_rho_sub_old(getMaterialPropertyOld<Real>("rho_sub"))
+	_rho_sub_old(getMaterialPropertyOld<Real>("rho_sub")),
+	_rho_for_tmp(_nss), // give dimension to temporary vector
+	_rho_for_tmp_old(_nss) // give dimension to temporary vector
 {	
 }
 
@@ -77,10 +79,15 @@ FiniteStrainCrystalPlasticityUranium::FiniteStrainCrystalPlasticityUranium(const
 void
 FiniteStrainCrystalPlasticityUranium::initAdditionalProps()
 {
+  // give dimension to material property
+  // old material property will take the same dimension automatically  
+  _rho_for[_qp].resize(_nss);	
+	
   for (unsigned int i = 0; i < _nss; ++i) // initialise forest dislocation densities
-    _rho_for[_qp][i] = 0.0;
+    _rho_for[_qp][i] = 10.0;
   
-  _rho_sub[_qp] = 0.0;	// initialise substructure dislocation density
+  _rho_sub[_qp] = 10.0;	// initialise substructure dislocation density
+  
 }
 
 // Assign state variables from the previous time step

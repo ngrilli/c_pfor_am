@@ -113,6 +113,7 @@ protected:
   const MaterialProperty<Real> & _rho_sub_old;
   
   // Temporary variables for dislocation density
+  // dimension of the vectors must be assigned in the constructor
   std::vector<Real> _rho_for_tmp;
   std::vector<Real> _rho_for_tmp_old;
   Real _rho_sub_tmp;
