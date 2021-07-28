@@ -22,7 +22,8 @@ validParams<CurvatureMultiplication>()
   params.addCoupledVar("curvature", 0.0, "Total curvature density q_t.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip velocity, "
 							   "for instance from 0 to 11 for FCC.");
-  params.addParam<bool>("check_rho_positive",false,"Check positive dislocation density");							   
+  params.addParam<bool>("check_rho_positive",false,"Check positive dislocation density");
+  params.addParam<Real>("rho_tot_tol",0.000001,"Tolerance on small values of rho_tot.");  
   return params;
 }
 
@@ -31,6 +32,7 @@ CurvatureMultiplication::CurvatureMultiplication(const InputParameters & paramet
     _curvature(coupledValue("curvature")),
 	_slip_sys_index(getParam<int>("slip_sys_index")),
 	_check_rho_positive(getParam<bool>("check_rho_positive")),
+	_rho_tot_tol(getParam<Real>("rho_tot_tol")),
     _curvature_coupled(isCoupled("curvature")),
     _curvature_var(_curvature_coupled ? coupled("curvature") : 0),
 	_dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")) // Velocity value (signed)
@@ -48,7 +50,7 @@ CurvatureMultiplication::computeQpResidual()
   
   // Check that dislocation density is positive
   // if it went below zero, it should not be further decreased
-  if (_check_rho_positive && _u[_qp] <= 0.0) {
+  if (_check_rho_positive && _u[_qp] <= _rho_tot_tol) {
 	
     val = 0.0;
 	
@@ -76,7 +78,7 @@ CurvatureMultiplication::computeQpOffDiagJacobian(unsigned int jvar)
 	
     // Check that dislocation density is positive
     // if it went below zero, it should not be further decreased
-    if (_check_rho_positive && _u[_qp] <= 0.0) {
+    if (_check_rho_positive && _u[_qp] <= _rho_tot_tol) {
 	
       val = 0.0;
 	

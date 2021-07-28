@@ -43,6 +43,11 @@ private:
   // if it went below zero, it should not be further decreased
   bool _check_rho_positive;  
   
+  // Tolerance on small values of rho_tot
+  // In this kernel it is used to avoid further decrease of the
+  // total dislocation density below a threshold value
+  const Real _rho_tot_tol;
+  
   const bool _curvature_coupled;
   
   unsigned int _curvature_var;

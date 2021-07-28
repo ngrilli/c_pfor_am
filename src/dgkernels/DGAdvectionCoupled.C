@@ -96,10 +96,10 @@ DGAdvectionCoupled::computeQpResidual(Moose::DGResidualType type)
 	  
 	  if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 	  
-	    if (u_vdotn >= 0 && _rho_coupled[_qp] > _rho_tot_tol)
+	    if (u_vdotn >= 0)
           r += rhoc_vdotn * _test[_i][_qp];
 	  
-	    if (neigh_u_vdotn < 0 && _rho_neighbor[_qp] > _rho_tot_tol)
+	    if (neigh_u_vdotn < 0)
 		  r += neigh_rhoc_vdotn * _test[_i][_qp];
 		  
 	  } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
@@ -117,10 +117,10 @@ DGAdvectionCoupled::computeQpResidual(Moose::DGResidualType type)
 	
 	  if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 		  
-	    if (u_vdotn >= 0 && _rho_coupled[_qp] > _rho_tot_tol)
+	    if (u_vdotn >= 0)
           r -= rhoc_vdotn * _test_neighbor[_i][_qp];
 	  
-	  	if (neigh_u_vdotn < 0 && _rho_neighbor[_qp] > _rho_tot_tol)
+	  	if (neigh_u_vdotn < 0)
 		  r -= neigh_rhoc_vdotn * _test_neighbor[_i][_qp];
 		  
 	  } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
@@ -167,7 +167,7 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 	  
 	    if (_is_edge_or_screw) {
 			
-	      if (u_vdotn >= 0 && _rho_coupled[_qp] > _rho_tot_tol)
+	      if (u_vdotn >= 0)
             r += vdotn * _phi[_j][_qp] * _test[_i][_qp];
 			
 		} else {
@@ -183,7 +183,7 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 	  
 	    if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 		
-	      if (neigh_u_vdotn < 0 && _rho_neighbor[_qp] > _rho_tot_tol)
+	      if (neigh_u_vdotn < 0)
 		    r += vdotn * _phi_neighbor[_j][_qp] * _test[_i][_qp];
 		  
 	    } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]	
@@ -199,7 +199,7 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 	  
 	    if (_is_edge_or_screw) {
 			
-	      if (u_vdotn >= 0 && _rho_coupled[_qp] > _rho_tot_tol)
+	      if (u_vdotn >= 0)
             r -= vdotn * _phi[_j][_qp] * _test_neighbor[_i][_qp];
 			
 		} else {
@@ -215,7 +215,7 @@ DGAdvectionCoupled::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigne
 	  
 	    if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
 		
-	  	  if (neigh_u_vdotn < 0 && _rho_neighbor[_qp] > _rho_tot_tol)
+	  	  if (neigh_u_vdotn < 0)
 		    r -= vdotn * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
 		  
 	    } else { // Case with rho_edge or rho_screw = _rho_coupled[_qp]
