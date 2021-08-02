@@ -20,6 +20,7 @@ DGAdvectionCoupledPN::validParams()
 							 "The forward and backward motion of "
 							 "positive and negative GND is taken into account.");
   params.addCoupledVar("rho_coupled", 0.0, "Coupled dislocation density in the flux term.");
+  params.addCoupledVar("rho_coupled_ot", 0.0, "Other type: screw for edge kernel and vice versa.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_character("edge screw", "edge");
@@ -36,6 +37,10 @@ DGAdvectionCoupledPN::DGAdvectionCoupledPN(const InputParameters & parameters)
     _rho_coupled_coupled(isCoupled("rho_coupled")),
     _rho_coupled_var(_rho_coupled_coupled ? coupled("rho_coupled") : 0),
 	_rho_coupled_neighbor(coupledNeighborValue("rho_coupled")),
+    _rho_coupled_ot(coupledValue("rho_coupled_ot")), // Other type: screw for edge kernel and vice versa 
+    _rho_coupled_ot_coupled(isCoupled("rho_coupled_ot")),
+    _rho_coupled_ot_var(_rho_coupled_ot_coupled ? coupled("rho_coupled_ot") : 0),
+	_rho_coupled_ot_neighbor(coupledNeighborValue("rho_coupled_ot")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
@@ -97,18 +102,39 @@ DGAdvectionCoupledPN::computeQpResidual(Moose::DGResidualType type)
   
   if (_is_edge_or_screw) { // Case with rho_edge or rho_screw = _u[_qp]
   
-    rho_gnd_pos = 0.5 * (_rho_coupled[_qp] + _u[_qp]);
-	rho_gnd_neg = 0.5 * (_rho_coupled[_qp] - _u[_qp]);
-	neigh_rho_gnd_pos = 0.5 * (_rho_coupled_neighbor[_qp] + _u_neighbor[_qp]);
-	neigh_rho_gnd_neg = 0.5 * (_rho_coupled_neighbor[_qp] - _u_neighbor[_qp]);
+    // _rho_coupled[_qp] is rho_tot in this case
+	// rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
+    rho_gnd_pos = 0.5 * (std::sqrt(_rho_coupled[_qp]*_rho_coupled[_qp] -
+	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) + _u[_qp]);
+				  
+	rho_gnd_neg = 0.5 * (std::sqrt(_rho_coupled[_qp]*_rho_coupled[_qp] -
+	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) - _u[_qp]);
+				  				  				  
+	neigh_rho_gnd_pos = 0.5 * (std::sqrt(_rho_coupled_neighbor[_qp]*_rho_coupled_neighbor[_qp] -
+	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp]) 
+					    + _u_neighbor[_qp]);
+	
+	neigh_rho_gnd_neg = 0.5 * (std::sqrt(_rho_coupled_neighbor[_qp]*_rho_coupled_neighbor[_qp] -
+	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp])  
+	                    - _u_neighbor[_qp]);
   
   } else // Case with rho_edge or rho_screw = _rho_coupled[_qp]
   {
-	  
-    rho_gnd_pos = 0.5 * (_u[_qp] + _rho_coupled[_qp]);
-    rho_gnd_neg = 0.5 * (_u[_qp] - _rho_coupled[_qp]);
-    neigh_rho_gnd_pos = 0.5 * (_u_neighbor[_qp] + _rho_coupled_neighbor[_qp]);
-    neigh_rho_gnd_neg = 0.5 * (_u_neighbor[_qp] - _rho_coupled_neighbor[_qp]);
+	// _u[_qp] is rho_tot in this case
+	// rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
+    rho_gnd_pos = 0.5 * (std::sqrt(_u[_qp]*_u[_qp] - 
+	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) + _rho_coupled[_qp]);
+				  
+    rho_gnd_neg = 0.5 * (std::sqrt(_u[_qp]*_u[_qp] - 
+	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) - _rho_coupled[_qp]);
+				  
+    neigh_rho_gnd_pos = 0.5 * (std::sqrt(_u_neighbor[_qp]*_u_neighbor[_qp] -
+	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp]) 
+						+ _rho_coupled_neighbor[_qp]);
+						
+    neigh_rho_gnd_neg = 0.5 * (std::sqrt(_u_neighbor[_qp]*_u_neighbor[_qp] -
+	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp]) 
+	                    - _rho_coupled_neighbor[_qp]);
 	  
   }
 

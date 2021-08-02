@@ -16,4 +16,13 @@
     input = 'DGtestFirstMonomial.i'
     exodiff = 'DGtestFirstMonomial_out.e'
   [../]
+  
+  # Positive and negative dislocations close by,
+  # then advecting towards opposite directions
+  [./PosNegStraightEdge]
+    type = 'Exodiff'
+	input = 'PosNegStraightEdge.i'
+	exodiff = 'PosNegStraightEdge_out.e'
+  [../]
+    
 []

@@ -49,6 +49,22 @@ protected:
   // Coupled dislocation density in the neighbouring element
   const VariableValue & _rho_coupled_neighbor;
   
+  // Coupled dislocation density of the other type
+  // If this kernel is used for edge dislocations
+  // this coupled variable is screw dislocation density and vice versa
+  // This is used to calculate the GND density on which this kernel is applied
+  // for instance if this kernel is applied to edge dislocations,
+  // the following relationship applies for the variables in Hochrainer model
+  // in the case of a purely signed dislocation (no SSD):
+  // rho_t = sqrt(rho_e^2 + rho_s^2)
+  const VariableValue & _rho_coupled_ot;
+  
+  const bool _rho_coupled_ot_coupled;
+  unsigned int _rho_coupled_ot_var;
+  
+  // Coupled dislocation density of the other type in the neighbouring element
+  const VariableValue & _rho_coupled_ot_neighbor;
+  
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;
 
