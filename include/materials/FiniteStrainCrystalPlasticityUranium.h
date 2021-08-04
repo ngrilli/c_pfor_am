@@ -94,6 +94,10 @@ protected:
   const Real _projected_mu; // Projected shear modulus on the slip systems, \mu_\alpha in eq. (5)
   const Real _tau0; // Constant friction stress, tau_\alpha^0 in equation (5) of the CMS paper
   
+  const Real _init_rho_for; // Initial value of forest dislocation density, same values for all slip systems
+  const Real _init_rho_sub; // Initial value of substructure dislocation density
+  bool _rho_sub_flag; // Flag to determine whether to include rho_sub in simulations
+  
   // critical resolved shear stress
   // exponentially decreased with temperature
   std::vector<Real> _gssT;

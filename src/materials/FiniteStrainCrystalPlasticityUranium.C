@@ -43,6 +43,9 @@ FiniteStrainCrystalPlasticityUranium::validParams()
   params.addParam<Real>("burgers_vector", 0.0, "Burgers vector magnitude");
   params.addParam<Real>("projected_mu", 74000.0, "Projected shear modulus on the slip systems");
   params.addParam<Real>("tau0", 7.0, "Constant friction stress");
+  params.addParam<Real>("init_rho_for",1.0,"initial value of forest dislocation density, same values for all slip systems");
+  params.addParam<Real>("init_rho_sub",1.0,"initial value of substructure dislocation density");
+  params.addParam<bool>("rho_sub_flag",false,"Flag to determine whether to include rho_sub in simulations");
   return params;
 }
 
@@ -63,6 +66,9 @@ FiniteStrainCrystalPlasticityUranium::FiniteStrainCrystalPlasticityUranium(const
 	_burgers_vector(getParam<Real>("burgers_vector")), // Burgers vector magnitude
 	_projected_mu(getParam<Real>("projected_mu")), // Projected shear modulus on the slip systems
 	_tau0(getParam<Real>("tau0")), // Constant friction stress
+    _init_rho_for(getParam<Real>("init_rho_for")), // Initial value of forest dislocation density
+    _init_rho_sub(getParam<Real>("init_rho_sub")), // Initial value of substructure dislocation density
+    _rho_sub_flag(getParam<bool>("rho_sub_flag")), // Flag to determine whether to include rho_sub in the model
 	_gssT(_nss),
     _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")),   // Slip system resistances
@@ -84,9 +90,9 @@ FiniteStrainCrystalPlasticityUranium::initAdditionalProps()
   _rho_for[_qp].resize(_nss);	
 	
   for (unsigned int i = 0; i < _nss; ++i) // initialise forest dislocation densities
-    _rho_for[_qp][i] = 10.0;
+    _rho_for[_qp][i] = _init_rho_for;
   
-  _rho_sub[_qp] = 10.0;	// initialise substructure dislocation density
+  _rho_sub[_qp] = _init_rho_sub;	// initialise substructure dislocation density
   
 }
 
@@ -306,8 +312,13 @@ FiniteStrainCrystalPlasticityUranium::updateGss()
 	qab = 0.0; // temporary variable
 	qab += _tau0;
 	qab += 0.9 * _burgers_vector * _projected_mu * std::sqrt(rho_for[i]);
-	qab -= 0.086 * _burgers_vector * _projected_mu * std::sqrt(rho_sub) 
-	             * std::log(_burgers_vector * std::sqrt(rho_sub));
+	
+	if(_rho_sub_flag) { // Model with rho_sub
+	
+	  qab -= 0.086 * _burgers_vector * _projected_mu * std::sqrt(rho_sub) 
+	               * std::log(_burgers_vector * std::sqrt(rho_sub));
+				   
+	}
 	
     _gss_tmp[i] = qab;
   }
@@ -365,9 +376,17 @@ FiniteStrainCrystalPlasticityUranium::updateDisloDensity()
   
   // equation (7) in the paper, but in this implementation not only the
   // first slip system contributes to the substructure dislocation density increase
-  // but all the slip systems do, therefore multiply by sum_rho_for and 
-  drho_sub_tmp = 1800.0 * _ka * _burgers_vector * da_tmp * sum_rho_for * std::sqrt(_rho_sub_tmp);
-  drho_sub_tmp *= sum_slip_incr;
+  // but all the slip systems do, therefore multiply by sum_rho_for and
+  if (_rho_sub_flag) { // Model with rho_sub
+  
+    drho_sub_tmp = 1800.0 * _ka * _burgers_vector * da_tmp * sum_rho_for * std::sqrt(_rho_sub_tmp);
+    drho_sub_tmp *= sum_slip_incr;
+	
+  } else { // Model without rho_sub
+	  
+    drho_sub_tmp = 0.0;
+	  
+  }
   
   _rho_sub_tmp += drho_sub_tmp;
 	
