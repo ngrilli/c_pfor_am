@@ -377,53 +377,156 @@ DGCurvatureAdvectionPN::computeQpJacobian(Moose::DGJacobianType type)
 
 // An approximated form of the non-diagonal Jacobian
 // with the approximation _rho_coupled_ot[_qp] = _rho_coupled_ot_neighbor[_qp] = 0
+// so no derivative with respect to _rho_coupled_ot or _rho_coupled_ot_neighbor
 Real
 DGCurvatureAdvectionPN::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jvar)
 {
   Real jac = 0; // Jacobian for output
+  Real rho_gnd_pos; // positive GND density in this element
+  Real rho_gnd_neg; // negative GND density in this element
+  Real neigh_rho_gnd_pos; // positive GND density in the neighbouring element
+  Real neigh_rho_gnd_neg; // negative GND density in the neighbouring element
   
   getDislocationVelocity();
   
   Real vdotn = _velocity * _normals[_qp];
   
-  Real rho_gnd_vdotn = vdotn * _rho_gnd[_qp];
-  Real neigh_rho_gnd_vdotn = vdotn * _rho_gnd_neighbor[_qp];
+  // Define positive and negative GND densities
+  // both are positive quantities
+  // _u[_qp] is q_tot in this case
+  // _rho_tot[_qp] is rho_tot in this case
+  // _rho_gnd[_qp] is edge or screw, respectively
+  // _rho_gnd_ot[_qp] is screw or edge, respectively
+  // rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
+  
+  rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
+	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) + _rho_gnd[_qp]);
+				  
+  rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
+	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) - _rho_gnd[_qp]);
+				  
+  neigh_rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
+	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
+				    + _rho_gnd_neighbor[_qp]);
+						
+  neigh_rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
+	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
+	                - _rho_gnd_neighbor[_qp]);
   
   if (_rho_gnd_coupled && jvar == _rho_gnd_var) {
 	  
     // derivative with respect to _rho_gnd and _rho_gnd_neighbor
-	
 	switch (type)
     {
       case Moose::ElementElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
-          jac += ((_phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
-	             * _test[_i][_qp];	  
+        if (vdotn >= 0.0) {	
+		
+		  if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // positive gnd exits from element
+            jac += ((vdotn * 0.5 * _phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
+		         * _test[_i][_qp];
+			   
+		  }		
+		
+		}  
+	  
+	    if (vdotn < 0.0) {
+		
+          if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // negative gnd exits from element
+            jac -= ((vdotn * (-0.5) * _phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
+	             * _test[_i][_qp];				
+			
+		  }		
+			
+		}
 		
         break;
 
       case Moose::ElementNeighbor:
 	  
-        if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
-	      jac += ((_phi_neighbor[_j][_qp] * _u_neighbor[_qp]) / _rho_tot_neighbor[_qp]) 
-	             * _test[_i][_qp];	  
+        if (vdotn >= 0.0) {
+			 
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+		
+            // negative gnd enters from neighbour 		
+		    jac -= ((vdotn * (-0.5) * _phi_neighbor[_j][_qp] * _u_neighbor[_qp]) 
+			       / _rho_tot_neighbor[_qp]) * _test[_i][_qp];
+		
+		  }	
+			
+		}		  
+	  
+	    if (vdotn < 0.0) {
+			
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+			
+		    // positive gnd enters from neighbour
+	        jac += ((vdotn * 0.5 * _phi_neighbor[_j][_qp] * _u_neighbor[_qp]) 
+			       / _rho_tot_neighbor[_qp]) * _test[_i][_qp];		
+			
+		  }			
+
+		}  
 		
         break;	  
 	  
 	  case Moose::NeighborElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
-          jac -= ((_phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
-	           * _test_neighbor[_i][_qp];	  
+        if (vdotn >= 0.0) {
+			
+		  if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // positive gnd exits from element
+            jac -= ((vdotn * 0.5 * _phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
+		           * _test_neighbor[_i][_qp];
+			   
+		  }			
+
+		}	  
+	  
+        if (vdotn < 0.0) {
+			
+          if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // negative gnd exits from element
+            jac += ((vdotn * (-0.5) * _phi[_j][_qp] * _u[_qp]) / _rho_tot[_qp]) 
+	               * _test_neighbor[_i][_qp];			
+			
+		  }		
+			
+		}	  
 		
         break;
 
 	  case Moose::NeighborNeighbor:
 	  
-	    if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
-	      jac -= ((_phi_neighbor[_j][_qp] * _u_neighbor[_qp]) / _rho_tot_neighbor[_qp])  
-	           * _test_neighbor[_i][_qp];	  
+        if (vdotn >= 0.0) {
+			
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+		
+            // negative gnd enters from neighbour		
+		    jac += ((vdotn * (-0.5) * _phi_neighbor[_j][_qp] * _u_neighbor[_qp]) 
+			       / _rho_tot_neighbor[_qp]) * _test_neighbor[_i][_qp];
+		
+		  }			
+			
+		}	  
+	  
+	    if (vdotn < 0.0) {
+			
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+			
+		    // positive gnd enters from neighbour
+	        jac -= ((vdotn * 0.5 * _phi_neighbor[_j][_qp] * _u_neighbor[_qp]) 
+			       / _rho_tot_neighbor[_qp]) * _test_neighbor[_i][_qp];		
+			
+		  }			
+			
+		}	  
 		
         break;	  
 	}
@@ -431,46 +534,135 @@ DGCurvatureAdvectionPN::computeQpOffDiagJacobian(Moose::DGJacobianType type, uns
   } else if (_rho_tot_coupled && jvar == _rho_tot_var) {
 	  
     // derivative with respect to _rho_tot and _rho_tot_neighbor
+	// the numerator has also a derivative with respect to 
+	// _rho_tot and _rho_tot_neighbor but here it is neglected
 	switch (type)
     {
 	  case Moose::ElementElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
-          jac += (-1.0) * ((_rho_gnd[_qp] * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
-	             * _phi[_j][_qp] * _test[_i][_qp];	  
+	    if (vdotn >= 0.0) {
+		  
+		  if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // positive gnd exits from element
+            jac += (-1.0) * ((vdotn * rho_gnd_pos * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
+		           * _phi[_j][_qp] * _test[_i][_qp];
+			   
+		  }
+		
+	    }
+
+        if (vdotn < 0.0) {
+
+          if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // negative gnd exits from element
+            jac -= (-1.0) * ((vdotn * rho_gnd_neg * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
+	               * _phi[_j][_qp] * _test[_i][_qp];				
+			
+		  }			 
+
+	    }  
 	  
 	    break;
 		
 	  case Moose::ElementNeighbor:
-	  
-        if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
-	      jac += (-1.0) * ((_rho_gnd_neighbor[_qp] * _u_neighbor[_qp]) 
-	             / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp])) 
-	             * _phi_neighbor[_j][_qp] * _test[_i][_qp];		  
+	  	  
+	    if (vdotn >= 0.0) {
+		 
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+		
+            // negative gnd enters from neighbour 		
+		    jac -= (-1.0) * ((vdotn * neigh_rho_gnd_neg * _u_neighbor[_qp]) 
+			       / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp])) 
+		           * _phi_neighbor[_j][_qp] * _test[_i][_qp];
+		
+		  }
+		
+	    }
+
+        if (vdotn < 0.0) {
+		  
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+			
+		    // positive gnd enters from neighbour
+	        jac += (-1.0) * ((vdotn * neigh_rho_gnd_pos * _u_neighbor[_qp]) 
+			       / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp])) 
+	               * _phi_neighbor[_j][_qp] * _test[_i][_qp];		
+			
+		  }		 
+
+	    }		  
 	  
 	    break;
 		
 	  case Moose::NeighborElement:
 	  
-	    if (rho_gnd_vdotn >= 0.0 && _rho_tot[_qp] > _rho_tot_tol)
-          jac -= (-1.0) * ((_rho_gnd[_qp] * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
-	             * _phi[_j][_qp] * _test_neighbor[_i][_qp];	  
+	    if (vdotn >= 0.0) {
+		  
+		  if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // positive gnd exits from element
+            jac -= (-1.0) * ((vdotn * rho_gnd_pos * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
+		           * _phi[_j][_qp] * _test_neighbor[_i][_qp];
+			   
+		  }
+		
+	    }
+
+        if (vdotn < 0.0) {
+
+          if (_rho_tot[_qp] > _rho_tot_tol) {
+			
+            // negative gnd exits from element
+            jac += (-1.0) * ((vdotn * rho_gnd_neg * _u[_qp]) / (_rho_tot[_qp] * _rho_tot[_qp])) 
+	             * _phi[_j][_qp] * _test_neighbor[_i][_qp];			
+			
+		  }			 
+
+	    } 
 	  
 	    break;
 		
 	  case Moose::NeighborNeighbor:	
 	  
-	    if (neigh_rho_gnd_vdotn < 0.0 && _rho_tot_neighbor[_qp] > _rho_tot_tol)
-	      jac -= (-1.0) * ((_rho_gnd_neighbor[_qp] * _u_neighbor[_qp]) 
-	             / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp]))  
-	             * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];	  
+	    if (vdotn >= 0.0) {
+		 
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+		
+            // negative gnd enters from neighbour		
+		    jac += (-1.0) * ((vdotn * neigh_rho_gnd_neg * _u_neighbor[_qp]) 
+			       / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp])) 
+		           * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
+		
+		  }
+		
+	    }
+
+        if (vdotn < 0.0) {
+		  
+          if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+			
+		    // positive gnd enters from neighbour
+	        jac -= (-1.0) * ((vdotn * neigh_rho_gnd_pos * _u_neighbor[_qp]) 
+			       / (_rho_tot_neighbor[_qp] * _rho_tot_neighbor[_qp])) 
+	               * _phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];		
+			
+		  }		 
+
+	    }	  	  
 	  
 	    break;
 	}
 	
+  } else if (_rho_gnd_ot_coupled && jvar == _rho_gnd_ot_var) {
+	  
+    // TO DO
+	jac += 0.0;
+  
   } else {
 	  
-    jac = 0.0;  
+    jac += 0.0;  
 	  
   }
   
