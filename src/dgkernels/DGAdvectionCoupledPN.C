@@ -93,6 +93,11 @@ DGAdvectionCoupledPN::computeQpResidual(Moose::DGResidualType type)
   Real neigh_rho_gnd_pos; // positive GND density in the neighbouring element
   Real neigh_rho_gnd_neg; // negative GND density in the neighbouring element
   
+  // Remaining total dislocation density once the "other" gnd type is subtracted
+  // This is necessary to consider the case in which both edge and screw GND are present
+  Real remain_rho_tot;
+  Real remain_rho_tot_neigh;
+  
   getDislocationVelocity();
 
   Real vdotn = _velocity * _normals[_qp];
@@ -104,37 +109,90 @@ DGAdvectionCoupledPN::computeQpResidual(Moose::DGResidualType type)
   
     // _rho_coupled[_qp] is rho_tot in this case
 	// rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
-    rho_gnd_pos = 0.5 * (std::sqrt(_rho_coupled[_qp]*_rho_coupled[_qp] -
-	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) + _u[_qp]);
-				  
-	rho_gnd_neg = 0.5 * (std::sqrt(_rho_coupled[_qp]*_rho_coupled[_qp] -
-	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) - _u[_qp]);
-				  				  				  
-	neigh_rho_gnd_pos = 0.5 * (std::sqrt(_rho_coupled_neighbor[_qp]*_rho_coupled_neighbor[_qp] -
-	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp]) 
-					    + _u_neighbor[_qp]);
 	
-	neigh_rho_gnd_neg = 0.5 * (std::sqrt(_rho_coupled_neighbor[_qp]*_rho_coupled_neighbor[_qp] -
-	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp])  
+	remain_rho_tot = _rho_coupled[_qp]*_rho_coupled[_qp]
+	               - _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp];
+
+	if (remain_rho_tot >= 0.0) { 
+		
+      rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot) + _u[_qp]);
+				  
+	  rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot) - _u[_qp]);
+
+	  rho_gnd_pos = std::max(rho_gnd_pos,0.0);
+      rho_gnd_neg = std::max(rho_gnd_neg,0.0);
+
+	} else { // All GNDs are of the other type, nothing left for this type
+
+	  rho_gnd_pos = 0.0;
+	  rho_gnd_neg = 0.0;
+
+	}
+
+	remain_rho_tot_neigh = _rho_coupled_neighbor[_qp]*_rho_coupled_neighbor[_qp]
+	                     - _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp];
+						 
+    if (remain_rho_tot_neigh >= 0.0) {
+		
+	  neigh_rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot_neigh) 
+					    + _u_neighbor[_qp]);
+
+	  neigh_rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot_neigh)  
 	                    - _u_neighbor[_qp]);
-  
+
+      neigh_rho_gnd_pos = std::max(neigh_rho_gnd_pos,0.0);
+	  neigh_rho_gnd_neg = std::max(neigh_rho_gnd_neg,0.0);
+		
+	} else {
+		
+	  neigh_rho_gnd_pos = 0.0;
+	  neigh_rho_gnd_neg = 0.0;
+
+	}
+ 
   } else // Case with rho_edge or rho_screw = _rho_coupled[_qp]
   {
 	// _u[_qp] is rho_tot in this case
 	// rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
-    rho_gnd_pos = 0.5 * (std::sqrt(_u[_qp]*_u[_qp] - 
-	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) + _rho_coupled[_qp]);
-				  
-    rho_gnd_neg = 0.5 * (std::sqrt(_u[_qp]*_u[_qp] - 
-	              _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp]) - _rho_coupled[_qp]);
-				  
-    neigh_rho_gnd_pos = 0.5 * (std::sqrt(_u_neighbor[_qp]*_u_neighbor[_qp] -
-	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp]) 
+	
+	remain_rho_tot = _u[_qp]*_u[_qp] 
+	               - _rho_coupled_ot[_qp]*_rho_coupled_ot[_qp];
+	
+	if (remain_rho_tot >= 0.0) {
+
+      rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot) + _rho_coupled[_qp]);
+      rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot) - _rho_coupled[_qp]);
+
+	  rho_gnd_pos = std::max(rho_gnd_pos,0.0);
+      rho_gnd_neg = std::max(rho_gnd_neg,0.0);	  
+		
+	} else {
+
+	  rho_gnd_pos = 0.0;
+	  rho_gnd_neg = 0.0;
+		
+	}
+	
+    remain_rho_tot_neigh = _u_neighbor[_qp]*_u_neighbor[_qp]
+	                     - _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp];
+	
+	if (remain_rho_tot_neigh >= 0.0) {
+		
+      neigh_rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot_neigh) 
 						+ _rho_coupled_neighbor[_qp]);
 						
-    neigh_rho_gnd_neg = 0.5 * (std::sqrt(_u_neighbor[_qp]*_u_neighbor[_qp] -
-	                    _rho_coupled_ot_neighbor[_qp]*_rho_coupled_ot_neighbor[_qp]) 
+      neigh_rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot_neigh) 
 	                    - _rho_coupled_neighbor[_qp]);
+
+      neigh_rho_gnd_pos = std::max(neigh_rho_gnd_pos,0.0);
+	  neigh_rho_gnd_neg = std::max(neigh_rho_gnd_neg,0.0);  
+
+	} else {
+		
+      neigh_rho_gnd_pos = 0.0;
+	  neigh_rho_gnd_neg = 0.0;
+		
+	}
 	  
   }
 
