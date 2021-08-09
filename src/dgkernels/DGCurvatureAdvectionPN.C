@@ -1,5 +1,7 @@
 // Nicolo Grilli
 // University of Bristol
+// Daijun Hu
+// National University of Singapore
 // 4 Agosto 2021
 
 #include "DGCurvatureAdvectionPN.h"
@@ -96,6 +98,11 @@ DGCurvatureAdvectionPN::computeQpResidual(Moose::DGResidualType type)
   Real neigh_rho_gnd_pos; // positive GND density in the neighbouring element
   Real neigh_rho_gnd_neg; // negative GND density in the neighbouring element
   
+  // Remaining total dislocation density once the "other" gnd type is subtracted
+  // This is necessary to consider the case in which both edge and screw GND are present  
+  Real remain_rho_tot;
+  Real remain_rho_tot_neigh;
+  
   getDislocationVelocity();
 
   Real vdotn = _velocity * _normals[_qp];
@@ -108,20 +115,44 @@ DGCurvatureAdvectionPN::computeQpResidual(Moose::DGResidualType type)
   // _rho_gnd_ot[_qp] is screw or edge, respectively
   // rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
   
-  rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
-	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) + _rho_gnd[_qp]);
+  remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
+	               - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp];
+				   
+  if (remain_rho_tot >= 0.0) {
+	  
+    rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot) + _rho_gnd[_qp]);
 				  
-  rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
-	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) - _rho_gnd[_qp]);
-				  
-  neigh_rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
-	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
-				    + _rho_gnd_neighbor[_qp]);
-						
-  neigh_rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
-	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
-	                - _rho_gnd_neighbor[_qp]);
+    rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot) - _rho_gnd[_qp]);
 
+    rho_gnd_pos = std::max(rho_gnd_pos,0.0);
+    rho_gnd_neg = std::max(rho_gnd_neg,0.0);		  
+ 
+  } else { // All GNDs are of the other type, nothing left for this type
+	  
+	rho_gnd_pos = 0.0;
+	rho_gnd_neg = 0.0;
+	  
+  }
+  
+  remain_rho_tot_neigh = _rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
+	                     - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp];
+				 
+  if (remain_rho_tot_neigh >= 0.0) {
+	  
+    neigh_rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot_neigh) + _rho_gnd_neighbor[_qp]);
+						
+    neigh_rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot_neigh) - _rho_gnd_neighbor[_qp]);
+
+    neigh_rho_gnd_pos = std::max(neigh_rho_gnd_pos,0.0);
+    neigh_rho_gnd_neg = std::max(neigh_rho_gnd_neg,0.0);
+
+  } else { // All GNDs are of the other type, nothing left for this type
+		
+    neigh_rho_gnd_pos = 0.0;
+    neigh_rho_gnd_neg = 0.0;
+	
+  }						 
+  
   // residual calculation: this is the curvature residual
   // if a positive curvature exits the element, residual must be positive 
   // if a positive curvature enters the element, residual must be negative
@@ -231,6 +262,11 @@ DGCurvatureAdvectionPN::computeQpJacobian(Moose::DGJacobianType type)
   Real neigh_rho_gnd_pos; // positive GND density in the neighbouring element
   Real neigh_rho_gnd_neg; // negative GND density in the neighbouring element
   
+  // Remaining total dislocation density once the "other" gnd type is subtracted
+  // This is necessary to consider the case in which both edge and screw GND are present   
+  Real remain_rho_tot;
+  Real remain_rho_tot_neigh;
+  
   getDislocationVelocity();
   
   Real vdotn = _velocity * _normals[_qp];
@@ -243,19 +279,43 @@ DGCurvatureAdvectionPN::computeQpJacobian(Moose::DGJacobianType type)
   // _rho_gnd_ot[_qp] is screw or edge, respectively
   // rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
   
-  rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
-	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) + _rho_gnd[_qp]);
+  remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
+	             - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp];
+  
+  if (remain_rho_tot >= 0.0) { 
+  
+    rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot) + _rho_gnd[_qp]);
 				  
-  rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
-	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) - _rho_gnd[_qp]);
-				  
-  neigh_rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
-	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
-				    + _rho_gnd_neighbor[_qp]);
+    rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot) - _rho_gnd[_qp]);
+
+    rho_gnd_pos = std::max(rho_gnd_pos,0.0);
+    rho_gnd_neg = std::max(rho_gnd_neg,0.0);	
+
+  } else { // All GNDs are of the other type, nothing left for this type
+
+	rho_gnd_pos = 0.0;
+	rho_gnd_neg = 0.0;
+
+  }	
+  
+  remain_rho_tot_neigh = _rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
+	                   - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp];  
+
+  if (remain_rho_tot_neigh >= 0.0) {
+	  
+    neigh_rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot_neigh) + _rho_gnd_neighbor[_qp]);
 						
-  neigh_rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
-	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
-	                - _rho_gnd_neighbor[_qp]);
+    neigh_rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot_neigh) - _rho_gnd_neighbor[_qp]);
+
+    neigh_rho_gnd_pos = std::max(neigh_rho_gnd_pos,0.0);
+    neigh_rho_gnd_neg = std::max(neigh_rho_gnd_neg,0.0);
+	
+  } else { // All GNDs are of the other type, nothing left for this type
+		
+	neigh_rho_gnd_pos = 0.0;
+	neigh_rho_gnd_neg = 0.0;
+	  
+  }  
 					
   switch (type)
   {
@@ -382,10 +442,15 @@ Real
 DGCurvatureAdvectionPN::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jvar)
 {
   Real jac = 0; // Jacobian for output
-  Real rho_gnd_pos; // positive GND density in this element
-  Real rho_gnd_neg; // negative GND density in this element
-  Real neigh_rho_gnd_pos; // positive GND density in the neighbouring element
-  Real neigh_rho_gnd_neg; // negative GND density in the neighbouring element
+  Real rho_gnd_pos = 0; // positive GND density in this element
+  Real rho_gnd_neg = 0; // negative GND density in this element
+  Real neigh_rho_gnd_pos = 0; // positive GND density in the neighbouring element
+  Real neigh_rho_gnd_neg = 0; // negative GND density in the neighbouring element
+  
+  // Remaining total dislocation density once the "other" gnd type is subtracted
+  // This is necessary to consider the case in which both edge and screw GND are present  
+  Real remain_rho_tot;
+  Real remain_rho_tot_neigh;
   
   getDislocationVelocity();
   
@@ -399,20 +464,52 @@ DGCurvatureAdvectionPN::computeQpOffDiagJacobian(Moose::DGJacobianType type, uns
   // _rho_gnd_ot[_qp] is screw or edge, respectively
   // rho_t = sqrt(rho_e^2 + rho_s^2) in the pure GND case
   
-  rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
-	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) + _rho_gnd[_qp]);
-				  
-  rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot[_qp]*_rho_tot[_qp] 
-	          - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp]) - _rho_gnd[_qp]);
-				  
-  neigh_rho_gnd_pos = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
-	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
-				    + _rho_gnd_neighbor[_qp]);
-						
-  neigh_rho_gnd_neg = 0.5 * (std::sqrt(_rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
-	                - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp]) 
-	                - _rho_gnd_neighbor[_qp]);
+  if (_rho_tot_coupled && jvar == _rho_tot_var) {
+	  
+	// Positive and negative GND densities
+    // are needed only for the derivative with
+    // respect to _rho_tot[_qp]
   
+    remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
+	               - _rho_gnd_ot[_qp]*_rho_gnd_ot[_qp];
+  
+    if (remain_rho_tot >= 0.0) {
+		
+      rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot) + _rho_gnd[_qp]);
+				  
+      rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot) - _rho_gnd[_qp]);
+
+      rho_gnd_pos = std::max(rho_gnd_pos,0.0);
+      rho_gnd_neg = std::max(rho_gnd_neg,0.0);	
+
+    } else { // All GNDs are of the other type, nothing left for this type
+
+	  rho_gnd_pos = 0.0;
+	  rho_gnd_neg = 0.0;
+
+	}	
+	
+    remain_rho_tot_neigh = _rho_tot_neighbor[_qp]*_rho_tot_neighbor[_qp]
+	                     - _rho_gnd_ot_neighbor[_qp]*_rho_gnd_ot_neighbor[_qp];  
+
+    if (remain_rho_tot_neigh >= 0.0) {
+
+      neigh_rho_gnd_pos = 0.5 * (std::sqrt(remain_rho_tot_neigh) + _rho_gnd_neighbor[_qp]);
+						
+      neigh_rho_gnd_neg = 0.5 * (std::sqrt(remain_rho_tot_neigh) - _rho_gnd_neighbor[_qp]);
+
+      neigh_rho_gnd_pos = std::max(neigh_rho_gnd_pos,0.0);
+      neigh_rho_gnd_neg = std::max(neigh_rho_gnd_neg,0.0);
+
+    } else {
+		
+	  neigh_rho_gnd_pos = 0.0;
+	  neigh_rho_gnd_neg = 0.0;
+	  
+    }
+ 
+  }
+
   if (_rho_gnd_coupled && jvar == _rho_gnd_var) {
 	  
     // derivative with respect to _rho_gnd and _rho_gnd_neighbor
