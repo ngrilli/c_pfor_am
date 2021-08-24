@@ -316,7 +316,7 @@
   start_time = 0.0
   end_time = 0.002 # 0.35
   dt = 0.001
-  dtmin = 0.001
+  dtmin = 0.00001
 []
 
 [Outputs]

@@ -87,6 +87,8 @@ FiniteStrainCrystalPlasticityDislo::validParams()
   params.addParam<Real>("dislo_max_velocity",1000.0,"Maximum dislocation velocity (phonon drag)");
   params.addParam<Real>("bowout_coef",0.0,"bow-out coefficient: alpha in 4.30 of Hull-Bacon book");
   params.addParam<Real>("bowout_rho_threshold",0.2,"dislo density threshold to apply bow-out");
+  params.addParam<Real>("rho_v_thres",0.001,"Dislo density threshold below which velocity goes to zero");
+  params.addParam<bool>("rho_v_thres_flag",false,"Flag to determine whether to apply the previous threshold");
   return params;
 }
 
@@ -155,6 +157,8 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
     _dislo_max_velocity(getParam<Real>("dislo_max_velocity")), // Maximum dislocation velocity (phonon drag)
 	_bowout_coef(getParam<Real>("bowout_coef")),
 	_bowout_rho_threshold(getParam<Real>("bowout_rho_threshold")),
+    _rho_v_thres(getParam<Real>("rho_v_thres")), // Dislo density threshold below which velocity goes to zero
+    _rho_v_thres_flag(getParam<bool>("rho_v_thres_flag")), // Flag to determine whether to apply the previous threshold
 	_gssT(_nss),
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")), // Edge slip directions
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
@@ -355,43 +359,138 @@ void
 FiniteStrainCrystalPlasticityDislo::getDisloVelocity()
 {
   Real tau0; // resolved shear stress at max velocity _dislo_max_velocity	
+  
+  std::vector<Real> rho_edge_pos(_nss);
+  std::vector<Real> rho_edge_neg(_nss);
+  std::vector<Real> rho_screw_pos(_nss);
+  std::vector<Real> rho_screw_neg(_nss);
+
+  Real RhoTotSlip = 0.0; // total dislocation density in the current slip system
+
+  Real rho_v_thres = _rho_v_thres; // below this threshold rho_tot the velocity decreases to zero  
 	
   _dislo_velocity[_qp].resize(_nss);
   _ddislo_velocity_dtau[_qp].resize(_nss);
+  
+  for (unsigned int i = 0; i < _nss; ++i) {
+    _dislo_velocity[_qp][i] = 0.0;
+    _ddislo_velocity_dtau[_qp][i] = 0.0;
+  }
+
+  // Assign dislocation density vectors
+  rho_edge_pos[0] = _rho_edge_pos_1[_qp];
+  rho_edge_pos[1] = _rho_edge_pos_2[_qp];
+  rho_edge_pos[2] = _rho_edge_pos_3[_qp];
+  rho_edge_pos[3] = _rho_edge_pos_4[_qp];
+  rho_edge_pos[4] = _rho_edge_pos_5[_qp];
+  rho_edge_pos[5] = _rho_edge_pos_6[_qp];
+  rho_edge_pos[6] = _rho_edge_pos_7[_qp];
+  rho_edge_pos[7] = _rho_edge_pos_8[_qp];
+  rho_edge_pos[8] = _rho_edge_pos_9[_qp];
+  rho_edge_pos[9] = _rho_edge_pos_10[_qp];
+  rho_edge_pos[10] = _rho_edge_pos_11[_qp];
+  rho_edge_pos[11] = _rho_edge_pos_12[_qp];
+  
+  rho_edge_neg[0] = _rho_edge_neg_1[_qp];
+  rho_edge_neg[1] = _rho_edge_neg_2[_qp];
+  rho_edge_neg[2] = _rho_edge_neg_3[_qp];
+  rho_edge_neg[3] = _rho_edge_neg_4[_qp];
+  rho_edge_neg[4] = _rho_edge_neg_5[_qp];
+  rho_edge_neg[5] = _rho_edge_neg_6[_qp];
+  rho_edge_neg[6] = _rho_edge_neg_7[_qp];
+  rho_edge_neg[7] = _rho_edge_neg_8[_qp];
+  rho_edge_neg[8] = _rho_edge_neg_9[_qp];
+  rho_edge_neg[9] = _rho_edge_neg_10[_qp];
+  rho_edge_neg[10] = _rho_edge_neg_11[_qp];
+  rho_edge_neg[11] = _rho_edge_neg_12[_qp];
+  
+  rho_screw_pos[0] = _rho_screw_pos_1[_qp];
+  rho_screw_pos[1] = _rho_screw_pos_2[_qp];
+  rho_screw_pos[2] = _rho_screw_pos_3[_qp];
+  rho_screw_pos[3] = _rho_screw_pos_4[_qp];
+  rho_screw_pos[4] = _rho_screw_pos_5[_qp];
+  rho_screw_pos[5] = _rho_screw_pos_6[_qp];
+  rho_screw_pos[6] = _rho_screw_pos_7[_qp];
+  rho_screw_pos[7] = _rho_screw_pos_8[_qp];
+  rho_screw_pos[8] = _rho_screw_pos_9[_qp];
+  rho_screw_pos[9] = _rho_screw_pos_10[_qp];
+  rho_screw_pos[10] = _rho_screw_pos_11[_qp];
+  rho_screw_pos[11] = _rho_screw_pos_12[_qp];
+  
+  rho_screw_neg[0] = _rho_screw_neg_1[_qp];
+  rho_screw_neg[1] = _rho_screw_neg_2[_qp];
+  rho_screw_neg[2] = _rho_screw_neg_3[_qp];
+  rho_screw_neg[3] = _rho_screw_neg_4[_qp];
+  rho_screw_neg[4] = _rho_screw_neg_5[_qp];
+  rho_screw_neg[5] = _rho_screw_neg_6[_qp];
+  rho_screw_neg[6] = _rho_screw_neg_7[_qp];
+  rho_screw_neg[7] = _rho_screw_neg_8[_qp];
+  rho_screw_neg[8] = _rho_screw_neg_9[_qp];
+  rho_screw_neg[9] = _rho_screw_neg_10[_qp];
+  rho_screw_neg[10] = _rho_screw_neg_11[_qp];
+  rho_screw_neg[11] = _rho_screw_neg_12[_qp];  
   
   for (unsigned int i = 0; i < _nss; ++i)
   {
 	  
 	tau0 = 0.0;
 	
+	if (_rho_v_thres_flag) {
+      RhoTotSlip = rho_edge_pos[i] + rho_edge_neg[i] + rho_screw_pos[i] + rho_screw_neg[i];
+	}
+		
 	if (_dislo_mobility > 0.0) {
 	  tau0 = _dislo_max_velocity / _dislo_mobility; // temporary variable for this slip system
 	  tau0 += _gssT[i];		
 	}
 	
-	if (std::abs(_tau(i)) > tau0) {
+	if (std::abs(_tau(i)) > tau0) { // Case above _dislo_max_velocity: use reduced mobility
 		
 	  _dislo_velocity[_qp][i] = (_dislo_max_velocity + _reduced_mobility * (std::abs(_tau(i)) - tau0))
 	                          * std::copysign(1.0, _tau(i));
 	  
 	  // Derivative is always positive
 	  _ddislo_velocity_dtau[_qp][i] = _reduced_mobility;
-		
-	} else if (std::abs(_tau(i)) > _gssT[i]) {
+	  
+	  if (_rho_v_thres_flag) { // Case with density below threshold
+
+        if (RhoTotSlip < rho_v_thres) { // rescale dislocation velocity and derivative by a factor
+
+          _dislo_velocity[_qp][i] *= (RhoTotSlip / rho_v_thres);
+		  _ddislo_velocity_dtau[_qp][i] *= (RhoTotSlip / rho_v_thres);
+		  
+        }
+		  
+      }
+		 
+	} else if (std::abs(_tau(i)) > _gssT[i]) { // Case below _dislo_max_velocity
 		
       _dislo_velocity[_qp][i] = _dislo_mobility * (std::abs(_tau(i)) - _gssT[i])
 	                          * std::copysign(1.0, _tau(i));
+
 	  // Derivative is always positive
 	  _ddislo_velocity_dtau[_qp][i] = _dislo_mobility;
+		
+	  if (_rho_v_thres_flag) { // Case with density below threshold
+
+        if (RhoTotSlip < rho_v_thres) { // rescale dislocation velocity and derivative by a factor
+
+          _dislo_velocity[_qp][i] *= (RhoTotSlip / rho_v_thres);
+		  _ddislo_velocity_dtau[_qp][i] *= (RhoTotSlip / rho_v_thres);
+		  
+        }
+		  
+      }		
 	  
-	} else {
+	} else { // Case below critical resolved shear stress
 		
 	  _dislo_velocity[_qp][i] = 0.0;
 	  _ddislo_velocity_dtau[_qp][i] = 0.0;
 	  
-	}
-	
+	}	
+
   } // end cycle over slip systems
+
 }
 
 // Store slip direction
