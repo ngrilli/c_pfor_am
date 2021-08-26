@@ -29,6 +29,7 @@ DGCurvatureAdvectionPN::validParams()
   params.addRequiredParam<MooseEnum>("dislo_character",
                                      dislo_character,
                                      "Character of dislocations: edge or screw.");
+  params.addParam<bool>("check_gnd_rho_ratio",false,"Check that |rho_gnd| / rho_tot <= 1");
   return params;
 }
 
@@ -51,7 +52,8 @@ DGCurvatureAdvectionPN::DGCurvatureAdvectionPN(const InputParameters & parameter
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
 	_slip_sys_index(getParam<int>("slip_sys_index")),
-	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>())
+	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>()),
+	_check_gnd_rho_ratio(getParam<bool>("check_gnd_rho_ratio"))
 {
 }
 

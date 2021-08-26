@@ -93,4 +93,9 @@ protected:
   // GND density or total density like in DGAdvectionCoupled
   // because this kernel is applied only on the curvature
   
+  // Check that |rho_gnd| / rho_tot <= 1
+  // In theory, total dislocation density cannot become higher than GND density
+  // but it can happen because of numerical error
+  bool _check_gnd_rho_ratio; 
+  
 };
