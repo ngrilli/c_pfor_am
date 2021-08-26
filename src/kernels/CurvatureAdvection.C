@@ -31,6 +31,7 @@ CurvatureAdvection::validParams()
   params.addRequiredParam<MooseEnum>("dislo_character",
                                      dislo_character,
                                      "Character of dislocations: edge or screw.");
+  params.addParam<bool>("check_gnd_rho_ratio",false,"Check that |rho_gnd| / rho_tot <= 1");
   return params;
 }
 
@@ -49,7 +50,8 @@ CurvatureAdvection::CurvatureAdvection(const InputParameters & parameters)
     _dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")), // Velocity value (signed)
 	_slip_sys_index(getParam<int>("slip_sys_index")),
 	_dislo_sign(getParam<MooseEnum>("dislo_sign").getEnum<DisloSign>()),
-	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>())
+	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>()),
+	_check_gnd_rho_ratio(getParam<bool>("check_gnd_rho_ratio"))
 {
 }
 
@@ -106,11 +108,26 @@ CurvatureAdvection::computeQpResidual()
 {
   Real val;
   
+  // ratio between GND and total density
+  Real gnd_tot_ratio;
+  
   if (_rho_tot[_qp] > _rho_tot_tol) {
 	  
 	if (std::abs(_u[_qp]) < _q_limit) {
 		
-	  val = _rho_gnd[_qp] * _u[_qp] / _rho_tot[_qp];
+	  gnd_tot_ratio = _rho_gnd[_qp] / _rho_tot[_qp];	
+		
+	  if (_check_gnd_rho_ratio) {
+		  
+		if (std::abs(gnd_tot_ratio) > 1.0) {
+		
+          gnd_tot_ratio = std::copysign(1.0, _rho_gnd[_qp]);		
+			
+		}
+		  
+	  }
+	  
+	  val = gnd_tot_ratio * _u[_qp];
 	  
 	} else {
 		
@@ -133,11 +150,26 @@ CurvatureAdvection::computeQpJacobian()
 {
   Real val;
   
+  // ratio between GND and total density
+  Real gnd_tot_ratio;
+  
   if (_rho_tot[_qp] > _rho_tot_tol) {
 	  
 	if (std::abs(_u[_qp]) < _q_limit) {
+		
+      gnd_tot_ratio = _rho_gnd[_qp] / _rho_tot[_qp];
 	  
-      val = _rho_gnd[_qp] / _rho_tot[_qp];
+	  if (_check_gnd_rho_ratio) {
+		  
+		if (std::abs(gnd_tot_ratio) > 1.0) {
+	  
+          gnd_tot_ratio = std::copysign(1.0, _rho_gnd[_qp]);	
+	  
+	    }
+	  
+	  }
+	  
+	  val = gnd_tot_ratio;
 	
 	} else {
 		
@@ -158,12 +190,27 @@ CurvatureAdvection::computeQpJacobian()
 Real
 CurvatureAdvection::computeQpOffDiagJacobian(unsigned int jvar)
 {
+  // ratio between GND and total density
+  Real gnd_tot_ratio;
+	
   if (_rho_gnd_coupled && jvar == _rho_gnd_var)
   {
 	
 	if (_rho_tot[_qp] > _rho_tot_tol) {
 		
 	  if (std::abs(_u[_qp]) < _q_limit) {
+		  
+	    if (_check_gnd_rho_ratio) {
+			
+		  gnd_tot_ratio = _rho_gnd[_qp] / _rho_tot[_qp];
+		  
+		  if (std::abs(gnd_tot_ratio) > 1.0) {
+			  
+		    return 0.0;
+			
+		  }
+		
+		}		
 	
         return negSpeedQp() * _phi[_j][_qp] * _u[_qp] / _rho_tot[_qp];
 		
@@ -184,6 +231,18 @@ CurvatureAdvection::computeQpOffDiagJacobian(unsigned int jvar)
 	if (_rho_tot[_qp] > _rho_tot_tol) {
 		
 	  if (std::abs(_u[_qp]) < _q_limit) {
+		  
+        if (_check_gnd_rho_ratio) {
+			
+		  gnd_tot_ratio = _rho_gnd[_qp] / _rho_tot[_qp];
+		  
+		  if (std::abs(gnd_tot_ratio) > 1.0) {
+
+            return 0.0;
+
+		  }
+		
+		}			  
 	  
 	    return (-1.0) * negSpeedQp() * _phi[_j][_qp] * _rho_gnd[_qp] * _u[_qp] / (_rho_tot[_qp] * _rho_tot[_qp]);
 	

@@ -67,6 +67,11 @@ protected:
   
   // Character of dislocations (edge or screw)
   const enum class DisloCharacter { edge, screw } _dislo_character;
+  
+  // Check that |rho_gnd| / rho_tot <= 1
+  // In theory, total dislocation density cannot become higher than GND density
+  // but it can happen because of numerical error
+  bool _check_gnd_rho_ratio; 
 
   /// Returns - _grad_test * velocity
   Real negSpeedQp();
