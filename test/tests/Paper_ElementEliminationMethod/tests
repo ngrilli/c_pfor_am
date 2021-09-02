@@ -1,0 +1,8 @@
+[Tests]
+  [./test]
+    type = 'Exodiff'
+    input = 'Case2DegradEigenBFI3.i'
+    exodiff = 'Case2DegradEigenBFI3_out.e'
+	heavy = true
+  [../]
+[]
