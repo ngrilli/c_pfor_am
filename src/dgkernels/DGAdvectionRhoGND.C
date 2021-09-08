@@ -73,6 +73,16 @@ DGAdvectionRhoGND::getDislocationVelocity()
   Real edge_rho_tot_ratio = 0.0;
   Real screw_rho_tot_ratio = 0.0;
   
+  // Ratios between GND densities and total dislocation density in the neighbouring element
+  Real edge_rho_tot_ratio_neigh = 0.0;
+  Real screw_rho_tot_ratio_neigh = 0.0;
+  
+  // Final angle cosines used to calculate velocity direction
+  // theta = 0 means pure edge GND
+  Real costheta;
+  Real sintheta;
+  Real onetheta;
+  
   // Allocate dislocation velocities based on slip systems index and dislocation character
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j) 
   {
@@ -104,12 +114,95 @@ DGAdvectionRhoGND::getDislocationVelocity()
 	  
   }
   
+  // Find ratio between GND densities and total dislocation density in the neighbouring element
+  if (_rho_tot_neighbor[_qp] > _rho_tot_tol) {
+	  
+	edge_rho_tot_ratio_neigh = _rho_edge_neighbor[_qp] / _rho_tot_neighbor[_qp];
+	screw_rho_tot_ratio_neigh = _rho_screw_neighbor[_qp] / _rho_tot_neighbor[_qp];
+
+    if (_check_gnd_rho_ratio) {
+		
+	  if (std::abs(edge_rho_tot_ratio_neigh) > 1.0) {
+		
+        edge_rho_tot_ratio_neigh = std::copysign(1.0, _rho_edge_neighbor[_qp]);		
+			
+      }
+
+      if (std::abs(screw_rho_tot_ratio_neigh) > 1.0) {
+		  
+	    screw_rho_tot_ratio_neigh = std::copysign(1.0, _rho_screw_neighbor[_qp]);
+		  
+	  }	  
+		
+	}	  
+	  
+  }  
+  
+  // Ensure that the magnitude of the dislocation velocity
+  // depends only on the load in case
+  // edge_rho_tot_ratio and screw_rho_tot_ratio are too low
+  // If GND densities in the current element are too low
+  // check the values from the neighbouring element
+  if (std::abs(edge_rho_tot_ratio) > _rho_tot_tol || 
+      std::abs(screw_rho_tot_ratio) > _rho_tot_tol) 
+  {
+	  
+	onetheta = std::sqrt(edge_rho_tot_ratio * edge_rho_tot_ratio + 
+	                     screw_rho_tot_ratio * screw_rho_tot_ratio);
+	  
+    costheta = std::abs(edge_rho_tot_ratio) / onetheta;
+	sintheta = std::abs(screw_rho_tot_ratio) / onetheta;				
+	  
+  } else if (std::abs(edge_rho_tot_ratio_neigh) > _rho_tot_tol || 
+             std::abs(screw_rho_tot_ratio_neigh) > _rho_tot_tol)
+  {
+	
+	onetheta = std::sqrt(edge_rho_tot_ratio_neigh * edge_rho_tot_ratio_neigh + 
+	                     screw_rho_tot_ratio_neigh * screw_rho_tot_ratio_neigh);
+	  
+    costheta = std::abs(edge_rho_tot_ratio_neigh) / onetheta;
+	sintheta = std::abs(screw_rho_tot_ratio_neigh) / onetheta;
+	
+  } else 
+  {
+	  
+	// Otherwise assume it is a GND dislocation
+	// with character dislo_character
+    switch (_dislo_character)
+    {
+      case DisloCharacter::edge:
+	
+        costheta = 1.0;
+	    sintheta = 0.0;
+
+	    break;
+	  
+	  case DisloCharacter::screw:
+	
+        costheta = 0.0;
+	    sintheta = 1.0;
+
+	    break;
+    }	
+	
+  }  
+
   // Find dislocation velocity based on GND state
+  // Absolute value is used to make sure the direction of the
+  // dislocation velocity vector depends only on the load and
+  // not on the GND state
+  // By definition, dislocation velocity is the direction of motion
+  // of positive dislocations
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
   {
-    _velocity(j) = edge_rho_tot_ratio * edge_velocity(j);
-	_velocity(j) += screw_rho_tot_ratio * screw_velocity(j);
+    _velocity(j) = costheta * edge_velocity(j);
+	_velocity(j) += sintheta * screw_velocity(j);
   }  
+  
+  for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+  {
+	_velocity(j) *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value (signed)
+  }
 
 }
 
