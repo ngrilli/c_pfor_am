@@ -349,7 +349,7 @@ FiniteStrainCrystalPlasticityUranium::updateDisloDensity()
   sum_slip_incr = 0.0;
   for (unsigned int i = 0; i < _nss; ++i) {
     sum_rho_for += _rho_for_tmp[i];
-    sum_slip_incr += _slip_incr(i);
+    sum_slip_incr += std::abs(_slip_incr(i)); // take abs because _slip_incr(i) is signed 
   }
   
   // equation (8) in the paper to define temperature dependent annihilation length 
@@ -369,7 +369,10 @@ FiniteStrainCrystalPlasticityUranium::updateDisloDensity()
  
 	drho_for_tmp = std::sqrt(_rho_for_tmp[i]) - da_tmp * _rho_for_tmp[i];
 	drho_for_tmp *= _ka;
-	drho_for_tmp *= _slip_incr(i);
+	
+	// multiply by absolute value of _slip_incr(i)
+	// because dislocation density growth is independent of the slip direction
+	drho_for_tmp *= std::abs(_slip_incr(i));
 
 	_rho_for_tmp[i] += drho_for_tmp;
   }    
