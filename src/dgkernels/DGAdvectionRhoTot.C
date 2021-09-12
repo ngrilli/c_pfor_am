@@ -198,6 +198,38 @@ DGAdvectionRhoTot::getDislocationVelocity()
   {
 	_velocity(j) *= _dislo_velocity[_qp][_slip_sys_index]; // velocity value (signed)
   }
+  
+  // Velocity needs to be multiplied by costheta or sintheta
+  // depending on character because in case of pure GND
+  // the two kernels DGAdvectionRhoTot for edge and screw character
+  // must give a total contribution to the flux proportional to 
+  // rho_t costheta^2 + rho_t sintheta^2
+  // and not to
+  // rho_t costheta + rho_t sintheta 
+  // vdotn does not account for that factor because it is a sum of
+  // edge and screw velocity directions weighted with costheta and sintheta  
+  // This is not needed in DGAdvectionRhoGND because the quantity advected is rho_gnd itself
+  // and there is only one kernel
+  switch (_dislo_character)
+  {
+    case DisloCharacter::edge:
+	
+	  for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      {
+        _velocity(j) *= costheta;
+	  }
+
+	  break;
+	  
+	case DisloCharacter::screw:
+
+	  for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      {	
+        _velocity(j) *= sintheta;
+	  }
+
+	  break;
+  }
 
 }
 
