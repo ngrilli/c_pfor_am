@@ -11,6 +11,7 @@
 #include "CrystalPlasticitySlipResistance.h"
 #include "CrystalPlasticityStateVariable.h"
 #include "CrystalPlasticityStateVarRateComponent.h"
+#include "MathUtils.h"
 
 registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamage);
 
@@ -20,12 +21,31 @@ FiniteStrainUObasedCPDamage::validParams()
   InputParameters params = FiniteStrainUObasedCP::validParams();
   params.addClassDescription("UserObject based Crystal Plasticity system with damage.");
   params.addRequiredCoupledVar("c", "Order parameter for damage");
+  params.addParam<bool>(
+      "use_current_history_variable", false, "Use the current value of the history variable.");
+  params.addParam<MaterialPropertyName>(
+      "E_name", "elastic_energy", "Name of material property for elastic energy");
+  params.addParam<MaterialPropertyName>(
+      "D_name", "degradation", "Name of material property for energetic degradation function.");
   return params;
 }
 
 FiniteStrainUObasedCPDamage::FiniteStrainUObasedCPDamage(const InputParameters & parameters)
   : FiniteStrainUObasedCP(parameters),
-    _c(coupledValue("c"))
+    _c(coupledValue("c")),
+    _use_current_hist(getParam<bool>("use_current_history_variable")),
+    _E(declareProperty<Real>(getParam<MaterialPropertyName>("E_name"))),
+    _dEdc(declarePropertyDerivative<Real>(getParam<MaterialPropertyName>("E_name"),
+                                          getVar("c", 0)->name())),
+    _d2Ed2c(declarePropertyDerivative<Real>(
+        getParam<MaterialPropertyName>("E_name"), getVar("c", 0)->name(), getVar("c", 0)->name())),
+    _dstress_dc(
+        declarePropertyDerivative<RankTwoTensor>(_base_name + "stress", getVar("c", 0)->name())), 
+    _d2Fdcdstrain(declareProperty<RankTwoTensor>("d2Fdcdstrain")),		
+	_D(getMaterialProperty<Real>("D_name")),
+    _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
+    _d2Dd2c(getMaterialPropertyDerivative<Real>(
+        "D_name", getVar("c", 0)->name(), getVar("c", 0)->name()))
 {
   _err_tol = false;
 
@@ -96,6 +116,8 @@ void
 FiniteStrainUObasedCPDamage::calcResidual()
 {
   RankTwoTensor iden(RankTwoTensor::initIdentity), ce, ee, ce_pk2, eqv_slip_incr, pk2_new;
+  
+  Real F_pos, F_neg; // tensile and compressive part of the elastic strain energy
 
   getSlipRates();
   if (_err_tol)
@@ -113,9 +135,85 @@ FiniteStrainUObasedCPDamage::calcResidual()
   ce = _fe.transpose() * _fe;
   ee = ce - iden;
   ee *= 0.5;
+  
+  // Decompose ee into positive and negative eigenvalues
+  // and calculate elastic energy and stress
+  computeStrainSpectral(F_pos, F_neg, ee, pk2_new);
 
-  pk2_new = (1.0 - _c[_qp]) * _elasticity_tensor[_qp] * ee;
+  // Anisotropic undamaged
+  // pk2_new = _elasticity_tensor[_qp] * ee;
 
   _resid = _pk2[_qp] - pk2_new;
+}
+
+void
+FiniteStrainUObasedCPDamage::computeStrainSpectral(Real & F_pos, Real & F_neg, 
+                                                   RankTwoTensor & ee, RankTwoTensor & pk2_new)
+{
+  // Assume isotropic elasticity to calculate elastic strain energy
+  Real lambda = _elasticity_tensor[_qp](0, 0, 1, 1); // Lame parameter
+  Real mu = _elasticity_tensor[_qp](0, 1, 0, 1); // Shear modulus
+  
+  // Compute eigenvectors and eigenvalues of Green-Lagrange strain and projection tensor
+  RankTwoTensor eigvec;
+  std::vector<Real> eigval(LIBMESH_DIM);
+  RankFourTensor Ppos;
+  
+  Ppos = ee.positiveProjectionEigenDecomposition(eigval, eigvec);
+  
+  // Calculate array of tensors of outerproduct of eigen vectors
+  std::vector<RankTwoTensor> etens(LIBMESH_DIM);
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    etens[i].vectorOuterProduct(eigvec.column(i), eigvec.column(i));  
+
+  // Separate out positive and negative eigen values
+  std::vector<Real> epos(LIBMESH_DIM), eneg(LIBMESH_DIM);
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+  {
+    epos[i] = (std::abs(eigval[i]) + eigval[i]) / 2.0;
+    eneg[i] = -(std::abs(eigval[i]) - eigval[i]) / 2.0;
+  }
+
+  // Separate positive and negative sums of all eigenvalues
+  Real etr = 0.0;
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    etr += eigval[i];
+
+  const Real etrpos = (std::abs(etr) + etr) / 2.0;
+  const Real etrneg = -(std::abs(etr) - etr) / 2.0;
+  
+  // Calculate the tensile (positive) and compressive (negative) parts of Cauchy stress
+  RankTwoTensor stress0pos, stress0neg;
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+  {
+    stress0pos += etens[i] * (lambda * etrpos + 2.0 * mu * epos[i]);
+    stress0neg += etens[i] * (lambda * etrneg + 2.0 * mu * eneg[i]);
+  }  
+  
+  // sum squares of epos and eneg
+  Real pval(0.0), nval(0.0);
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+  {
+    pval += epos[i] * epos[i];
+    nval += eneg[i] * eneg[i];
+  }  
+  
+  // Positive part of the stress is degraded by _D[_qp]
+  pk2_new = (_D[_qp] * stress0pos) + stress0neg;
+  
+  // Energy with positive principal strains
+  F_pos = lambda * etrpos * etrpos / 2.0 + mu * pval;
+  F_neg = -lambda * etrneg * etrneg / 2.0 + mu * nval; 
+  
+  // Used in StressDivergencePFFracTensors off-diagonal Jacobian
+  _dstress_dc[_qp] = stress0pos * _dDdc[_qp];
+  
+  // 2nd derivative wrt c and strain = 0.0 if we used the previous step's history variable
+  if (_use_current_hist)
+    _d2Fdcdstrain[_qp] = stress0pos * _dDdc[_qp];
+  
+  // _Jacobian_mult is already defined in the CP base class
+  
 }
 
