@@ -4,4 +4,9 @@
     input = 'test.i'
     exodiff = 'test_out.e'
   [../]
+  [./test_cp_damage_compression]
+    type = 'Exodiff'
+    input = 'test_compression.i'
+    exodiff = 'test_compression_out.e'
+  [../]
 []

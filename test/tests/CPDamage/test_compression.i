@@ -1,3 +1,10 @@
+# apply compression to a single element
+# to see that damage does not cause a
+# reduction of the stiffness
+
+# if load is changed to tension, a reduced stiffness can be seen
+# yield point is the same though
+
 [GlobalParams]
   displacements = 'disp_x disp_y disp_z'
 []
@@ -46,7 +53,7 @@
 [Modules/TensorMechanics/Master/all]
   strain = FINITE
   add_variables = true
-  generate_output = stress_zz
+  generate_output = 'stress_xx stress_yy stress_zz'
 []
 
 # damage is constant in this test
@@ -122,7 +129,7 @@
     type = FunctionDirichletBC
     variable = disp_z
     boundary = front
-    function = '0.01*t'
+    function = '-0.01*t'
   [../]
 []
 
@@ -255,17 +262,17 @@
 
 [Executioner]
   type = Transient
-  dt = 0.05
+  dt = 0.01
   solve_type = 'PJFNK'
 
   petsc_options_iname = -pc_hypre_type
   petsc_options_value = boomerang
   nl_abs_tol = 1e-10
   nl_rel_step_tol = 1e-10
-  dtmax = 10.0
+  dtmax = 0.01
   nl_rel_tol = 1e-10
-  dtmin = 0.05
-  num_steps = 10
+  dtmin = 0.001
+  num_steps = 2 #20
   nl_abs_step_tol = 1e-10
 []
 
