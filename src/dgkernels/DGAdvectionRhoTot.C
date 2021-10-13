@@ -145,8 +145,8 @@ DGAdvectionRhoTot::getDislocationVelocity()
 	onetheta = std::sqrt(edge_rho_tot_ratio * edge_rho_tot_ratio + 
 	                     screw_rho_tot_ratio * screw_rho_tot_ratio);
 	  
-    costheta = std::abs(edge_rho_tot_ratio) / onetheta;
-	sintheta = std::abs(screw_rho_tot_ratio) / onetheta;				
+    costheta = edge_rho_tot_ratio / onetheta;
+	sintheta = screw_rho_tot_ratio / onetheta;				
 	  
   } else if (std::abs(edge_rho_tot_ratio_neigh) > _rho_tot_tol || 
              std::abs(screw_rho_tot_ratio_neigh) > _rho_tot_tol)
@@ -155,8 +155,8 @@ DGAdvectionRhoTot::getDislocationVelocity()
 	onetheta = std::sqrt(edge_rho_tot_ratio_neigh * edge_rho_tot_ratio_neigh + 
 	                     screw_rho_tot_ratio_neigh * screw_rho_tot_ratio_neigh);
 	  
-    costheta = std::abs(edge_rho_tot_ratio_neigh) / onetheta;
-	sintheta = std::abs(screw_rho_tot_ratio_neigh) / onetheta;
+    costheta = edge_rho_tot_ratio_neigh / onetheta;
+	sintheta = screw_rho_tot_ratio_neigh / onetheta;
 	
   } else 
   {
@@ -183,9 +183,8 @@ DGAdvectionRhoTot::getDislocationVelocity()
   }
 
   // Find dislocation velocity based on GND state
-  // Absolute value is used to make sure the direction of the
-  // dislocation velocity vector depends only on the load and
-  // not on the GND state
+  // The multiplication by velocity value (signed)
+  // ensures that dislocation direction is consistent with the load
   // By definition, dislocation velocity is the direction of motion
   // of positive dislocations
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
