@@ -1,5 +1,7 @@
 // Nicolò Grilli
 // University of Bristol
+// Daijun Hu
+// National University of Singapore
 // 4 Settembre 2021
 
 #include "DGAdvectionRhoTot.h"
@@ -185,8 +187,6 @@ DGAdvectionRhoTot::getDislocationVelocity()
   // Find dislocation velocity based on GND state
   // The multiplication by velocity value (signed)
   // ensures that dislocation direction is consistent with the load
-  // By definition, dislocation velocity is the direction of motion
-  // of positive dislocations
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
   {
     _velocity(j) = costheta * edge_velocity(j);

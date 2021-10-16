@@ -39,11 +39,22 @@ protected:
   virtual void computeStrainSpectral(Real & F_pos, Real & F_neg, 
                                      RankTwoTensor & ee, RankTwoTensor & pk2_new);
 
+  // compute history variable and assign to _E
+  // which is used by the fracture model for damage growth
+  // Damage grows only because of the positive part of the elastic energy F_pos									 
+  virtual void computeHistoryVariable(Real & F_pos, Real & F_neg);
+
   /// Variable defining the phase field damage parameter
   const VariableValue & _c;
   
   /// Use current value of history variable
   bool _use_current_hist;
+  
+  /// History variable that prevents crack healing, declared in this material
+  MaterialProperty<Real> & _H;
+
+  /// Old value of history variable
+  const MaterialProperty<Real> & _H_old;
   
   /// Material property for elastic energy
   MaterialProperty<Real> & _E;

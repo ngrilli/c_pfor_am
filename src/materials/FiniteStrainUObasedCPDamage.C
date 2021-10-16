@@ -34,6 +34,8 @@ FiniteStrainUObasedCPDamage::FiniteStrainUObasedCPDamage(const InputParameters &
   : FiniteStrainUObasedCP(parameters),
     _c(coupledValue("c")),
     _use_current_hist(getParam<bool>("use_current_history_variable")),
+    _H(declareProperty<Real>("hist")), // History variable to avoid damage decrease 
+    _H_old(getMaterialPropertyOld<Real>("hist")),
     _E(declareProperty<Real>(getParam<MaterialPropertyName>("E_name"))),
     _dEdc(declarePropertyDerivative<Real>(getParam<MaterialPropertyName>("E_name"),
                                           getVar("c", 0)->name())),
@@ -139,6 +141,11 @@ FiniteStrainUObasedCPDamage::calcResidual()
   // Decompose ee into positive and negative eigenvalues
   // and calculate elastic energy and stress
   computeStrainSpectral(F_pos, F_neg, ee, pk2_new);
+  
+  // calculate history variable and
+  // assign elastic free energy to _E
+  // for the fracture model
+  computeHistoryVariable(F_pos, F_neg);
 
   // Anisotropic undamaged
   // pk2_new = _elasticity_tensor[_qp] * ee;
@@ -216,4 +223,33 @@ FiniteStrainUObasedCPDamage::computeStrainSpectral(Real & F_pos, Real & F_neg,
   // _Jacobian_mult is already defined in the CP base class
   
 }
+
+// compute history variable and assign to _E
+// which is used by the fracture model for damage growth
+// Damage grows only because of the positive part of the elastic energy F_pos
+void
+FiniteStrainUObasedCPDamage::computeHistoryVariable(Real & F_pos, Real & F_neg)
+{
+  // Assign history variable
+  Real hist_variable = _H_old[_qp];
+  
+  // _use_snes_vi_solver option not implemented
+
+  if (F_pos > _H_old[_qp])
+    _H[_qp] = F_pos;
+  else
+    _H[_qp] = _H_old[_qp];
+
+  if (_use_current_hist)
+    hist_variable = _H[_qp];
+
+  // _barrier not implemented
+
+  // Elastic free energy density and derivatives
+  _E[_qp] = hist_variable * _D[_qp] + F_neg;
+  _dEdc[_qp] = hist_variable * _dDdc[_qp];
+  _d2Ed2c[_qp] = hist_variable * _d2Dd2c[_qp];
+
+}
+
 
