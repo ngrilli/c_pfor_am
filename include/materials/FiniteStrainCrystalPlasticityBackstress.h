@@ -72,6 +72,11 @@ protected:
    * This function updates the dislocation densities
    */
   virtual void updateDisloDensity();
+  
+  /**
+   * This function updates the backstress
+   */
+  virtual void updateBackstress();
 
   const VariableValue & _temp;
   const Real _thermal_expansion;
@@ -99,6 +104,9 @@ protected:
   const Real _init_rho_for; // Initial value of forest dislocation density, same values for all slip systems
   const Real _init_rho_sub; // Initial value of substructure dislocation density
   bool _rho_sub_flag; // Flag to determine whether to include rho_sub in simulations
+  
+  const Real _c_backstress; // c parameter in Armstrong-Frederick backstress evolution
+  const Real _d_backstress; // d parameter in Armstrong-Frederick backstress evolution
   
   // critical resolved shear stress
   // exponentially decreased with temperature

@@ -47,6 +47,8 @@ FiniteStrainCrystalPlasticityBackstress::validParams()
   params.addParam<Real>("init_rho_for",1.0,"initial value of forest dislocation density, same values for all slip systems");
   params.addParam<Real>("init_rho_sub",1.0,"initial value of substructure dislocation density");
   params.addParam<bool>("rho_sub_flag",false,"Flag to determine whether to include rho_sub in simulations");
+  params.addParam<Real>("c_backstress",0.0,"c parameter in Armstrong-Frederick backstress evolution");
+  params.addParam<Real>("d_backstress",0.0,"d parameter in Armstrong-Frederick backstress evolution");
   return params;
 }
 
@@ -70,6 +72,8 @@ FiniteStrainCrystalPlasticityBackstress::FiniteStrainCrystalPlasticityBackstress
     _init_rho_for(getParam<Real>("init_rho_for")), // Initial value of forest dislocation density
     _init_rho_sub(getParam<Real>("init_rho_sub")), // Initial value of substructure dislocation density
     _rho_sub_flag(getParam<bool>("rho_sub_flag")), // Flag to determine whether to include rho_sub in the model
+	_c_backstress(getParam<Real>("c_backstress")), // c parameter in Armstrong-Frederick backstress evolution
+	_d_backstress(getParam<Real>("d_backstress")), // d parameter in Armstrong-Frederick backstress evolution
 	_gssT(_nss),
     _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
 	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")),   // Slip system resistances
@@ -161,7 +165,7 @@ FiniteStrainCrystalPlasticityBackstress::postSolveStatevar()
     _rho_sub[_qp] = _rho_sub_tmp;
 	
 	for (unsigned int i = 0; i < _nss; ++i)
-	  _tau_b[_qp][i] = _tau_b_tmp[i]; // arrivato qui
+	  _tau_b[_qp][i] = _tau_b_tmp[i];
 	
   }
   else
@@ -174,7 +178,11 @@ FiniteStrainCrystalPlasticityBackstress::postSolveStatevar()
 	  for (unsigned int i = 0; i < _nss; ++i)
 	    _rho_for[_qp][i] = _rho_for_tmp[i];
   
-      _rho_sub[_qp] = _rho_sub_tmp;	  
+      _rho_sub[_qp] = _rho_sub_tmp;	
+
+	  for (unsigned int i = 0; i < _nss; ++i)
+	    _tau_b[_qp][i] = _tau_b_tmp[i];
+  
     }
     else
     {
@@ -184,7 +192,11 @@ FiniteStrainCrystalPlasticityBackstress::postSolveStatevar()
 	  for (unsigned int i = 0; i < _nss; ++i)
 	    _rho_for_tmp_old[i] = _rho_for_tmp[i];
   
-      _rho_sub_tmp_old = _rho_sub_tmp;	   
+      _rho_sub_tmp_old = _rho_sub_tmp;	 
+
+      for (unsigned int i = 0; i < _nss; ++i)
+	    _tau_b_tmp_old[i] = _tau_b_tmp[i];
+	
     }
   }
 }
@@ -210,7 +222,7 @@ FiniteStrainCrystalPlasticityBackstress::calcResidual( RankTwoTensor &resid )
   for (unsigned int i = 0; i < _nss; ++i)
     _tau(i) = ce_pk2.doubleContraction(_s0[i]);
 
-  getSlipIncrements(); // Calculate dslip,dslipdtau
+  getSlipIncrements(); // Calculate dslip,dslipdtau, includes backstress
 
   if (_err_tol)
     return;
@@ -247,10 +259,15 @@ FiniteStrainCrystalPlasticityBackstress::calcResidual( RankTwoTensor &resid )
 // Nicolò Grilli , Alan C.F. Cocks , Edmund Tarleton
 // Crystal plasticity finite element modelling of coarse-grained alpha-uranium
 // Computational Materials Science 171 (2020) 109276
+// Plus Armstrong-Frederick backstress term:
+// Armstrong, P.J., Frederick, C.O., 1966. 
+// A Mathematical Representation of the Multiaxial Bauschinger Effect, 
+// G.E.G.B. Report RD/B/N. Central Electricity Generating Board.
 void
 FiniteStrainCrystalPlasticityBackstress::getSlipIncrements()
 {
   Real temp = _temp[_qp];
+  Real tau_b; // Backstress: temporary variable
   
   // Critical resolved shear stress in the input file
   // refers always to room temperature
@@ -262,9 +279,12 @@ FiniteStrainCrystalPlasticityBackstress::getSlipIncrements()
   
   for (unsigned int i = 0; i < _nss; ++i)
   {
+	tau_b = _tau_b[_qp][i];
+	
     _slip_incr(i) = _a0(i) * 
-	                std::pow(std::abs(_tau(i) / _gssT[i]), 1.0 / _xm(i)) *
-                    std::copysign(1.0, _tau(i)) * _dt;
+	                std::pow(std::abs((_tau(i) - tau_b) / _gssT[i]), 1.0 / _xm(i)) *
+                    std::copysign(1.0, (_tau(i) - tau_b)) * _dt;
+					
     if (std::abs(_slip_incr(i)) > _slip_incr_tol)
     {
       //_err_tol = true;
@@ -277,8 +297,10 @@ FiniteStrainCrystalPlasticityBackstress::getSlipIncrements()
 
   for (unsigned int i = 0; i < _nss; ++i)
   {
+	tau_b = _tau_b[_qp][i];
+	  
     _dslipdtau(i) = _a0(i) / _xm(i) *
-                    std::pow(std::abs(_tau(i) / _gssT[i]), 1.0 / _xm(i) - 1.0) / _gssT[i] *
+                    std::pow(std::abs((_tau(i) - tau_b) / _gssT[i]), 1.0 / _xm(i) - 1.0) / _gssT[i] *
                     _dt;
 	if (std::abs(_slip_incr(i)) > 0.99*_slip_incr_tol) 
 	{
@@ -323,6 +345,8 @@ FiniteStrainCrystalPlasticityBackstress::updateGss()
     _accslip_tmp += std::abs(_slip_incr(i));
 
   updateDisloDensity();
+  
+  updateBackstress();
     
   // qab must get the value in equation (5)
   // without the exponential of the temperature
@@ -415,3 +439,29 @@ FiniteStrainCrystalPlasticityBackstress::updateDisloDensity()
   _rho_sub_tmp += drho_sub_tmp;
 	
 }
+
+// Update of the Armstrong-Frederick backstress term:
+// Armstrong, P.J., Frederick, C.O., 1966. 
+// A Mathematical Representation of the Multiaxial Bauschinger Effect, 
+// G.E.G.B. Report RD/B/N. Central Electricity Generating Board
+// Backstress term can be changed by changing this function only
+void
+FiniteStrainCrystalPlasticityBackstress::updateBackstress()
+{
+  Real dtau_b_tmp; // increment of backstress, temporary variable
+	
+  for (unsigned int i = 0; i < _nss; ++i)
+    _tau_b_tmp[i] = _tau_b_tmp_old[i];
+
+  // _dt here is the substep
+  for (unsigned int i = 0; i < _nss; ++i) {
+	  
+	dtau_b_tmp = 0.0;
+	dtau_b_tmp = _c_backstress * _slip_incr(i);
+	dtau_b_tmp -= _d_backstress * _tau_b_tmp[i] * std::abs(_slip_incr(i));
+    
+    _tau_b_tmp[i] += dtau_b_tmp;
+  }
+  
+}
+
