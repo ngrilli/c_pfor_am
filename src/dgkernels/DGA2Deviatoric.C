@@ -1,30 +1,30 @@
 // Nicolo Grilli
 // University of Bristol
-// Daijun Hu
-// National University of Singapore
-// 20 Ottobre 2021
+// 22 Ottobre 2021
 
-#include "DGA2Trace.h"
+#include "DGA2Deviatoric.h"
 
-registerMooseObject("MooseApp", DGA2Trace);
+registerMooseObject("MooseApp", DGA2Deviatoric);
 
-defineLegacyParams(DGA2Trace);
+defineLegacyParams(DGA2Deviatoric);
 
 InputParameters
-DGA2Trace::validParams()
+DGA2Deviatoric::validParams()
 {
   InputParameters params = DGKernel::validParams();
   params.addClassDescription("Dislocation curvature diffusion "
                              "second term on the right hand side of equation (3) in "
-							 "Stefan Sandfeld and Michael Zaiser "
+							 "Stefan Sandfeld and Michael Zaiser (deviatoric part)"
 							 "Pattern formation in a minimal model of continuum dislocation plasticity "
 							 "Modelling Simul. Mater. Sci. Eng. 23 (2015) 065005 (18pp). "
 							 "Discontinuous Galerkin formulation");
-  params.addCoupledVar("rho_tot", 0.0, "Total dislocation density: rho_t.");
+  params.addCoupledVar("rho_gnd_edge", 0.0, "Edge dislocation density: rho_x.");
+  params.addCoupledVar("rho_gnd_screw", 0.0, "Screw dislocation density: rho_y.");
   params.addCoupledVar("dv_dx", 0.0, "Derivative of the velocity with respect to edge slip direction.");
   params.addCoupledVar("dv_dy", 0.0, "Derivative of the velocity with respect to screw slip direction.");
   params.addParam<Real>("dv_dx_max",1e9,"Max absolute value of dv_dx");
-  params.addParam<Real>("dv_dy_max",1e9,"Max absolute value of dv_dy");    
+  params.addParam<Real>("dv_dy_max",1e9,"Max absolute value of dv_dy");
+  params.addParam<Real>("ksabs_tol",0.000001,"Tolerance on small values of ksabs.");  
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
 							   "for instance from 0 to 11 for FCC.");  
   MooseEnum dislo_character("edge screw", "edge");
@@ -34,18 +34,23 @@ DGA2Trace::validParams()
   return params;
 }
 
-DGA2Trace::DGA2Trace(const InputParameters & parameters)
+DGA2Deviatoric::DGA2Deviatoric(const InputParameters & parameters)
   : DGKernel(parameters),
-    _rho_tot(coupledValue("rho_tot")), // Total dislocation density: rho_t
-    _rho_tot_coupled(isCoupled("rho_tot")),
-    _rho_tot_var(_rho_tot_coupled ? coupled("rho_tot") : 0),
-	_rho_neighbor(coupledNeighborValue("rho_tot")),
+    _rho_gnd_edge(coupledValue("rho_gnd_edge")), // Edge dislocation density: rho_x
+    _rho_gnd_edge_coupled(isCoupled("rho_gnd_edge")),
+    _rho_gnd_edge_var(_rho_gnd_edge_coupled ? coupled("rho_gnd_edge") : 0),
+	_rho_gnd_edge_neighbor(coupledNeighborValue("rho_gnd_edge")),
+    _rho_gnd_screw(coupledValue("rho_gnd_screw")), // Screw dislocation density: rho_y
+    _rho_gnd_screw_coupled(isCoupled("rho_gnd_screw")),
+    _rho_gnd_screw_var(_rho_gnd_screw_coupled ? coupled("rho_gnd_screw") : 0),
+	_rho_gnd_screw_neighbor(coupledNeighborValue("rho_gnd_screw")),	
     _dv_dx(coupledValue("dv_dx")), // Derivative of the velocity with respect to edge slip direction
     _dv_dy(coupledValue("dv_dy")), // Derivative of the velocity with respect to screw slip direction
 	_dv_dx_neighbor(coupledNeighborValue("dv_dx")), // same in the neighbouring element
 	_dv_dy_neighbor(coupledNeighborValue("dv_dy")), // same in the neighbouring element
     _dv_dx_max(getParam<Real>("dv_dx_max")),
 	_dv_dy_max(getParam<Real>("dv_dy_max")),
+	_ksabs_tol(getParam<Real>("ksabs_tol")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
 	_slip_sys_index(getParam<int>("slip_sys_index")),
@@ -59,7 +64,7 @@ DGA2Trace::DGA2Trace(const InputParameters & parameters)
 // because the term inside the derivatives d/dx and d/dy
 // does not include the velocity magnitude
 void
-DGA2Trace::getDislocationVelocity()
+DGA2Deviatoric::getDislocationVelocity()
 {
 	
   // Find dislocation velocity based on slip systems index and dislocation character
@@ -86,11 +91,21 @@ DGA2Trace::getDislocationVelocity()
 }
 
 Real
-DGA2Trace::computeQpResidual(Moose::DGResidualType type)
+DGA2Deviatoric::computeQpResidual(Moose::DGResidualType type)
 {
   Real r = 0.0;
-  Real advected_quantity; // term inside the d/dx or d/dy derivative
-  Real neigh_advected_quantity; // same in the neighbouring element
+  
+  Real advected_quantity = 0.0; // term inside the d/dx or d/dy derivative
+  Real neigh_advected_quantity = 0.0; // same in the neighbouring element
+  
+  Real ksabs; // modulus of k GND vector
+  Real neigh_ksabs; // same in the neighbouring element
+  
+  Real diagterm; // diagonal term of deviatoric A2 matrix
+  Real neigh_diagterm; // same in the neighbouring element
+  
+  Real outofdiagterm; // otu of diagonal term of deviatoric A2 matrix  
+  Real neigh_outofdiagterm; // same in the neighbouring element
   
   // Velocity derivatives
   Real dv_dx;
@@ -116,16 +131,50 @@ DGA2Trace::computeQpResidual(Moose::DGResidualType type)
   neigh_dv_dx = neigh_dv_dx * std::copysign(1.0, _dv_dx_neighbor[_qp]);
   neigh_dv_dy = neigh_dv_dy * std::copysign(1.0, _dv_dy_neighbor[_qp]);
   
+  // sqrt(rho_x^2 + rho_y^2)
+  ksabs = std::sqrt(_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]);
+  neigh_ksabs = std::sqrt(_rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp]
+              +_rho_gnd_screw_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp]);
+			  
+  // rho_x^2 - rho_y^2
+  diagterm = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp] - _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
+  neigh_diagterm = _rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp]
+                 - _rho_gnd_screw_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp];
+				 
+  // rho_x rho_y
+  outofdiagterm = _rho_gnd_edge[_qp]*_rho_gnd_screw[_qp];
+  neigh_outofdiagterm = _rho_gnd_edge_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp];
+  
+  if (ksabs > _ksabs_tol) {
+    diagterm = 0.5 * diagterm / ksabs;
+	outofdiagterm = outofdiagterm / ksabs;
+  } else {
+	diagterm = 0.0;  
+	outofdiagterm = 0.0;
+  }
+  
+  if (neigh_ksabs > _ksabs_tol) {
+    neigh_diagterm = 0.5 * neigh_diagterm / neigh_ksabs;
+	neigh_outofdiagterm = neigh_outofdiagterm / neigh_ksabs;
+  } else {
+	neigh_diagterm = 0.0;
+	neigh_outofdiagterm = 0.0;
+  }
+  
   switch (_dislo_character)
   {
     case DisloCharacter::edge:
-      advected_quantity = 0.5 * _rho_tot[_qp] * dv_dx;
-	  neigh_advected_quantity = 0.5 * _rho_neighbor[_qp] * neigh_dv_dx;
+	  advected_quantity -= diagterm * dv_dx;
+	  advected_quantity -= outofdiagterm * dv_dy;
+	  neigh_advected_quantity -= neigh_diagterm * neigh_dv_dx;
+	  neigh_advected_quantity -= neigh_outofdiagterm * neigh_dv_dy;
 	  break;
 	case DisloCharacter::screw:
-      advected_quantity = 0.5 * _rho_tot[_qp] * dv_dy;
-	  neigh_advected_quantity = 0.5 * _rho_neighbor[_qp] * neigh_dv_dy;
-	  break;	  
+      advected_quantity += diagterm * dv_dy;
+	  advected_quantity -= outofdiagterm * dv_dx;
+	  neigh_advected_quantity += neigh_diagterm * neigh_dv_dy;
+	  neigh_advected_quantity -= neigh_outofdiagterm * neigh_dv_dx;
+	  break; 	  
   }
 
   switch (type)
@@ -151,7 +200,7 @@ DGA2Trace::computeQpResidual(Moose::DGResidualType type)
 // This term does not depend on the total curvature q_t
 // therefore in-diagonal Jacobian is zero
 Real
-DGA2Trace::computeQpJacobian(Moose::DGJacobianType type)
+DGA2Deviatoric::computeQpJacobian(Moose::DGJacobianType type)
 {
   return 0.0;
 }
@@ -159,11 +208,11 @@ DGA2Trace::computeQpJacobian(Moose::DGJacobianType type)
 // This term depend on the total dislocation density rho_t
 // So calculate derivative with respect to rho_t
 Real
-DGA2Trace::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jvar)
+DGA2Deviatoric::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jvar)
 {
   Real r = 0.0;
-  Real d_advected; // d advected_quantity /d rho_tot
-  Real d_neigh_advected; // // d neigh_advected_quantity /d rho_neighbor
+  Real d_advected = 0.0; // d advected_quantity /d rho_tot
+  Real d_neigh_advected = 0.0; // // d neigh_advected_quantity /d rho_neighbor
   
   // Velocity derivatives
   Real dv_dx;
@@ -175,7 +224,7 @@ DGA2Trace::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jva
   // and interface normal between this element and the neighbour
   Real vdotn;
   
-  if (_rho_tot_coupled && jvar == _rho_tot_var)
+  if (_rho_gnd_edge_coupled && jvar == _rho_gnd_edge_var)
   {
   
     getDislocationVelocity();
