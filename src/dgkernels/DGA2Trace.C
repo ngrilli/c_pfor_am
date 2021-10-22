@@ -86,7 +86,7 @@ DGA2Trace::getDislocationVelocity()
 Real
 DGA2Trace::computeQpResidual(Moose::DGResidualType type)
 {
-  Real r = 0;
+  Real r = 0.0;
   Real advected_quantity; // term inside the d/dx or d/dy derivative
   Real neigh_advected_quantity; // same in the neighbouring element
   
@@ -111,24 +111,18 @@ DGA2Trace::computeQpResidual(Moose::DGResidualType type)
   neigh_dv_dx = std::min(std::abs(_dv_dx_neighbor[_qp]),_dv_dx_max);
   neigh_dv_dy = std::min(std::abs(_dv_dy_neighbor[_qp]),_dv_dy_max);
   
+  neigh_dv_dx = neigh_dv_dx * std::copysign(1.0, _dv_dx_neighbor[_qp]);
+  neigh_dv_dy = neigh_dv_dy * std::copysign(1.0, _dv_dy_neighbor[_qp]);
+  
   switch (_dislo_character)
   {
     case DisloCharacter::edge:
       advected_quantity = 0.5 * _rho_tot[_qp] * dv_dx;
+	  neigh_advected_quantity = 0.5 * _rho_neighbor[_qp] * neigh_dv_dx;
 	  break;
 	case DisloCharacter::screw:
       advected_quantity = 0.5 * _rho_tot[_qp] * dv_dy;
-	  break;	  
-  }
-  
-  // Same for the neighbouring element
-  switch (_dislo_character)
-  {
-    case DisloCharacter::edge:
-      neigh_advected_quantity = 0.5 * _rho_neighbor[_qp] * neigh_dv_dx;
-	  break;
-	case DisloCharacter::screw:
-      neigh_advected_quantity = 0.5 * _rho_neighbor[_qp] * neigh_dv_dy;
+	  neigh_advected_quantity = 0.5 * _rho_neighbor[_qp] * neigh_dv_dy;
 	  break;	  
   }
 
@@ -165,9 +159,87 @@ DGA2Trace::computeQpJacobian(Moose::DGJacobianType type)
 Real
 DGA2Trace::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jvar)
 {
-  Real r = 0;
+  Real r = 0.0;
+  Real d_advected; // d advected_quantity /d rho_tot
+  Real d_neigh_advected; // // d neigh_advected_quantity /d rho_neighbor
   
-  // TO DO
+  // Velocity derivatives
+  Real dv_dx;
+  Real dv_dy;
+  Real neigh_dv_dx;
+  Real neigh_dv_dy;
   
+  // scalar product between direction (edge or screw) 
+  // and interface normal between this element and the neighbour
+  Real vdotn;
+  
+  if (_rho_tot_coupled && jvar == _rho_tot_var)
+  {
+  
+    getDislocationVelocity();
+
+    vdotn = _velocity * _normals[_qp];
+  
+    // Limit value of velocity derivatives
+    dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
+    dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
+  
+    dv_dx = dv_dx * std::copysign(1.0, _dv_dx[_qp]);
+    dv_dy = dv_dy * std::copysign(1.0, _dv_dy[_qp]);
+  
+    // Same in the neighbouring element
+    neigh_dv_dx = std::min(std::abs(_dv_dx_neighbor[_qp]),_dv_dx_max);
+    neigh_dv_dy = std::min(std::abs(_dv_dy_neighbor[_qp]),_dv_dy_max);
+  
+    neigh_dv_dx = neigh_dv_dx * std::copysign(1.0, _dv_dx_neighbor[_qp]);
+    neigh_dv_dy = neigh_dv_dy * std::copysign(1.0, _dv_dy_neighbor[_qp]);
+  
+    switch (_dislo_character)
+    {
+      case DisloCharacter::edge:
+        d_advected = 0.5 * _phi[_j][_qp] * dv_dx;
+	    d_neigh_advected = 0.5 * _phi_neighbor[_j][_qp] * neigh_dv_dx;
+	    break;
+	  case DisloCharacter::screw:
+        d_advected = 0.5 * _phi[_j][_qp] * dv_dy;
+	    d_neigh_advected = 0.5 * _phi_neighbor[_j][_qp] * neigh_dv_dy;
+	    break;	  
+    }
+
+    switch (type)
+    {
+      case Moose::ElementElement:
+	  
+        if (vdotn >= 0.0) {
+          r += vdotn * d_advected * _test[_i][_qp];
+        }
+        break;
+
+      case Moose::ElementNeighbor:
+
+        if (vdotn < 0) {
+          r += vdotn * d_neigh_advected * _test[_i][_qp];
+        }
+        break;
+
+      case Moose::NeighborElement:
+      
+        if (vdotn >= 0) {
+          r -= vdotn * d_advected * _test_neighbor[_i][_qp];
+        }
+        break;
+	    
+      case Moose::NeighborNeighbor:
+         
+		if (vdotn < 0) {
+          r -= vdotn * d_neigh_advected * _test_neighbor[_i][_qp];
+        }
+        break;
+	 
+    } // end of switch case
+  
+  } // end of if
+
   return r;
+  
 }
