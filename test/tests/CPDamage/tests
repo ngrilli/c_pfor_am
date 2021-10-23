@@ -14,4 +14,9 @@
 	input = 'damage_growth.i'
 	exodiff = 'damage_growth_out.e'
   [../]
+  [./test_damage_volumetric]
+    type = 'Exodiff'
+	input = 'damage_volumetric.i'
+	exodiff = 'damage_volumetric_out.e'
+  [../]
 []
