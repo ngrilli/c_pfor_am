@@ -1,5 +1,7 @@
 // Nicolo Grilli
 // University of Bristol
+// Daijun Hu
+// National University of Singapore
 // 22 Ottobre 2021
 
 #include "DGA2Deviatoric.h"
@@ -104,7 +106,7 @@ DGA2Deviatoric::computeQpResidual(Moose::DGResidualType type)
   Real diagterm; // diagonal term of deviatoric A2 matrix
   Real neigh_diagterm; // same in the neighbouring element
   
-  Real outofdiagterm; // otu of diagonal term of deviatoric A2 matrix  
+  Real outofdiagterm; // out of diagonal term of deviatoric A2 matrix  
   Real neigh_outofdiagterm; // same in the neighbouring element
   
   // Velocity derivatives
@@ -205,14 +207,34 @@ DGA2Deviatoric::computeQpJacobian(Moose::DGJacobianType type)
   return 0.0;
 }
 
-// This term depend on the total dislocation density rho_t
-// So calculate derivative with respect to rho_t
+// This term depend on the edge and screw dislocation densities
+// So calculate derivative with respect to rho_x and rho_y
 Real
 DGA2Deviatoric::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned int jvar)
 {
   Real r = 0.0;
-  Real d_advected = 0.0; // d advected_quantity /d rho_tot
-  Real d_neigh_advected = 0.0; // // d neigh_advected_quantity /d rho_neighbor
+  
+  Real advected_quantity = 0.0; // term inside the d/dx or d/dy derivative
+  Real neigh_advected_quantity = 0.0; // same in the neighbouring element
+  
+  Real ksabs; // modulus of k GND vector
+  Real neigh_ksabs; // same in the neighbouring element
+  Real ksabs3; // modulus of k GND vector, power 3  
+  Real neigh_ksabs3; // same in the neighbouring element
+
+  // Derivatives with respect to _rho_gnd_edge and _rho_gnd_screw
+  // of the diagonal term of deviatoric A2 matrix
+  Real ddiagterm_drhoe;
+  Real dneigh_diagterm_drhoe;
+  Real ddiagterm_drhos; 
+  Real dneigh_diagterm_drhos;
+
+  // Derivatives with respect to _rho_gnd_edge and _rho_gnd_screw
+  // of the out of diagonal term of deviatoric A2 matrix  
+  Real doutofdiagterm_drhoe;
+  Real dneigh_outofdiagterm_drhoe;
+  Real doutofdiagterm_drhos;
+  Real dneigh_outofdiagterm_drhos;
   
   // Velocity derivatives
   Real dv_dx;
@@ -220,17 +242,139 @@ DGA2Deviatoric::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned in
   Real neigh_dv_dx;
   Real neigh_dv_dy;
   
+  // Advected quantities for the Jacobian 
+  Real d_advected = 0.0; // val
+  Real d_neigh_advected = 0.0; // neigh_val;
+
+  getDislocationVelocity();
+
   // scalar product between direction (edge or screw) 
   // and interface normal between this element and the neighbour
   Real vdotn;
   
   if (_rho_gnd_edge_coupled && jvar == _rho_gnd_edge_var)
-  {
+  {	  
+    // Limit value of velocity derivatives
+    dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
+    dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
   
-    getDislocationVelocity();
-
+    dv_dx = dv_dx * std::copysign(1.0, _dv_dx[_qp]);
+    dv_dy = dv_dy * std::copysign(1.0, _dv_dy[_qp]);
+  
+    // Same in the neighbouring element
+    neigh_dv_dx = std::min(std::abs(_dv_dx_neighbor[_qp]),_dv_dx_max);
+    neigh_dv_dy = std::min(std::abs(_dv_dy_neighbor[_qp]),_dv_dy_max);
+  
+    neigh_dv_dx = neigh_dv_dx * std::copysign(1.0, _dv_dx_neighbor[_qp]);
+    neigh_dv_dy = neigh_dv_dy * std::copysign(1.0, _dv_dy_neighbor[_qp]);	  
+	  
     vdotn = _velocity * _normals[_qp];
+	
+    // sqrt(rho_x^2 + rho_y^2)
+    ksabs = std::sqrt(_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]);
+    neigh_ksabs = std::sqrt(_rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp]
+                +_rho_gnd_screw_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp]);
+				
+	// modulus of k GND vector, power 3
+	// sqrt(rho_x^2 + rho_y^2)^3
+    ksabs3 = std::pow(ksabs,3.0);
+    neigh_ksabs3 = std::pow(neigh_ksabs,3.0);
+	
+    // Derivatives with respect to _rho_gnd_edge and _rho_gnd_screw
+    // of the diagonal term of deviatoric A2 matrix
+    ddiagterm_drhoe = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]
+	                + 3.0*_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
+					
+    ddiagterm_drhoe = 0.5 * _rho_gnd_edge[_qp] * ddiagterm_drhoe;
   
+    dneigh_diagterm_drhoe = _rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp] 
+	                      + 3.0*_rho_gnd_screw_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp];
+    dneigh_diagterm_drhoe = 0.5 * _rho_gnd_edge_neighbor[_qp] * dneigh_diagterm_drhoe;
+	
+	if (ksabs > _ksabs_tol) {
+		
+	  ddiagterm_drhoe = ddiagterm_drhoe / ksabs3;
+      dneigh_diagterm_drhoe = dneigh_diagterm_drhoe / ksabs3;
+	  
+	} else {
+		
+	  ddiagterm_drhoe = 0.0;	
+      dneigh_diagterm_drhoe = 0.0;
+	  
+	}	
+	
+    doutofdiagterm_drhoe = _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp];
+    dneigh_outofdiagterm_drhoe = _rho_gnd_screw_neighbor[_qp] * _rho_gnd_screw_neighbor[_qp] 
+	                           * _rho_gnd_screw_neighbor[_qp];
+
+	if (ksabs > _ksabs_tol) {
+		
+	  doutofdiagterm_drhoe = doutofdiagterm_drhoe / ksabs3;
+      dneigh_outofdiagterm_drhoe = dneigh_outofdiagterm_drhoe / ksabs3;
+	  
+	} else {
+		
+	  doutofdiagterm_drhoe = 0.0;	
+      dneigh_outofdiagterm_drhoe = 0.0;
+	  
+	}	
+	
+    switch (_dislo_character) // derivative type
+    {
+      case DisloCharacter::edge: // d/dx
+
+        d_advected = (-1.0) * (ddiagterm_drhoe * dv_dx + doutofdiagterm_drhoe * dv_dy);
+        d_neigh_advected = (-1.0) * (dneigh_diagterm_drhoe * neigh_dv_dx 
+	                     + dneigh_outofdiagterm_drhoe * neigh_dv_dy);
+
+        break;
+
+      case DisloCharacter::screw: // d/dy
+
+        d_advected = ddiagterm_drhoe * dv_dy - doutofdiagterm_drhoe * dv_dx;
+        d_neigh_advected = dneigh_diagterm_drhoe * neigh_dv_dy 
+	                   - dneigh_outofdiagterm_drhoe * neigh_dv_dx;
+
+        break;
+
+    } // end of switch case derivative type	
+	
+    switch (type) // Jacobian type
+    {
+      case Moose::ElementElement:
+	  
+        if (vdotn >= 0.0) {
+          r += vdotn * d_advected *_phi[_j][_qp] * _test[_i][_qp];
+        }
+        break;
+
+      case Moose::ElementNeighbor:
+
+        if (vdotn < 0) {
+          r += vdotn * d_neigh_advected * _phi_neighbor[_j][_qp] * _test[_i][_qp];
+        }
+        break;
+
+      case Moose::NeighborElement:
+      
+        if (vdotn >= 0) {
+          r -= vdotn * d_advected *_phi[_j][_qp] * _test_neighbor[_i][_qp];
+        }
+        break;
+	    
+      case Moose::NeighborNeighbor:
+         
+	    if (vdotn < 0) {
+          r -= vdotn * d_neigh_advected *_phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
+        }
+        break;
+		
+    } // end of switch case Jacobian type	
+
+  // end derivative with respect to rho_edge
+	  
+  } else if (_rho_gnd_screw_coupled && jvar == _rho_gnd_screw_var) {
+
     // Limit value of velocity derivatives
     dv_dx = std::min(std::abs(_dv_dx[_qp]),_dv_dx_max);
     dv_dy = std::min(std::abs(_dv_dy[_qp]),_dv_dy_max);
@@ -244,53 +388,111 @@ DGA2Deviatoric::computeQpOffDiagJacobian(Moose::DGJacobianType type, unsigned in
   
     neigh_dv_dx = neigh_dv_dx * std::copysign(1.0, _dv_dx_neighbor[_qp]);
     neigh_dv_dy = neigh_dv_dy * std::copysign(1.0, _dv_dy_neighbor[_qp]);
+	 
+    vdotn = _velocity * _normals[_qp];
+	
+    // sqrt(rho_x^2 + rho_y^2)
+    ksabs = std::sqrt(_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]+_rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]);
+    neigh_ksabs = std::sqrt(_rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp]
+                +_rho_gnd_screw_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp]);
+				
+	// modulus of k GND vector, power 3
+	// sqrt(rho_x^2 + rho_y^2)^3
+    ksabs3 = std::pow(ksabs,3.0);
+    neigh_ksabs3 = std::pow(neigh_ksabs,3.0);
+	
+    // Derivatives with respect to _rho_gnd_edge and _rho_gnd_screw
+    // of the diagonal term of deviatoric A2 matrix
+    ddiagterm_drhos = _rho_gnd_screw[_qp]*_rho_gnd_screw[_qp]
+	                + 3.0*_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
+					
+    ddiagterm_drhos = (-0.5) * _rho_gnd_screw[_qp] * ddiagterm_drhos;
   
-    switch (_dislo_character)
-    {
-      case DisloCharacter::edge:
-        d_advected = 0.5 * _phi[_j][_qp] * dv_dx;
-	    d_neigh_advected = 0.5 * _phi_neighbor[_j][_qp] * neigh_dv_dx;
-	    break;
-	  case DisloCharacter::screw:
-        d_advected = 0.5 * _phi[_j][_qp] * dv_dy;
-	    d_neigh_advected = 0.5 * _phi_neighbor[_j][_qp] * neigh_dv_dy;
-	    break;	  
-    }
+    dneigh_diagterm_drhos = _rho_gnd_screw_neighbor[_qp]*_rho_gnd_screw_neighbor[_qp] 
+	                      + 3.0*_rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp];
+    dneigh_diagterm_drhos = (-0.5) * _rho_gnd_screw_neighbor[_qp] * dneigh_diagterm_drhos;
+	
+	if (ksabs > _ksabs_tol) {
+		
+	  ddiagterm_drhos = ddiagterm_drhos / ksabs3;
+      dneigh_diagterm_drhos = dneigh_diagterm_drhos / ksabs3;
+	  
+	} else {
+		
+	  ddiagterm_drhos = 0.0;	
+      dneigh_diagterm_drhos = 0.0;
+	  
+	}
 
+    doutofdiagterm_drhos = _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
+    dneigh_outofdiagterm_drhos = _rho_gnd_edge_neighbor[_qp]*_rho_gnd_edge_neighbor[_qp]
+	                           *_rho_gnd_edge_neighbor[_qp];
+
+	if (ksabs > _ksabs_tol) {
+		
+	  doutofdiagterm_drhos = doutofdiagterm_drhos / ksabs3;
+      dneigh_outofdiagterm_drhos = dneigh_outofdiagterm_drhos / ksabs3;
+	  
+	} else {
+		
+	  doutofdiagterm_drhos = 0.0;	
+      dneigh_outofdiagterm_drhos = 0.0;
+	
+	}
+	
+    switch (_dislo_character) // derivative type
+    {
+      case DisloCharacter::edge: // d/dx
+
+        d_advected = (-1.0) * (ddiagterm_drhos * dv_dx + doutofdiagterm_drhos * dv_dy);
+        d_neigh_advected = (-1.0) * (dneigh_diagterm_drhos * neigh_dv_dx 
+		                 + dneigh_outofdiagterm_drhos * neigh_dv_dy);
+
+        break;
+
+      case DisloCharacter::screw: // d/dy
+
+        d_advected = ddiagterm_drhos * dv_dy - doutofdiagterm_drhos * dv_dx;
+        d_neigh_advected = dneigh_diagterm_drhos * neigh_dv_dy 
+		                 - dneigh_outofdiagterm_drhos * neigh_dv_dx;
+
+        break;
+		
+    } // end of switch case derivative type	
+	
     switch (type)
     {
       case Moose::ElementElement:
 	  
         if (vdotn >= 0.0) {
-          r += vdotn * d_advected * _test[_i][_qp];
+          r += vdotn * d_advected *_phi[_j][_qp] * _test[_i][_qp];
         }
         break;
 
       case Moose::ElementNeighbor:
 
         if (vdotn < 0) {
-          r += vdotn * d_neigh_advected * _test[_i][_qp];
+          r += vdotn * d_neigh_advected * _phi_neighbor[_j][_qp] * _test[_i][_qp];
         }
         break;
 
       case Moose::NeighborElement:
       
         if (vdotn >= 0) {
-          r -= vdotn * d_advected * _test_neighbor[_i][_qp];
+          r -= vdotn * d_advected *_phi[_j][_qp] * _test_neighbor[_i][_qp];
         }
         break;
 	    
       case Moose::NeighborNeighbor:
          
 		if (vdotn < 0) {
-          r -= vdotn * d_neigh_advected * _test_neighbor[_i][_qp];
+          r -= vdotn * d_neigh_advected  *_phi_neighbor[_j][_qp] * _test_neighbor[_i][_qp];
         }
         break;
 	 
-    } // end of switch case
+    } // end of switch case type	
   
-  } // end of if
+  } // end derivative with respect to rho_screw
 
-  return r;
-  
+  return r;  
 }
