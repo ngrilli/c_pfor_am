@@ -19,4 +19,9 @@
 	input = 'damage_volumetric.i'
 	exodiff = 'damage_volumetric_out.e'
   [../]
+  [./test_CrackPropagation3D]
+    type = 'Exodiff'
+    input = 'CrackPropagation3D.i'
+	exodiff = 'CrackPropagation3D_out.e'
+  [../]
 []

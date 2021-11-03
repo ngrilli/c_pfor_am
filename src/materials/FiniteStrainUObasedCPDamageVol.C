@@ -292,4 +292,59 @@ FiniteStrainUObasedCPDamageVol::computeHistoryVariable(Real & F_pos, Real & F_ne
 
 }
 
+// update jacobian_mult by taking into account of the exact elasto-plastic tangent moduli
+// it includes damage
+void
+FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
+{
+  RankFourTensor tan_mod;
+  RankTwoTensor pk2fet, fepk2;
+  RankFourTensor deedfe, dsigdpk2dfe, dfedf;
+
+  // Fill in the matrix stiffness material property
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+      {
+        deedfe(i, j, k, i) = deedfe(i, j, k, i) + _fe(k, j) * 0.5;
+        deedfe(i, j, k, j) = deedfe(i, j, k, j) + _fe(k, i) * 0.5;
+      }
+
+  // This equation is exact for Je >= 1 but only an approximation for Je < 1
+  dsigdpk2dfe = _fe.mixedProductIkJl(_fe) * _D[_qp] * _elasticity_tensor[_qp] * deedfe;
+
+  pk2fet = _pk2[_qp] * _fe.transpose();
+  fepk2 = _fe * _pk2[_qp];
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      for (unsigned int l = 0; l < LIBMESH_DIM; ++l)
+      {
+        tan_mod(i, j, i, l) += pk2fet(l, j);
+        tan_mod(i, j, j, l) += fepk2(i, l);
+      }
+
+  tan_mod += dsigdpk2dfe;
+
+  Real je = _fe.det();
+  if (je > 0.0)
+    tan_mod /= je;
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      for (unsigned int l = 0; l < LIBMESH_DIM; ++l)
+        dfedf(i, j, i, l) = _fp_inv(l, j);
+
+  _Jacobian_mult[_qp] = tan_mod * dfedf;
+}
+
+// update jacobian_mult
+// These are approximated tangent moduli
+// but damage is included to make it more precise
+void
+FiniteStrainUObasedCPDamageVol::elasticTangentModuli()
+{
+  _Jacobian_mult[_qp] = _D[_qp] * _elasticity_tensor[_qp];
+}
+
 

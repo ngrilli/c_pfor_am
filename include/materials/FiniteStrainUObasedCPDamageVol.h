@@ -53,6 +53,18 @@ protected:
   // which is used by the fracture model for damage growth
   // Damage grows only because of the positive part of the elastic energy F_pos									 
   virtual void computeHistoryVariable(Real & F_pos, Real & F_neg);
+  
+  /**
+   * calculate the elastic tangent moduli for preconditioner,
+   * with damage included
+   */
+  virtual void elasticTangentModuli();
+
+  /**
+   * calculate the exact tangent moduli for preconditioner,
+   * with damage included
+   */
+  virtual void elastoPlasticTangentModuli();
 
   /// Variable defining the phase field damage parameter
   const VariableValue & _c;
