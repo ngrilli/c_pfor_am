@@ -60,10 +60,6 @@ private:
   // Tolerance on small values of remain_rho_tot
   const Real _remain_rho_tol;
   
-  // Dislocation mobility
-  // used to calculate the resolved shear stress
-  const Real _dislo_mobility;
-  
   // Ratio between Schmid factor of the
   // cross slip system and of the primary system
   const Real _cssf;
@@ -77,8 +73,10 @@ private:
   // Activation volume
   const Real _Vact;
 
-  // Dislocation velocity value (signed) on all slip systems
-  const MaterialProperty<std::vector<Real>> & _dislo_velocity;
+  // resolved shear stress value (signed) on all slip systems
+  // it is used to calculate the resolved shear stress
+  // on the cross slip system
+  const MaterialProperty<std::vector<Real>> & _tau_out;
 
 };
 

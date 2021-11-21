@@ -181,6 +181,10 @@ protected:
   // Derivative of the dislocation velocity with respect to the RSS
   // on the same slip system
   MaterialProperty<std::vector<Real>> & _ddislo_velocity_dtau;
+  
+  // resolved shear stress for output
+  // it is used to inform the DoubleCrossSlip object
+  MaterialProperty<std::vector<Real>> & _tau_out;
 
 };
 

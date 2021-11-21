@@ -32,7 +32,7 @@ validParams<DoubleCrossSlip>()
   params.addParam<Real>("cross_slip_schmid_factor",0.0,"Ratio between Schmid factor of the "
                                                        "cross slip system and of the primary system");  
   params.addParam<Real>("tauIII",0.0,"Stage III resolved shear stress");
-  params.addRequiredParam<Real>("kB",0.0,"Boltzmann constant");
+  params.addParam<Real>("kB",0.0,"Boltzmann constant");
   params.addParam<Real>("Vact",0.0,"Activation volume");
   return params;
 }
@@ -52,12 +52,11 @@ DoubleCrossSlip::DoubleCrossSlip(const InputParameters & parameters)
 	_temp(coupledValue("temp")),
 	_p_cs(getParam<Real>("p_cs")),
 	_remain_rho_tol(getParam<Real>("remain_rho_tol")),
-	_dislo_mobility(getParam<Real>("dislo_mobility")),
 	_cssf(getParam<Real>("cross_slip_schmid_factor")),
 	_tauIII(getParam<Real>("tauIII")),
 	_kB(getParam<Real>("kB")),
 	_Vact(getParam<Real>("Vact")),
-	_dislo_velocity(getMaterialProperty<std::vector<Real>>("dislo_velocity")) // Velocity value (signed)
+	_tau_out(getMaterialProperty<std::vector<Real>>("tau_out")) // Resolved shear stress (signed)
 {
 }
 
@@ -74,14 +73,11 @@ DoubleCrossSlip::computeQpResidual()
   remain_rho_tot = std::max(remain_rho_tot,0.0);
   
   // calculate resolved shear stress on the cross slip system
-  // it is unsigned here
-  if (_dislo_mobility > 0.0) {
-	  rss_cross_slip = std::abs(_dislo_velocity[_qp][_slip_sys_index]) / _dislo_mobility;
-	  rss_cross_slip *= _cssf;
-  }
+  // it is always positive here
+  rss_cross_slip = _cssf * std::abs(_tau_out[_qp][_slip_sys_index]);
   
   // val is positive
-  val = std::exp(((rss_cross_slip-_tauIII) * _Vact) / (_kB * _temp[_qp]));
+  val = std::exp(((rss_cross_slip - _tauIII) * _Vact) / (_kB * _temp[_qp]));
   val = _p_cs * val * std::sqrt(remain_rho_tot);
 
   return - _test[_i][_qp] * val; // minus sign because this is in the LHS of the equation
@@ -99,21 +95,26 @@ DoubleCrossSlip::computeQpOffDiagJacobian(unsigned int jvar)
 {	  
   Real jac = 0;
   Real remain_rho_tot;
+  Real rss_cross_slip = 0.0; // resolved shear stress on the cross slip system
+  Real val;
 
   remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
 	             - _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
+				 
+  // val is positive
+  val = std::exp(((rss_cross_slip - _tauIII) * _Vact) / (_kB * _temp[_qp]));
 
   if (remain_rho_tot > _remain_rho_tol) { // check that denominator is not close to zero
 	  
     if (_rho_tot_coupled && jvar == _rho_tot_var) {
 
-      jac = - _p_cs * std::abs(_dislo_velocity[_qp][_slip_sys_index]) 
+      jac = - _p_cs * val
 	      * (_rho_tot[_qp] / std::sqrt(remain_rho_tot))
 	      * _phi[_j][_qp] * _test[_i][_qp];
 	
     } else if (_rho_gnd_edge_coupled && jvar == _rho_gnd_edge_var) {
 
-      jac = _p_cs * std::abs(_dislo_velocity[_qp][_slip_sys_index])
+      jac = _p_cs * val
           * (_rho_gnd_edge[_qp] / std::sqrt(remain_rho_tot)) 
 	      * _phi[_j][_qp] * _test[_i][_qp];
 	 

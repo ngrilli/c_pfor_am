@@ -162,9 +162,10 @@ FiniteStrainCrystalPlasticityDislo::FiniteStrainCrystalPlasticityDislo(const Inp
 	_gssT(_nss),
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")), // Edge slip directions
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")), // Screw slip direction
-	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")), // Slip system resistances
+	_slip_incr_out(declareProperty<std::vector<Real>>("slip_incr_out")), // Slip system increment for output
 	_dislo_velocity(declareProperty<std::vector<Real>>("dislo_velocity")), // Dislocation velocity
-	_ddislo_velocity_dtau(declareProperty<std::vector<Real>>("ddislo_velocity_dtau")) // Derivative of dislo velocity
+	_ddislo_velocity_dtau(declareProperty<std::vector<Real>>("ddislo_velocity_dtau")), // Derivative of dislo velocity
+	_tau_out(declareProperty<std::vector<Real>>("tau_out")) // resolved shear stress for output
 {	
 }
 
@@ -187,6 +188,13 @@ FiniteStrainCrystalPlasticityDislo::calcResidual( RankTwoTensor &resid )
   // Calculate Schmid tensor and resolved shear stresses
   for (unsigned int i = 0; i < _nss; ++i)
     _tau(i) = ce_pk2.doubleContraction(_s0[i]);
+
+  // store critical resolved shear stress for output
+  _tau_out[_qp].resize(_nss);
+  
+  for (unsigned int i = 0; i < _nss; ++i) {
+    _tau_out[_qp][i] = _tau(i);
+  }
 
   // Introduce temperature dependence of the CRSS
   TempDependCRSS();
