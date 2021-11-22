@@ -67,6 +67,12 @@ private:
   // Stage III resolved shear stress
   const Real _tauIII;
   
+  // Thermal coefficient of stage III resolved shear stress
+  const Real _dtauIII_dT;
+
+  // reference temperature for stage III resolved shear stress
+  const Real _reference_temperature;
+  
   // Boltzmann constant
   const Real _kB;
   

@@ -32,6 +32,8 @@ validParams<DoubleCrossSlip>()
   params.addParam<Real>("cross_slip_schmid_factor",0.0,"Ratio between Schmid factor of the "
                                                        "cross slip system and of the primary system");  
   params.addParam<Real>("tauIII",0.0,"Stage III resolved shear stress");
+  params.addParam<Real>("dtauIII_dT",0.0,"Thermal coefficient of stage III resolved shear stress");
+  params.addParam<Real>("reference_temperature",303.0,"reference temperature for stage III resolved shear stress");
   params.addParam<Real>("kB",0.0,"Boltzmann constant");
   params.addParam<Real>("Vact",0.0,"Activation volume");
   return params;
@@ -54,6 +56,8 @@ DoubleCrossSlip::DoubleCrossSlip(const InputParameters & parameters)
 	_remain_rho_tol(getParam<Real>("remain_rho_tol")),
 	_cssf(getParam<Real>("cross_slip_schmid_factor")),
 	_tauIII(getParam<Real>("tauIII")),
+    _dtauIII_dT(getParam<Real>("dtauIII_dT")),
+    _reference_temperature(getParam<Real>("reference_temperature")),
 	_kB(getParam<Real>("kB")),
 	_Vact(getParam<Real>("Vact")),
 	_tau_out(getMaterialProperty<std::vector<Real>>("tau_out")) // Resolved shear stress (signed)
@@ -66,18 +70,22 @@ DoubleCrossSlip::computeQpResidual()
   Real val;
   Real remain_rho_tot;
   Real rss_cross_slip = 0.0; // resolved shear stress on the cross slip system
+  Real temp = _temp[_qp]; // current temperature
+  Real tauIII_T = 0.0;  // Stage III stress at temperature T
 
   remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
 	             - _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
 				 
   remain_rho_tot = std::max(remain_rho_tot,0.0);
   
+  tauIII_T = _tauIII + _dtauIII_dT * (temp - _reference_temperature);
+  
   // calculate resolved shear stress on the cross slip system
   // it is always positive here
   rss_cross_slip = _cssf * std::abs(_tau_out[_qp][_slip_sys_index]);
   
   // val is positive
-  val = std::exp(((rss_cross_slip - _tauIII) * _Vact) / (_kB * _temp[_qp]));
+  val = std::exp(((rss_cross_slip - tauIII_T) * _Vact) / (_kB * temp));
   val = _p_cs * val * std::sqrt(remain_rho_tot);
 
   return - _test[_i][_qp] * val; // minus sign because this is in the LHS of the equation
@@ -97,12 +105,20 @@ DoubleCrossSlip::computeQpOffDiagJacobian(unsigned int jvar)
   Real remain_rho_tot;
   Real rss_cross_slip = 0.0; // resolved shear stress on the cross slip system
   Real val;
+  Real temp = _temp[_qp]; // current temperature
+  Real tauIII_T = 0.0;  // Stage III stress at temperature T
 
   remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
 	             - _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
 				 
+  tauIII_T = _tauIII + _dtauIII_dT * (temp - _reference_temperature);	
+  
+  // calculate resolved shear stress on the cross slip system
+  // it is always positive here
+  rss_cross_slip = _cssf * std::abs(_tau_out[_qp][_slip_sys_index]);
+				 
   // val is positive
-  val = std::exp(((rss_cross_slip - _tauIII) * _Vact) / (_kB * _temp[_qp]));
+  val = std::exp(((rss_cross_slip - tauIII_T) * _Vact) / (_kB * temp));
 
   if (remain_rho_tot > _remain_rho_tol) { // check that denominator is not close to zero
 	  
