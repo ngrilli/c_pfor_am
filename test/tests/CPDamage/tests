@@ -24,4 +24,9 @@
     input = 'CrackPropagation3D.i'
 	exodiff = 'CrackPropagation3D_out.e'
   [../]
+  [./test_anisotropic_cleavage]
+    type = 'Exodiff'
+    input = 'AnisoCleavage.i'
+	exodiff = 'AnisoCleavage_out.e'
+  [../]
 []
