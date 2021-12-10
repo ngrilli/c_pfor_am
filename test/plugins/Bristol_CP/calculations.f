@@ -68,8 +68,6 @@ c       INC also increases while time remains the same
               
       endif
       
-      write(6,*) GSeffect
-      
 c     If length scale calculation is "ON"
       if (GSeffect.eq.1) then
 c         If not initialized
@@ -325,9 +323,9 @@ c
 c	    Calculate stress and shear resistance
 c	    Note: el_no and ip_no are needed to get the values of Schmid vectors and
 c	    elasticity tensor from the global variables
-          call SC_main(dt,F,Fp_t,S_t,state_t,gsum_t,temp,state0,
-     &    C,S,Lp,Fp,Fe,sigma,gammadot,dgammadot_dtau,state,
-     &    gsum,sconv)
+      call SC_main(dt,F,Fp_t,S_t,state_t,gsum_t,temp,state0,
+     + C,S,Lp,Fp,Fe,sigma,gammadot,dgammadot_dtau,state,
+     + gsum,sconv)
 c
 
       

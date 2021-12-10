@@ -33,7 +33,7 @@ c
 c
 c      
 c      
-      foldername= "/home/nicolo/projects/c_pfor_am"
+      foldername= "/home/nicolo/projects/c_pfor_am/test/tests/umat"
 	  write(6,*) 'debug before initialisation'
 c      
 c
@@ -144,11 +144,14 @@ c      write(6,*) 'KSTEP',KSTEP
 c      write(6,*) 'DFGRD0',DFGRD0
 c      write(6,*) 'DFGRD1',DFGRD1
 c      write(6,*) 'STRESS',STRESS
+c      write(6,*) 'DTIME',DTIME
+c      write(6,*) 'TEMP',TEMP
+c      write(6,*) 'COORDS',COORDS
 c      
 c
 c
 c     Perform all the calculations     
-      call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL,NPT,
+      call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL+1,NPT+1,
      &            STRESS,DDSDDE,PNEWDT,COORDS)
 
 c      

@@ -1,0 +1,7 @@
+[Tests]
+  [./test_umat_bristol_one_elem]
+    type = 'Exodiff'
+    input = 'umat_bristol_one_elem.i'
+    exodiff = 'umat_bristol_one_elem_out.e'
+  [../]
+[]
