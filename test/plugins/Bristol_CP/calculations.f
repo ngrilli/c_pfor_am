@@ -581,10 +581,10 @@ c	Outputs
 	real(8) jacob(6,6)
 	integer jconv
 c	Variables used within this subroutine
-	real(8) Fp(3,3),Fe(3,3),epsdot,sigc
-	real(8) Fper(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6),gsum
-	integer i,iloop,oloop,sconv
-      real(8)	sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
+      real(8) Fp(3,3),Fe(3,3),epsdot,sigc
+      real(8) Fper(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6),gsum
+      integer i,iloop,oloop,sconv
+      real(8) sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
 c
 c	Assign the convergent behavior
 	jconv=1

@@ -33,7 +33,7 @@ c
 c
 c      
 c      
-      foldername= "/home/nicolo/projects/c_pfor_am/test/tests/umat"
+      foldername= "/home/michael/projects/c_pfor_am/test/tests/umat"
 	  write(6,*) 'debug before initialisation'
 c      
 c
