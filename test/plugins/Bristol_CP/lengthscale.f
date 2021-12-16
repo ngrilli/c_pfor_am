@@ -1,19 +1,19 @@
-! Chris Allen
-! Edward Horton
-! Eralp Demir
-! Aug. 12th, 2021 - 1st working version
-!
-!
-! This subroutine is taken from Dr. Dylan Agius (GitHub)
+c Chris Allen
+c Edward Horton
+c Eralp Demir
+c Aug. 12th, 2021 - 1st working version
+c
+c
+c This subroutine is taken from Dr. Dylan Agius (GitHub)
 	module lengthscale
       implicit none
       contains
       
-!     Includes the subroutines that are used to compute the length-scale effects      
+c     Includes the subroutines that are used to compute the length-scale effects      
       
    	!----------------------------------------------------------------------------
-      subroutine grainsize(coords,ldistance,rdistance,lm,
-     + slpdir,slpplane,nslptl,feature,noel)
+    	subroutine grainsize(coords,ldistance,rdistance,lm,  
+     &		 slpdir,slpplane,nslptl,feature,noel)
 
 
 
@@ -36,60 +36,45 @@
 	!ldistance          - distance along slip length
 	!lm                 - Luster-Morris parameter
 
-      use globalvars, only : pi, nodex, nodey
-      use globalvars, only : nodez, boundgrain, elcent
-	  use globalvars, only : grainori, nodeout
+      use globalvars, only : pi, nodex, nodey,
+     & nodez, boundgrain, elcent, grainori, nodeout
       use globalsubs, only : ang2ori
-      implicit none
+	implicit none
 
 		
       
 	   	
-      integer :: i, arraysize,tester,grainb    
-      integer :: arraysizeb,valb,NSLPTL,j,MININDEXSING,CHARCTERLENGT
+      integer:: i, arraysize,tester,grainb,    
+     &arraysizeb,valb,NSLPTL,j,MININDEXSING,CHARCTERLENGT
       integer :: val,noel
       integer :: minidexinsing
 
-      real*8, allocatable :: mindist(:),vect(:,:)     		 
-      real*8, allocatable :: sortmindist(:),sortedbgrains(:)
-	  real*8, allocatable :: uniqu(:),uniindex(:)	      
-      real*8, allocatable :: uniqgraindist(:),zrot(:,:)
-      real*8, allocatable :: slpdirrotate(:,:)                
-      real*8, allocatable :: grainboundindex(:)
-	  real*8, allocatable :: featureboundsnodes(:,:)		                
-      real*8, allocatable :: bxvalue(:),byvalue(:)
-	  real*8, allocatable :: bzvalue(:),btotal(:,:),bangle(:,:)      
-      real*8, allocatable :: normarray(:),normslp(:)
-	  real*8, allocatable :: minangleval(:),minangleval180(:)   
-      real*8, allocatable :: minangleactual(:),rnodes(:,:),vectr(:,:)		 
-      real*8, allocatable :: nodesnot(:,:),lxtotal(:,:,:)
-	  real*8, allocatable :: lxnormin(:,:),lxnorm(:)       
-      real*8, allocatable :: vectrnorm(:),lxangle(:,:)
-	  real*8, allocatable :: minxval0(:,:),minxval180(:,:)    
-      real*8, allocatable :: minxval0act(:,:),minxval180act(:,:)
-	  real*8, allocatable :: minxangle(:)           
-      real*8, allocatable :: minxangleact(:),lxnodes(:,:)
-	  real*8, allocatable :: lxnodesindex(:)              
-      real*8, allocatable :: slpdirrotatenorm(:),veca(:,:)
-	  real*8, allocatable :: vecb(:,:),checkangle(:)       
-      real*8, allocatable :: vanorm(:),vbnorm(:),slpplanrotate(:,:)  
-      real*8, allocatable :: slpdirrotatea(:,:),slpplanrotatea(:,:)
-	  real*8, allocatable :: slpplanrotatenorm(:)
-      real*8, allocatable :: slpdirrotateanorm(:)
-	  real*8, allocatable :: slpplanrotateanorm(:)
-	  real*8, allocatable :: cosphi(:),cosk(:)
+      real*8, allocatable ::  mindist(:),vect(:,:),     		 
+     &sortmindist(:),sortedbgrains(:),uniqu(:),uniindex(:),	      
+     &uniqgraindist(:),zrot(:,:),slpdirrotate(:,:),                
+     &grainboundindex(:) ,featureboundsnodes(:,:),		                
+     &bxvalue(:),byvalue(:),bzvalue(:),btotal(:,:),bangle(:,:),      
+     &normarray(:),normslp(:),minangleval(:),minangleval180(:),   
+     &minangleactual(:),rnodes(:,:),vectr(:,:),			 
+     &nodesnot(:,:),lxtotal(:,:,:),lxnormin(:,:),lxnorm(:),        
+     &vectrnorm(:),lxangle(:,:),minxval0(:,:),minxval180(:,:),     
+     &minxval0act(:,:),minxval180act(:,:),minxangle(:),            
+     &minxangleact(:),lxnodes(:,:),lxnodesindex(:),                
+     &slpdirrotatenorm(:),veca(:,:),vecb(:,:),checkangle(:),       
+     &vanorm(:),vbnorm(:),slpplanrotate(:,:),         
+     &slpdirrotatea(:,:),slpplanrotatea(:,:),slpplanrotatenorm(:), 
+     &slpdirrotateanorm(:),slpplanrotateanorm(:),cosphi(:),cosk(:)
 	  
-	  integer, allocatable :: minindex(:),minang0(:,:)		
-      integer, allocatable :: minang180(:,:)
-	  integer, allocatable :: boundnodegrainb(:),nodesnotindex(:) 
-      integer, allocatable :: minangleactloc(:)
+	integer, allocatable :: minindex(:),minang0(:,:),		
+     &minang180(:,:),boundnodegrainb(:),nodesnotindex(:), 
+     &minangleactloc(:)
       
       integer FEATURE
 	  
-	  real*8 :: coords(3),vectotal(3)                             
-      real*8 :: euler1,totalrot(3,3),groundbundid,charctlenght   
-      real*8 :: twovoxdist(3),centrodes(3),totalrota(3,3)                   
-      real*8 :: sortmindistsing,uniqgraindistsing,testera
+	real*8 :: coords(3),vectotal(3),                             
+     &euler1,totalrot(3,3),groundbundid,charctlenght,           
+     &twovoxdist(3),centrodes(3),totalrota(3,3),                   
+     &sortmindistsing,uniqgraindistsing,testera
 
       real*8 :: lm(NSLPTL),ldistance(NSLPTL),rdistance(NSLPTL)
 
@@ -173,8 +158,8 @@
 		  
 	! calculate the distance of the current location to the grain boundary and
 	! multiplying to bring distances to microns
-      mindist=(((vect(1,:)**2.D0) + (vect(2,:)**2.D0)+
-     + (vect(3,:)**2.D0))**0.5D0)
+      mindist=(((vect(1,:)**2.D0) + (vect(2,:)**2.D0)+           
+     1              (vect(3,:)**2.D0))**0.5D0)
 
 					   
 	! sort distance by the minimum size and and keep indices of ordered minimum
@@ -224,9 +209,9 @@
 
 		 
 		!rotate the slip systems using the angles from each identified grain
-!	call eulercosmatrix(grainori(grainb,:),totalrot)
-!     This has changed to the ang2ori(ang,R)
-!     The result is transposed since crystal to sample transformation is required
+c	call eulercosmatrix(grainori(grainb,:),totalrot)
+c     This has changed to the ang2ori(ang,R)
+c     The result is transposed since crystal to sample transformation is required
       Bunge = grainori(grainb,:)
       call ang2ori(Bunge,totalrot)
       totalrot=transpose(totalrot)
@@ -239,9 +224,9 @@
 	allocate( slpdirrotatea(NSLPTL,3))
 	allocate( slpplanrotatea(NSLPTL,3))
 	!rotate slip systems for the current grain
-!	call eulercosmatrix(oriensh(feature,:),totalrota)
-!     This has changed to the ang2ori(ang,R)
-!     The result is transposed since crystal to sample transformation is required
+c	call eulercosmatrix(oriensh(feature,:),totalrota)
+c     This has changed to the ang2ori(ang,R)
+c     The result is transposed since crystal to sample transformation is required
       Bunge = grainori(int(feature),:)
       call ang2ori(Bunge,totalrota)
       totalrota=transpose(totalrota)
@@ -306,10 +291,9 @@
 	  
         
 	   !find the coordinates of the identified shared boundary nodes
-      allocate (featureboundsnodes(val-1,3))
-	  
-      featureboundsnodes=reshape((/nodex(grainb,grainboundindex),
-     + nodey(grainb,grainboundindex),
+	   allocate (featureboundsnodes(val-1,3))
+	   featureboundsnodes=reshape((/nodex(grainb,grainboundindex), 
+     + nodey(grainb,grainboundindex),                       
      + nodez(grainb,grainboundindex)/),(/val-1,3/))
 		
 		 
@@ -350,9 +334,9 @@
 	   
 	   !calculate characteristic length of voxel
 	   
-      twovoxdist=(elcent(3,:)-elcent(2,:))/2.D0
-      charcterlengt=(twovoxdist(1)**2.D0+
-     + twovoxdist(2)**2.D0+twovoxdist(3)**2.D0)**0.5D0
+	   twovoxdist=(elcent(3,:)-elcent(2,:))/2.D0
+	   charcterlengt=(twovoxdist(1)**2.D0 + twovoxdist(2)**2.D0 +  
+     1   twovoxdist(3)**2.D0)**0.5D0
 	   
 			
 	  !this can be done with findloc if available
@@ -384,8 +368,8 @@
 		   do i=1,size(slpdirrotate,1)
 		   !calculate angle between the slipdirection in grian B and the vector
 		   !created between the current voxel and the boundary nodes.
-      bangle(i,:)=dacos(matmul(btotal,slpdirrotate(i,:))/
-     + (normarray*normslp(i))) 
+				bangle(i,:)=dacos(matmul(btotal,slpdirrotate(i,:))/    
+     1       			(normarray*normslp(i))) 
 			
 		   !find minimum angle and the location index
 		   !of the array for each slip direction 
@@ -413,19 +397,20 @@
 		   
 	  
 		   
-      boundnodegrainb=grainboundindex(minangleactloc)
-      rnodes=reshape((/nodex(grainb,int(boundnodegrainb)),
-     + nodey(grainb,int(boundnodegrainb)),
-     + nodez(grainb,int(boundnodegrainb))/),(/size(slpdirrotate,1),3/)) 
+		   boundnodegrainb=grainboundindex(minangleactloc)
+		   rnodes=reshape((/nodex(grainb,int(boundnodegrainb)),        
+     1       		nodey(grainb,int(boundnodegrainb)),                
+     2      		 nodez(grainb,int(boundnodegrainb))/),              
+     3      		(/size(slpdirrotate,1),3/)) 
 					
 		   ! the corresponding vector for each slip direction
 		   allocate (vectr(size(slpdirrotate,1),3))
 		  
 		   
-      vectr=reshape((/nodex(grainb,int(boundnodegrainb))-coords(1),
-     + nodey(grainb,int(boundnodegrainb))-
-     + coords(2),nodez(grainb,int(boundnodegrainb))-coords(3)/),
-     + (/size(slpdirrotate,1),3/))
+		   vectr=reshape((/nodex(grainb,int(boundnodegrainb))-coords(1),
+     1              	nodey(grainb,int(boundnodegrainb))-coords(2),
+     2              	nodez(grainb,int(boundnodegrainb))-coords(3) 
+     3              	/),(/size(slpdirrotate,1),3/))
 						   
 		   ! calculate the distance from the voxel centroid to the boundary nodes
 		   rdistance=norm2(vectr,dim=2)
@@ -438,8 +423,8 @@
 
 		   !rdistance(1:size(slpdirrotate,1))=charcterlengt*0.5D0
              rdistance=0.5D0
-!             Need to multiply with the real voxelsize
-!		   rdistance=0.5D0*voxelsize
+cc             Need to multiply with the real voxelsize
+c		   rdistance=0.5D0*voxelsize
 		
 
 		   do i=1,3
@@ -476,9 +461,10 @@
 		!node coordinates not at the shared boundary.
 		allocate (nodesnot(valb-1,3))
 		
-      nodesnot=reshape((/nodex(grainb,int(nodesnotindex)),
-     + nodey(grainb,int(nodesnotindex)),
-     + nodez(grainb,int(nodesnotindex))/),(/valb-1,3/))
+		nodesnot=reshape((/nodex(grainb,int(nodesnotindex)),      
+     1            	nodey(grainb,int(nodesnotindex)),          
+     2           	 nodez(grainb,int(nodesnotindex))           
+     3            	/),(/valb-1,3/))
 					   
 		
 		allocate (lxtotal(size(slpdirrotate,1),valb-1,3))
@@ -504,10 +490,11 @@
 			!call enorm(vectr,size(slpdirrotate,1),vectrnorm)
 			vectrnorm=norm2(vectr,dim=2)
 			do i=1,size(slpdirrotate,1)
-      lxtotal(i,:,:)=reshape((/nodex(grainb,int(nodesnotindex))-
-     + rnodes(i,1),nodey(grainb,int(nodesnotindex))-
-     + rnodes(i,2),nodez(grainb,int(nodesnotindex))-rnodes(i,3)/),
-     + (/valb-1,3/))
+				lxtotal(i,:,:)=reshape((/nodex(grainb,int(nodesnotindex))   
+     1            			-rnodes(i,1),                                
+     2            			nodey(grainb,int(nodesnotindex))-rnodes(i,2),
+     3           			 nodez(grainb,int(nodesnotindex))-rnodes(i,3) 
+     4            			/),(/valb-1,3/))
 				lxnormin=lxtotal(i,:,:)
 				!******can be replaced with norm2 function
 				!call enorm(lxnormin,valb-1,lxnorm)
@@ -516,8 +503,8 @@
 				!find the angle between the vectors from the shared boundary to 
 				!boundary nodes in grain b and the vector developed from the voxel
 				!to the shared boundary
-      lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),vectr(i,:))/
-     + (lxnorm*vectrnorm(i)))
+				lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),vectr(i,:))/(lxnorm*  
+     1         				vectrnorm(i)))
 				minxval0(i,:)=minloc(lxangle(i,:))
 				minxval0act(i,:)=lxangle(i,int(minxval0(i,:)))
 				minxval180(i,:)=minloc(abs(lxangle(i,:)-pi))
@@ -533,10 +520,11 @@
 			slpdirrotatenorm=norm2(slpdirrotate,dim=2)
 			
 			do i=1,size(slpdirrotate,1)
-      lxtotal(i,:,:)=reshape((/nodex(grainb,int(nodesnotindex))-
-     + rnodes(i,1),nodey(grainb,int(nodesnotindex))-
-     + rnodes(i,2),nodez(grainb,int(nodesnotindex))-
-     + rnodes(i,3)/),(/valb-1,3/))
+      lxtotal(i,:,:)=reshape((/nodex(grainb,int(nodesnotindex))   
+     + - rnodes(i,1),                                
+     + nodey(grainb,int(nodesnotindex))-rnodes(i,2),
+     + nodez(grainb,int(nodesnotindex))-rnodes(i,3) 
+     + /),(/valb-1,3/))
 				lxnormin=lxtotal(i,:,:)
 				!******can be replaced with norm2 function
 				!call enorm(lxnormin,valb-1,lxnorm)
@@ -544,8 +532,9 @@
 				!find the angle between the vectors from the shared boundary to 
 				!boundary nodes in grain b and the vector developed from the voxel
 				!to the shared boundary
-      lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),slpdirrotate(i,:))/
-     + (lxnorm*slpdirrotatenorm(i)))
+      lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),
+     + slpdirrotate(i,:))/(lxnorm
+     + * slpdirrotatenorm(i)))
 				minxval0(i,:)=minloc(lxangle(i,:))
 				minxval0act(i,:)=lxangle(i,int(minxval0(i,:)))
 				minxval180(i,:)=minloc(abs(lxangle(i,:)-pi))
@@ -574,9 +563,9 @@
 		 !along grain B's slip systems in grain A, the vector and corresponding nodes
 		 !can be determined.
 		 lxnodesindex=nodesnotindex(minxangle)
-      lxnodes=reshape((/nodex(grainb,lxnodesindex),
-     + nodey(grainb,lxnodesindex),nodez(grainb,lxnodesindex)/),
-     + (/size(slpdirrotate,1),3/))
+		 lxnodes=reshape((/nodex(grainb,lxnodesindex),               
+     1  		nodey(grainb,lxnodesindex),                             
+     2  		nodez(grainb,lxnodesindex)/),(/size(slpdirrotate,1),3/))
 
 		 
 		 !need to check the angle formed by the lxnodes vector and the slip vector
@@ -643,45 +632,36 @@
 		  allocate (cosk(size(slpplane,1)))
 	
 		  do i=1,size(slpplane,1)
-      cosphi(i)=dot_product(slpplanrotate(i,:),slpplanrotatea(i,:))/
-     + (slpplanrotatenorm(i)*slpplanrotateanorm(i))
+			cosphi(i)=dot_product(slpplanrotate(i,:),slpplanrotatea(i,:))/   
+     1        			(slpplanrotatenorm(i)*slpplanrotateanorm(i))
 		   
-      cosk(i)=dot_product(slpdirrotatea(i,:),slpdirrotate(i,:))/
-     + (slpdirrotateanorm(i)*normslp(i))
+			cosk(i)=dot_product(slpdirrotatea(i,:),slpdirrotate(i,:))/       
+     1       			 (slpdirrotateanorm(i)*normslp(i))
 			lm(i)=abs(cosphi(i))*abs(cosk(i))
 		  end do
 
-!		 ldistance=ldistance*(10.D0**-6.D0)
-!		 rdistance=rdistance*(10.D0**-6.D0)
+c		 ldistance=ldistance*(10.D0**-6.D0)
+c		 rdistance=rdistance*(10.D0**-6.D0)
 
            
-!         coords, nodex, nodey, nodez are all in mm
-!         Therefore noscaling is used.
+c         coords, nodex, nodey, nodez are all in mm
+c         Therefore noscaling is used.
 
 
 		  !need to make sure to deallocate arrays
-      deallocate (vect,mindist  ,sortmindist, mk, 
-     + minindex,sortedbgrains)  
-      deallocate (uniqgraindist,slpdirrotate,
-     + slpplanrotate,slpdirrotatea)
-      deallocate (slpplanrotatea,grainboundindex,
-     + featureboundsnodes)       
-      deallocate (bxvalue,byvalue,bzvalue,btotal,bangle,
-     + normarray,normslp)  
-      deallocate (minangleval,minang180,minangleval180,minang0)        
-      deallocate (minangleactual,minangleactloc,
-     + boundnodegrainb,rnodes)     
-      deallocate (nodesnotindex,nodesnot,lxtotal,lxnorm,
-     + lxangle,lxnormin)
-      deallocate (minxval0,minxval180,minxval180act,
-     + minxval0act,minxangle)  
-      deallocate (minxangleact,vectrnorm,
-     + slpdirrotatenorm,lxnodesindex)     
-      deallocate (lxnodes,vecb,veca,vanorm,
-     + vbnorm,checkangle)     
-      deallocate (slpplanrotatenorm,
-     + slpdirrotateanorm,slpplanrotateanorm)  
-      deallocate (cosphi,cosk)
+		 deallocate (vect,mindist,sortmindist,mk, 
+     + minindex,sortedbgrains,  
+     + uniqgraindist,slpdirrotate,slpplanrotate,slpdirrotatea,   
+     + slpplanrotatea,grainboundindex,featureboundsnodes,        
+     + bxvalue,byvalue,bzvalue,btotal,bangle,normarray,normslp,  
+     + minangleval,minang180,minangleval180,minang0,             
+     + minangleactual,minangleactloc,boundnodegrainb,rnodes,     
+     + nodesnotindex,nodesnot,lxtotal,lxnorm,lxangle,lxnormin,   
+     + minxval0,minxval180,minxval180act,minxval0act,minxangle,  
+     + minxangleact,vectrnorm,slpdirrotatenorm,lxnodesindex,     
+     + lxnodes,vecb,veca,vanorm,vbnorm,checkangle,     
+     + slpplanrotatenorm,slpdirrotateanorm,slpplanrotateanorm,   
+     + cosphi,cosk)
 		
 		
 	  
@@ -695,8 +675,8 @@
       implicit none
       integer :: k, i, j,arraysize
       real*8, allocatable :: uniqu(:),uniindex(:)
-      real*8 :: sortedbgrains(arraysize),res(arraysize)
-      real*8 :: savindex(arraysize)
+      real*8 :: sortedbgrains(arraysize),res(arraysize),
+     &savindex(arraysize)
 		 
 
 

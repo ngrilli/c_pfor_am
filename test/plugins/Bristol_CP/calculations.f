@@ -10,63 +10,73 @@ c
 c	This subroutine calculates the two main variables: Stress and Consistent tangent	
       subroutine calcs(F_t,F,t,dt,temp,inc,el_no,ip_no,
      + sigma,jacob,pnewdt,coords)
-      use globalvars, only: global_Fp,global_Fp_t,global_Fe,
-     + global_Fe_t,
-     + global_state,global_state_t,I3,inc_old,elas66,
-     + global_ori,njaco,innoitmax,ounoitmax,
-     + global_sigma,global_jacob_t,global_jacob,TF,phaseID,numslip,
-     + global_gammadot,global_S,global_S_t,t_old,ratio_lb,ratio_ub,
-     + dgamma_s,global_gamma_t,global_gamma,global_sigma_t,
-     + global_gamma_sum_t,global_gamma_sum,numstvar,thermo,temp0,
-     + GSeffect,grainID,grainsize_init,global_state0,tstep_forw,
-     + tstep_back,numel,numip
-      use globalsubs, only: convert3x3to6,invert3x3,skew,misorientation,
-     + polar
+      use globalvars, only: global_Fp,global_Fp_t
+	  use globalvars, only: global_Fe,global_Fe_t
+      use globalvars, only: global_state,global_state_t
+	  use globalvars, only: I3,inc_old,elas66
+      use globalvars, only: global_ori,njaco,innoitmax
+	  use globalvars, only: ounoitmax,global_gammadot_t
+      use globalvars, only: global_sigma,global_jacob_t
+	  use globalvars, only: global_jacob,TF,phaseID,numslip
+      use globalvars, only: global_gammadot,global_S
+	  use globalvars, only: global_S_t,t_old,ratio_lb,ratio_ub
+      use globalvars, only: dgamma_s,global_gamma_t
+	  use globalvars, only: global_gamma,global_sigma_t
+      use globalvars, only: global_gamma_sum_t,global_gamma_sum
+	  use globalvars, only: numstvar,thermo,temp0
+      use globalvars, only: GSeffect,grainID,grainsize_init
+	  use globalvars, only: global_state0,tstep_forw
+      use globalvars, only: tstep_back,numel,numip
+	  use globalvars, only: global_Fr0,tres,resdef,mtdjaco
+      use globalvars, only: coords_init,global_coords
+	  use globalsubs, only: convert3x3to6,invert3x3
+	  use globalsubs, only: skew,misorientation,polar
       use initialization, only: initialize_grainsize
 	implicit none
 c	Inputs
       integer inc
       real(8) F_t(3,3),F(3,3),t,dt,temp
 c	Outputs
-      real(8) sigma(6),jacob(6,6),pnewdt,coords(3)
+	real(8) sigma(6),jacob(6,6),pnewdt,coords(3)
 c	Variables used within this subroutine
       real(8) Fp_t(3,3),Fe_t(3,3),tauc_t(numslip)
+      real(8) Fr(3,3),Fr_t(3,3)
       real(8) Fp(3,3),Fe(3,3),tauc(numslip),Cauchy(3,3)
       real(8) S(6),S_t(6),det,C(3,3,numslip),epsdot
       real(8) Lp(3,3),R(3,3),U(3,3),gammadot(numslip)
-      real(8) dgammadot_dtau(numslip)
+	  real(8) dgammadot_dtau(numslip)
       integer is,el_no,ip_no,gr_no
       real(8) g1(3,3),ang,ax(3),dg(3,3)
       real(8) ratio,dgamma_max,gsum_t,gsum
+	  real(8) gint_t(numslip),gint(numslip)
       integer sconv, jconv, i, j
       real(8) state(numslip,numstvar),state_t(numslip,numstvar)
-      real(8) state0(numslip,numstvar)
-      real(8)	sstate(numstvar),sstate_t(numstvar),sstate0(numstvar)
+      real(8) state0(numslip,numstvar),sgint_t,sgint
+      real(8) sstate(numstvar),sstate_t(numstvar),sstate0(numstvar)
+
       
       
       
 c     - The step update is indicated with the change of time
 c     - Change in INC does not work here!!! Because, during sub time stepping,
 c       INC also increases while time remains the same
-	if ((t.gt.t_old).or.(inc.ne.inc_old)) then
-          write(6,*) 'Debug: Updated the state variables'
-		  write(6,*) 'Time'
-		  write(6,*) t
-		  write(6,*) t_old
-		  write(6,*) inc
-		  write(6,*) inc_old
-          t_old=t
-		inc_old=inc
-		global_Fp_t=global_Fp
-		global_Fe_t=global_Fe
-          global_S_t=global_S
-          global_gamma_t=global_gamma
-          global_gamma_sum_t=global_gamma_sum
-		global_state_t=global_state
-          global_jacob_t=global_jacob
-          global_sigma_t=global_sigma
-              
+c	if ((t.gt.t_old).or.(inc.ne.inc_old)) then
+      if (t.gt.t_old(el_no,ip_no)) then
+         write(6,*) 'Updated the state variables'
+         t_old(el_no,ip_no)=t
+         inc_old(el_no,ip_no)=inc
+         global_Fp_t(el_no,ip_no,:,:)=global_Fp(el_no,ip_no,:,:)
+         global_Fe_t(el_no,ip_no,:,:)=global_Fe(el_no,ip_no,:,:)
+         global_S_t(el_no,ip_no,:)=global_S(el_no,ip_no,:)
+         global_gammadot_t(el_no,ip_no,:)=global_gammadot(el_no,ip_no,:)
+         global_gamma_t(el_no,ip_no,:)=global_gamma(el_no,ip_no,:)
+         global_gamma_sum_t(el_no,ip_no)=global_gamma_sum(el_no,ip_no)
+         global_state_t(el_no,ip_no,:,:)=global_state(el_no,ip_no,:,:)
+         global_jacob_t(el_no,ip_no,:,:)=global_jacob(el_no,ip_no,:,:)
+         global_sigma_t(el_no,ip_no,:)=global_sigma(el_no,ip_no,:)
       endif
+      
+      
       
 c     If length scale calculation is "ON"
       if (GSeffect.eq.1) then
@@ -75,7 +85,7 @@ c         If not initialized
 
               
 c             flag for initialization
-              grainsize_init(el_no,ip_no)=1
+              grainsize_init(el_no,ip_no) = 1d+0
 
           
 c              write(6,*) 'element no.: ', el_no
@@ -95,15 +105,27 @@ c              write(6,*) 'coordinates: ', coords
       endif
          
       
+c     Initialize IP coordinates
+c     Store IP coordinates once at the beginning of the calculations
+c     Do it only once at the beginning
+      if (inc.le.1) then
+          if (coords_init(el_no,ip_no).eq.0) then
+          
+              coords_init(el_no,ip_no) = 1d+0
+          
+              global_coords(el_no,ip_no,1:3) = coords
+              
+              write(6,*) 'element no.: ', el_no
+          
+              write(6,*) 'IP no.: ', ip_no
 
-      
-c      write(6,*) 'numel',numel
-c      write(6,*) 'el_no',el_no
-c      write(6,*) 'ip_no',ip_no
-c      write(6,*) 'state_t(3)', global_state_t(el_no,ip_no,3,1)
-      
+              write(6,*) 'coordinates: ', global_coords(el_no,ip_no,1:3)
+          
+          endif
+      endif
       
       
+
       
       
 
@@ -121,7 +143,7 @@ c
 
 
       
-      
+c     J2-model      
 c     Isotropic material calculations          
       if (phaseID(el_no).eq.0) then
           
@@ -134,10 +156,8 @@ c          write(6,*) 'J2 CALCULATIONS'
           Fp_t=global_Fp_t(el_no,ip_no,:,:)
           Fe_t=global_Fe_t(el_no,ip_no,:,:)
           gsum_t=global_gamma_sum_t(el_no,ip_no)
-          
-          
-          sstate0=global_state0(el_no,ip_no,1,:)
-          
+          sgint_t=global_gamma_t(el_no,ip_no,1)
+          sstate0=global_state0(el_no,ip_no,1,:)       
           sstate_t=global_state_t(el_no,ip_no,1,:)
           
 
@@ -146,8 +166,8 @@ c          write(6,*) 'J2 CALCULATIONS'
                     
           
 c	    Calculate stress and flow stress using J2 plasticity
-          call J2_main(dt,F,Fp_t,Fe_t,sstate_t,gsum_t,temp,sstate0,
-     &	Fp,Fe,epsdot,sstate,gsum,sigma,sconv)
+          call J2_main(dt,F,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
+     &	sstate0,Fp,Fe,epsdot,sstate,gsum,sgint,sigma,sconv)
      
 
 
@@ -155,7 +175,7 @@ c         Calculate the time factor
 c           pnewdt=1.25
           pnewdt=ratio_ub
      
-     
+c         If not converged     
      	    if (sconv.eq.0) then
 		    write(6,*) 'Inner/Outer loop during stress calculation
      &	did not converge!'
@@ -185,18 +205,26 @@ c              pnewdt=0.5
               pnewdt=tstep_back
               write(6,*) 'pnewdt',pnewdt
               
-c             Do not calculate the jacobian
+c             Do not calculate the jacobian - assign former value
               jacob=global_jacob_t(el_no,ip_no,:,:)
 
 c             Assign the old value of stress   
               sigma = global_sigma_t(el_no,ip_no,:)
 
 c
+c             Assign former values if not converge
+              Fp = Fp_t
+              Fe = Fe_t          
+              S = 0.0d+0
+              epsdot = global_gammadot_t(el_no,ip_no,1)/TF
+              sstate = sstate_t             
+              gsum = gsum_t
+              sgint = sgint_t
 
 
 
 
-c         Regular time stepping
+c         If converged - regular time stepping
           else
 
 c              jacob=global_jacob_t(el_no,ip_no,:,:)
@@ -247,15 +275,16 @@ c	        Note, jacobian is needed at the first calculation
 	        if (modulo(inc,njaco).eq.0) then
 c		    Calculate the material tangent (using perturbation)
 
-    
-      call J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,gsum_t,temp,
-     + sstate0,sigma,jacob,jconv)
+   
+      call J2_jacobian(dt,F_t,F,Fe_t,
+     + Fp_t,sstate_t,gsum_t,sgint_t,
+     + temp,sstate0,sigma,jacob,jconv)
               
               
               
               
 
-c                 jacob=zeta66
+
 
 c		        When the jacobian calculation did not converge, assign the old jacobian!
 		        if (jconv.eq.0) then
@@ -296,7 +325,7 @@ c         For J2 model assign the same values for all slip sytems
           do i=1,numslip
               global_state(el_no,ip_no,i,1:numstvar)=sstate(1:numstvar)
               global_gammadot(el_no,ip_no,i) = epsdot*TF
-              global_gamma(el_no,ip_no,i) = gsum
+              global_gamma(el_no,ip_no,i) = sgint
           enddo
           
           global_gamma_sum(el_no,ip_no) = gsum 
@@ -311,21 +340,39 @@ c
 c          write(6,*) 'SINGLE CRYSTAL CALCULATIONS'      
 c
 c	    Assign the globally stored variables
+          Fe_t = global_Fe_t(el_no,ip_no,:,:)
 	    Fp_t = global_Fp_t(el_no,ip_no,:,:)
 	    S_t = global_S_t(el_no,ip_no,:)
 	    state_t = global_state_t(el_no,ip_no,:,:)
           state0 = global_state0(el_no,ip_no,:,:)
+          gint_t = global_gamma_t(el_no,ip_no,:)
           gsum_t = global_gamma_sum_t(el_no,ip_no)
           
+          
+c         Fr is scaled with time: 0-1 s for testing 
+          if (resdef.eq.1) then
+              if (t.le.tres) then
+                  Fr= (global_Fr0(el_no,ip_no,:,:)-I3)*(t+dt)/tres + I3
+                  Fr_t = (global_Fr0(el_no,ip_no,:,:)-I3)*t/tres + I3
+              else
+                  Fr = global_Fr0(el_no,ip_no,:,:)
+                  Fr_t = global_Fr0(el_no,ip_no,:,:)
+              endif
+          else
+                  Fr = I3
+                  Fr_t = I3
+          endif
           
 c
 c
 c	    Calculate stress and shear resistance
 c	    Note: el_no and ip_no are needed to get the values of Schmid vectors and
 c	    elasticity tensor from the global variables
-      call SC_main(dt,F,Fp_t,S_t,state_t,gsum_t,temp,state0,
-     + C,S,Lp,Fp,Fe,sigma,gammadot,dgammadot_dtau,state,
-     + gsum,sconv)
+      call SC_main(dt,F,Fp_t,Fr,S_t,state_t,
+     + gsum_t,gint_t,temp,
+     + state0,C,S,Lp,Fp,Fe,sigma,gammadot,
+     + dgammadot_dtau,state,gsum,
+     + gint,sconv)
 c
 
       
@@ -352,6 +399,10 @@ c          pnewdt=1.25
 		    write(6,*) Fp_t
 		    write(6,*) 'Fp'
 		    write(6,*) Fp
+		    write(6,*) 'Fe_t'
+		    write(6,*) Fe_t                  
+		    write(6,*) 'Fe'
+		    write(6,*) Fe       
 		    write(6,*) 'S_t'
 		    write(6,*) S_t              
 		    write(6,*) 'sigma'
@@ -375,6 +426,17 @@ c             Do not calculate the jacobian
               
 c             Assign the old value of stress              
               sigma = global_sigma_t(el_no,ip_no,:)
+              
+              
+c             Assign the former values
+              Fe = Fe_t
+              Fp = Fp_t
+              S = S_t
+              gammadot = global_gammadot_t(el_no,ip_no,:)
+              state=state_t
+              gsum=gsum_t
+              gint=gint_t
+              
               
               
 c		    QUIT ABAQUS
@@ -417,11 +479,30 @@ c              write(6,*) 'pnewdt',pnewdt
          
 c	        For a number of increments do the jacobian calculation
 c	        Note, jacobian is needed at the first calculation
-      if (modulo(inc,njaco).eq.0) then
-c		        Calculate the material tangent (using perturbation)
-      call SC_jacobian(dt,F_t,F,S_t,Fp_t,state_t,
-     + gsum_t,temp,state0,
-     + sigma,jacob,jconv)
+	        if (modulo(inc,njaco).eq.0) then
+c                 Calculate the material tangent (using perturbation)
+                  if (mtdjaco.eq.1d+0) then
+                      
+      call SC_jacobian_per(dt,F_t,F,S_t,Fp_t,Fr,state_t,gsum_t,
+     + gint_t,temp,state0,sigma,jacob,jconv)
+
+                      
+c                 Calculate the material tangent (using analytical tangent)                      
+                  elseif (mtdjaco.eq.2d+0) then
+                      
+                      call SC_jacobian_ana(dt,F,Fe,Fr,S,F_t,Fe_t,Fr_t,
+     & gammadot,dgammadot_dtau,C,jacob,jconv)
+                      
+                      
+c                 Calculate the material tangent (using elasticity)                      
+                  elseif (mtdjaco.eq.3d+0) then
+                      
+	                jconv = 1d+0
+			        jacob = global_jacob_t(el_no,ip_no,:,:)                   
+                      
+                      
+                  endif
+
       
 c		        When the jacobian calculation did not converge, assign the old jacobian!
 		        if (jconv.eq.0) then
@@ -453,58 +534,24 @@ c		        Note this also works when inc=1 since it is elasticity matrix
 
 	    endif
 c
-!	    if (ounoit.ge.ounoitmax) then
-!		    write(6,*) 'Outer loop during stress calculation
-!     &	    did not converge!'
-!		    write(6,*) 'inc'
-!		    write(6,*) inc                
-!		    write(6,*) 'el_no'
-!		    write(6,*) el_no
-!		    write(6,*) 'ip_no'
-!		    write(6,*) ip_no
-!		    write(6,*) 'inner no it'
-!		    write(6,*) innoit
-!		    write(6,*) 'outer no it'
-!		    write(6,*) ounoit
-!		    write(6,*) 'F'
-!		    write(6,*) F
-!		    write(6,*) 'F_t'
-!		    write(6,*) F_t
-!		    write(6,*) 'Fp_t'
-!		    write(6,*) Fp_t
-!		    write(6,*) 'Fp'
-!		    write(6,*) Fp              
-!		    write(6,*) 'sigma'
-!		    write(6,*) sigma              
-!		    write(6,*) 'tauc_t'
-!		    write(6,*) tauc_t
-!		    write(6,*) 'gammadot'
-!		    write(6,*) gammadot
-!		    write(6,*) 'dgammadot_dtau'
-!		    write(6,*) dgammadot_dtau    
-!		    write(6,*) 'dt'
-!		    write(6,*) dt
-!              pnewdt=0.5
-!c		    QUIT ABAQUS
-!c		    call xit
-!          endif
+
       
           
           
           
-c	    Store the important variables
-	    global_Fp(el_no,ip_no,:,:) = Fp
-	    global_Fe(el_no,ip_no,:,:) = Fe
-          global_S(el_no,ip_no,:) = S
-	    global_state(el_no,ip_no,:,:) = state
-          global_gammadot(el_no,ip_no,:) = gammadot 
-          global_gamma(el_no,ip_no,:) = global_gamma_t(el_no,ip_no,:) +
-     &    gammadot*dt
-          global_gamma_sum(el_no,ip_no) = gsum
+
           
           
 c
-
+ 
+c	    Store the important variables
+          global_Fp(el_no,ip_no,:,:) = Fp
+          global_Fe(el_no,ip_no,:,:) = Fe
+          global_S(el_no,ip_no,:) = S
+          global_state(el_no,ip_no,:,:) = state
+          global_gammadot(el_no,ip_no,:) = gammadot
+          global_gamma(el_no,ip_no,:) = gint
+          global_gamma_sum(el_no,ip_no) = gsum      
           
 
           
@@ -516,8 +563,7 @@ c
       endif
       
       
- 
-      
+
       
           
 c     Store the important results    
@@ -537,20 +583,7 @@ c     Assign the value of jacobian even if there is no convergence
       
       
 
-c      if (inc.eq.1) then
-c          
-c          write(6,*) 'jacob', jacob
-c          write(6,*) 'elas66', elas66
-c          
-c      endif
-      !
-      !
-      !if (inc.eq.10) then
-      !    
-      !    write(6,*) 'exit'
-      !    call xit
-      !    
-      !endif
+
       
       
       return
@@ -568,23 +601,23 @@ c
 c     Main routine for jacobian calculation for Martensite 
 c	This subroutine calculates consistent tangent
       subroutine J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,
-     + gsum_t,temp,sstate0,
-     + Cauchy_vec,jacob,jconv)
-	 
-      use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
+     + gsum_t,sgint_t,temp,
+     + sstate0,Cauchy_vec,jacob,jconv)
+      use globalvars, only : deps,innoitmax,ounoitmax
+	  use globalvars, only : numslip,numstvar
       use globalsubs, only : convert3x3to6,convert6to3x3
       implicit none
 c	Inputs
-      real(8) F_t(3,3),F(3,3),dt,gsum_t,temp
-      real(8) Fp_t(3,3),Fe_t(3,3),Cauchy_vec(6)
+      real(8) F_t(3,3),F(3,3),dt,gsum_t,sgint_t,temp
+	real(8) Fp_t(3,3),Fe_t(3,3),Cauchy_vec(6)
 c	Outputs
 	real(8) jacob(6,6)
 	integer jconv
 c	Variables used within this subroutine
-      real(8) Fp(3,3),Fe(3,3),epsdot,sigc
-      real(8) Fper(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6),gsum
-      integer i,iloop,oloop,sconv
-      real(8) sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
+	real(8) Fp(3,3),Fe(3,3),epsdot,sigc,sgint
+	real(8) Fper(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6),gsum
+	integer i,iloop,oloop,sconv
+      real(8)	sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
 c
 c	Assign the convergent behavior
 	jconv=1
@@ -597,9 +630,7 @@ c	Increment 6 components of relative deformation gradient
 c		Component-wise pertubation
 		dFrel_vec=0.0
           
-c          This doubles the shear terms in the jacobian XXXX which is WRONG!!!          
-!          dFrel_vec(i)=deps
-          
+         
 
 c         This is TRUE as in Kalididi's study - gives "G" as the shear term
 		if (i.le.3) then
@@ -613,8 +644,8 @@ c		Convert the vector to a matrix
 		call convert6to3x3(dFrel_vec,dFrel)
 		Fper=F+matmul(dFrel,F_t)
 c		Call the calculation procedure  
-           call J2_main(dt,Fper,Fp_t,Fe_t,sstate_t,gsum_t,temp,sstate0,
-     &	Fp,Fe,epsdot,sstate,gsum,Cauchy_per_vec,sconv)
+          call J2_main(dt,Fper,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
+     &	sstate0,Fp,Fe,epsdot,sstate,gsum,sgint,Cauchy_per_vec,sconv)
            
            if (sconv.eq.0) jconv=0
 
@@ -639,8 +670,8 @@ c
 c      
 c
 c     Main routine for J2-plasticity
-      subroutine J2_main(dt,F,Fp_t,Fe_t,sstate_t,gsum_t,temp,sstate0,
-     &Fp,Fe,epsdot,sstate,gsum,Cauchy_vec,sconv)
+      subroutine J2_main(dt,F,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
+     &sstate0,Fp,Fe,epsdot,sstate,gsum,sgint,Cauchy_vec,sconv)
       use globalsubs, only: invert3x3, convert3x3to6, trace, normmat, 
      &convert6to3x3, determinant
       use globalvars, only: elas66_iso, G, E, nu, TF, modelno,
@@ -650,9 +681,9 @@ c     Main routine for J2-plasticity
 	implicit none
 c	Inputs
       real(8) F(3,3),dt, temp
-	real(8) Fp_t(3,3),Fe_t(3,3),gsum_t
+	real(8) Fp_t(3,3),Fe_t(3,3),gsum_t,sgint_t
 c	Outputs
-	real(8) Fp(3,3),Fe(3,3),epsdot,sigc,Cauchy_vec(6),gsum
+	real(8) Fp(3,3),Fe(3,3),epsdot,sigc,Cauchy_vec(6),gsum,sgint
       integer sconv
 c	Vairables used    
 
@@ -811,7 +842,7 @@ c             Stress increment
               
 c             If the stress increment is larger than the critical value              
               if (dabs(dsigma).gt.dS_cr) then
-                  dsigma = dsign(1.0d0,dsigma)*dS_cr
+                  dsigma = dsign(1.0d+0,dsigma)*dS_cr
               endif
               
 cc            Store the old value of stress to update the guess
@@ -825,21 +856,19 @@ c             xx1_old=xx1
 c
 c		End of INNER loop
           gsum = gsum_t + gdot * dt
-
+          
+          sgint = sgint_t + gdot * dt
+          
           
 c         Strain hardening
-          call sliphard(sstate, gsum, gdot, temp, sstate0, sstatedot)
+          call sliphard(sstate,gsum,sgint,gdot,temp,sstate0,sstatedot)
               
         
           
           
 c         Slip hardening law of Dylan 
           if (modelno.eq.2) then
-
-                            
               sstatedot(1) = sstatedot(1) - sstatedot(3)
-              
-          
           endif          
           
           
@@ -852,8 +881,8 @@ c          write(6,*) 'sstatedot',sstatedot
 
 c		Increment in shear resistance
 c		Residual in the shear resistance
-      R2=sstate(1:numstvar)-sstate_t(1:numstvar)-
-     + sstatedot(1:numstvar)*dt
+      R2=sstate(1:numstvar)-sstate_t(1:numstvar)
+     + - sstatedot(1:numstvar)*dt
 
 c		Absolute tolerance
 		xx2=maxval(dabs(R2))
@@ -946,21 +975,20 @@ c
 c      
 c      
 c            
-      
-      
-      
-
+c      
+c      
+c      
+c
 c	This subroutine calculates consistent tangent
-      subroutine SC_jacobian(dt,F_t,F,S_vec_t,Fp_t,state_t,
-     + gsum_t,temp,state0,
-     + Cauchy_vec,jacob,jconv)
-	 
-      use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
-      use globalsubs, only : convert6to3x3, determinant
-      implicit none
+      subroutine SC_jacobian_per(dt,F_t,F,S_vec_t,Fp_t,
+     + Fr,state_t,gsum_t,
+     + gint_t,temp,state0,Cauchy_vec,jacob,jconv)
+	use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
+	use globalsubs, only : convert6to3x3, determinant
+	implicit none
 c	Inputs
-      real(8) F_t(3,3),F(3,3),S_vec_t(6),Cauchy_vec(6),dt
-	real(8) Fp_t(3,3),Cauchy(3,3),gsum_t,temp
+      real(8) F_t(3,3),F(3,3),S_vec_t(6),Cauchy_vec(6),dt,Fr(3,3)
+	real(8) Fp_t(3,3),Cauchy(3,3),gsum_t,gint_t(numslip),temp
 c	Outputs
 	real(8) jacob(6,6)
 	integer jconv
@@ -970,7 +998,7 @@ c	Variables used within this subroutine
 	real(8) S_per_vec(6),Fe_per(3,3)
 	real(8) invFp_per(3,3),dummy1(3,3,numslip),dummy2(6),dummy3(3,3)
       real(8) dummy4(3,3),dummy5(3,3)
-	real(8) dummy6(numslip),dummy7(numslip),dummy8,dummy9,dummy10
+	real(8) dummy6(numslip),dummy7(numslip),dummy8,dummy9(numslip)
 	integer i,j,sconv
       real(8)	state(numslip,numstvar), state_t(numslip,numstvar)
       real(8) state0(numslip,numstvar)
@@ -995,14 +1023,16 @@ c		Note it is not deps/2 since during conversion only one component is considere
           endif
 
 c		Convert the vector to a matrix
-		call convert6to3x3(dFrel_vec,dFrel)
-		F_per=F+matmul(dFrel,F_t)
+      call convert6to3x3(dFrel_vec,dFrel)
+      F_per=F+matmul(dFrel,F_t)
 c		Call the calculation procedure
-		call SC_main(dt,F_per,Fp_t,S_vec_t,state_t,gsum_t,temp,state0,
-     &dummy1,dummy2,dummy3,dummy4,dummy5,Cauchy_per_vec,dummy6,
-     &dummy7,state,dummy8,sconv)
+      call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,state_t,
+     + gsum_t,gint_t,temp,
+     + state0,dummy1,dummy2,dummy3,dummy4,dummy5,
+     + Cauchy_per_vec,dummy6,
+     + dummy7,state,dummy8,dummy9,sconv)
 c
-          if (sconv.eq.0) jconv=0
+      if (sconv.eq.0) jconv=0
 
 c
 c		Assignment of jacobian components
@@ -1022,45 +1052,451 @@ c      enddo
       
       
 	return
-      end subroutine SC_jacobian
+      end subroutine SC_jacobian_per
+c     
 c            
+c
+c
+c	This subroutine calculates consistent tangent
+	subroutine SC_jacobian_ana(dt,F,Fe,Fr,T_vec,F_t,Fe_t,Fr_t,
+     & gammadot,dgammadot_dtau,C,jacob,jconv)
+	use globalvars, only: numslip, Schmid, elas3333, I3333, I6
+	use globalsubs, only: invert3x3, convert6to3x3, polar,
+     & convert3x3x3x3to9x9, invertnxn, convert9x9to3x3x3x3, 
+     & convert3x3x3x3to6x6
+	implicit none
+c	Inputs
+      real(8) dt,F(3,3),Fe(3,3),Fr(3,3),T_vec(6),F_t(3,3),Fe_t(3,3)
+	real(8) Fr_t(3,3),gammadot(numslip),dgammadot_dtau(numslip)
+      real(8) C(3,3,numslip)
+c	Outputs
+	real(8) jacob(6,6)
+	integer jconv
+c	Variables used within this subroutine
+	real(8) detF_t,invF_t(3,3),dF(3,3),T(3,3),dR(3,3),dU(3,3)
+      real(8) Fer(3,3),Fer_t(3,3), detFer, invFer(3,3), L4(3,3,3,3)
+      real(8) sum, D4(3,3,3,3), G4(numslip,3,3,3,3), J4(numslip,3,3,3,3)
+      real(8) B2(numslip,3,3), K4(3,3,3,3), K99(9,9), invK99(9,9)
+      real(8) invK4(3,3,3,3), Q4(3,3,3,3), sum_, R2(numslip,3,3)
+      real(8) S4(3,3,3,3), W4(3,3,3,3)
+      integer i,j,k,l,m,n,q,p,is
+      logical notnum
       
+
+c	Assign the convergent behavior
+	jconv=1      
+
+c     Inverse of deformation gradient at former time step      
+      call invert3x3(F_t,invF_t,detF_t)
       
+
+      
+c     Relative deformation gradient      
+      dF=matmul(F,invF_t)
+      
+c     2nd PK stress tensor
+      call convert6to3x3(T_vec,T)
+      
+c     Polar decomposition of relative deformation
+      call polar(dF,dR,dU)     
+          
+c     Fe with Fr (considering residual deformations)          
+      Fer = matmul(Fe,Fr)
+
+c     Fe with Fr (considering residual deformations)  
+      Fer_t = matmul(Fe_t,Fr_t)
+
+
+      call invert3x3(Fer,invFer,detFer)
+ 
+
+          
+c     Step-1. Calculation of L
+      L4 = 0.0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+                      sum=0.0
+					do m=1,3
+						sum = sum + Fer_t(k,i) * dU(l,m) * Fer_t(m,j)
+     & + Fer_t(m,i) * dU(m,k) * Fer_t(l,j)
+          
+                      enddo
+                          
+                      L4(i,j,k,l) = sum
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+          
+          
+          
+c     Step-2. Elasticity (elas3333): no need to transform
+      
+          
+c     Step-3. Calculation of D
+      D4 = 0.0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+                      sum=0.0
+                      do m=1,3
+                          do n=1,3
+                                  
+                              sum = sum + 0.5 * elas3333(i,j,m,n)
+     & * L4(m,n,k,l)
+                          enddo
+                      enddo
+                          
+                      D4(i,j,k,l) = sum
+                          
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+          
+          
+          
+c     Step-4. 
+c     (a) Calculation of G
+      G4 = 0.0
+      do is=1,numslip
+          do m=1,3
+              do n=1,3
+                  do k=1,3
+                      do l=1,3
+					    
+                          sum=0.0
+                          do p=1,3
+                                  
+                              sum = sum + L4(m,p,k,l) * Schmid(is,p,n)
+     & + Schmid(is,p,m) * L4(p,n,k,l)
+                                  
+                          enddo
+                              
+                          G4(is,m,n,k,l) = sum
+                              
+                      enddo
+                  enddo
+              enddo
+          enddo
+      enddo
+          
    
+c     (b) Calculation of J
+      J4 = 0.0
+      do is=1,numslip
+          do i=1,3
+              do j=1,3
+                  do k=1,3
+                      do l=1,3          
+                              
+          
+                          sum=0.0
+                          do m=1,3
+                              do n=1,3
+          
+                                  sum = sum + 0.5 * elas3333(i,j,m,n)
+     & * G4(is,m,n,k,l)
+                              enddo
+                          enddo
+                              
+                          J4(is,i,j,k,l) = sum
+                              
+                      enddo
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+          
+          
+c     Step-5. Calculation of B
+      B2 = 0.0
+      do is=1,numslip
+          do i=1,3
+              do j=1,3
+                      
+                  B2(is,i,j)= dgammadot_dtau(is) * dt * Schmid(is,i,j)
+              
+              enddo
+          enddo
+      enddo
+          
+          
+c     Step-6. Calculation of Q
+c     (a) Calculate K
+      K4=0.0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+                          
+                          
+                      sum = 0.0
+                      do is =1,numslip
+                              
+                          sum = sum + C(i,j,is) * B2(is,k,l)
+                              
+                      enddo
+                          
+                      K4(i,j,k,l) = I3333(i,j,k,l) + sum
+          
+                          
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+          
+c     Convert 4th rank tensor "K" to 9x9 matrix
+      call convert3x3x3x3to9x9(K4,K99)
+          
+c     Invert the matrix          
+      call invertnxn(K99,invK99,9)
+          
+
       
+c     Convert to a 4th rank tensor
+      call convert9x9to3x3x3x3(invK99,invK4)
+          
+          
+c     (b) Calculate Q
+      Q4=0.0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+                          
+                          
+                      sum = 0.0
+                          
+                      do m=1,3
+                          do n=1,3
+                                  
+                              sum_ = 0.0
+                                  
+                              do is=1,numslip
+                                      
+                                  sum_ = sum_ + invK4(i,j,m,n) 
+     & * J4(is,m,n,k,l) * gammadot(is) * dt
+                                      
+                              enddo
+                                  
+                              sum = sum + invK4(i,j,m,n)
+     & * D4(m,n,k,l) - sum_
+          
+          
+                          enddo
+                      enddo
+                          
+                      Q4(i,j,k,l) = sum
+                          
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+          
+c     Step-7. Calculation of R and S
+c     (a) Calcualtion of R          
+          
+      R2 = 0.0
+      do is=1,numslip
+          do i=1,3
+              do j=1,3
+                  sum=0.0
+                      
+                  do k=1,3
+                      do l=1,3     
+          
+                          sum = sum + B2(is,k,l) * Q4(k,l,i,j)
+          
+                      enddo
+                  enddo
+                      
+                  R2(is,i,j) = sum
+                      
+              enddo
+          enddo
+      enddo
+          
+c     (b) Calculation of S
+      S4 = 0.0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+                          
+                      sum = 0.0
+          
+                      do p=1,3
+                              
+                          do is=1,numslip
+                                  
+                              sum = sum + dR(i,k) * Fer_t(l,p) 
+     & * gammadot(is) * dt * Schmid(is,p,j)
+          
+                                  
+                                  
+                          enddo
+                      enddo
+                          
+                          
+                      sum_=0.0
+                      do m=1,3
+                          do n=1,3
+                              do p=1,3
+                                  do is=1,numslip
+                                          
+                                      sum_= sum_ + dR(i,m) * dU(m,n)
+     & * Fer_t(n,p) * R2(is,k,l) * Schmid(is,p,j)
+                          
+                                  enddo
+                              enddo
+                          enddo
+                      enddo
+                          
+                          
+                      S4(i,j,k,l)= dR(i,k) * Fer_t(l,j) - sum - sum_
+                          
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+
+      
+      
+      
+      
+      W4 = 0.0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+                          
+                          
+                      sum_=0.0
+                      do q=1,3
+                          do p=1,3
+                                  
+                              sum_= sum_ + S4(p,q,k,l) * invFer(q,p)
+                                  
+                          enddo
+                      enddo
+                          
+                          
+                          
+                      sum=0.0
+                      do m=1,3
+                          do n=1,3
+                                  
+                              sum = sum + 
+     & S4(i,m,k,l) * T(m,n) * Fer(j,n) + 
+     & Fer(i,m) * Q4(m,n,k,l) * Fer(j,n) +
+     & Fer(i,m) * T(m,n) * S4(j,n,k,l) -
+     & Fer(i,m) * T(m,n) * Fer(j,n) * sum_
+                                  
+                          enddo
+                      enddo
+                          
+                          
+                      W4(i,j,k,l) = sum / detFer
+                          
+          
+          
+                  enddo
+              enddo
+          enddo
+      enddo
+          
+          
+      call convert3x3x3x3to6x6(W4,jacob)
+                          
+               
+          
+c     Check if the jacob value converged         
+      do i=1,6
+          do j=1,6
+              notnum = isnan(jacob(i,j))
+              if (notnum) then
+                  jconv=0d+0
+                  jacob = I6
+              endif
+          enddo    
+      enddo
+      
+c     Check if the jacob value converged       
+      do i=1,6
+          do j=1,6
+              if (abs(jacob(i,j)).gt.1.0d+50) then
+                  jconv=0d+0
+                  jacob=I6
+              endif
+          enddo
+      enddo
+          
+          
+  
+c
+
+c     Make it symmetric      
+      jacob=(transpose(jacob)+jacob)/2.0
+      
+c      write(6,*) 'jacob'
+c      do i=1,6
+c      write(6,*) (jacob(i,j), j=1,6)
+c      enddo
+
+      
+      
+	return
+      end subroutine SC_jacobian_ana
+c            
+c            
+c   
+c      
 c
 c	main subroutine that calculates the stress and correct Fp through
-c	Dawson-Maniatty intergration method
+c	Kalidindi-Anand intergration method
 c	This contains all the sub-routines called during the calculation
 c	INPUTS: F_T(3,3), Fe_t0(3,3), Fp_t0(3,3), tauc_t0(12), dt
 c	OUPUTS: invFp_T(3,3), T_T_vec(6), gammadot(12), dgammadot_dtau(12),
 c			 Lp(3,3), tauc(12), initno, ouitno
 c	USES:	scale, innertol, outertol, innoitmax, ounoitmax
-	subroutine SC_main(dt,F,Fp_t,S_vec_t,state_t,gsum_t,temp,state0,
-     &C,S_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,dgammadot_dtau,state,gsum,
-     &sconv)
+      subroutine SC_main(dt,F,Fp_t,Fr_0,S_vec_t,state_t,
+     + gsum_t,gint_t,temp,
+     + state0,C,S_vec,Lp,Fp,Fe,Cauchy_vec,
+     + gammadot,dgammadot_dtau,state,
+     + gsum,gint,sconv)
 c      
 c      
 	use globalvars, only : ounoitmax, innoitmax, innertol, outertol,
      &numslip, Schmid, SchmidT, I3, elas66, I6, dS_cr, numstvar
 	use globalsubs, only : invert3x3, determinant,convert3x3to6,
-     &convert6to3x3, inverse, invertnxn
+     &convert6to3x3, invertnxn
 	implicit none
 c	Input variable declarations
-      real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,temp
+	real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,gint_t(numslip),temp
+      real(8) Fr_0(3,3)
 c	Output variable declarations
       real(8) C(3,3,numslip),S_vec(6),Lp(3,3)
       real(8) Fp(3,3),Fe(3,3),Cauchy(3,3)
       real(8) Cauchy_vec(6), gammadot(numslip),dgammadot_dtau(numslip)
-      real(8) gsum
-      integer ounoit,innoit,i,j,is,sconv,count
+	real(8) gsum,gint(numslip)
+	integer ounoit,innoit,i,j,is,sconv,count
 c	Variables used within this subroutine
       real(8) detFp_t,invFp_t(3,3),A(3,3)
 	  real(8) B(3,3,numslip),B_vec(6,numslip)
       real(8) E_tr(3,3),E_vec_tr(6),S_vec_tr(6),C_vec(6,numslip)
-      real(8) sumG(6), tau(numslip),inres
+      real(8) sumG(6), tau(numslip),inres,invFr_0(3,3),detFr_0,Fsum(3,3)
       real(8) dG(6,6),dS_vec(6),invdG(6,6),detdG,G_vec(6)
-	  real(8) outres,invFp(3,3),detFp, state0(numslip,numstvar)
+	real(8) outres,invFp(3,3),detFp, state0(numslip,numstvar)
       real(8) Ee(3,3), Ee_vec(6), Rstate_vec(numslip*numstvar)
       real(8)	state(numslip,numstvar), state_t(numslip,numstvar)
       real(8) statedot(numslip,numstvar), Rstate(numslip,numstvar)
@@ -1068,10 +1504,17 @@ c	Variables used within this subroutine
       
       
 c	Calculation of known quantities
-      call invert3x3(Fp_t,invFp_t,detFp_t)
-
-      A=matmul(transpose(invFp_t),
-     + matmul(matmul(transpose(F),F),invFp_t))
+	call invert3x3(Fp_t,invFp_t,detFp_t)
+      
+c	Calculation of known quantities
+	call invert3x3(Fr_0,invFr_0,detFr_0)      
+      
+c     First calculate the original one!
+      A=matmul(transpose(invFp_t),matmul(matmul(transpose(F),F),
+     + invFp_t))
+c     Modified for residual deformation
+      A=matmul(transpose(invFr_0),matmul(A,invFr_0))
+      
       B=0.
       B_vec=0.
       do is=1,numslip
@@ -1160,7 +1603,7 @@ c
 				
 c                 Inverse of the tangent for NR iteration
 c                  call  invertnxn(dG,6,invdG,detdG)
-                  call inverse(dG,invdG,6)
+                  call invertnxn(dG,invdG,6)
 c                  write(6,*) 'detdG',detdG
  
                   
@@ -1179,7 +1622,7 @@ c                 Stress component checks
                       
                       if (dabs(dS_vec(i)).gt.dS_cr) then
                           
-                          dS_vec(i) = dsign(1.0d0,dS_vec(i))*dS_cr
+                          dS_vec(i) = dsign(1.0d+0,dS_vec(i))*dS_cr
                           
                       endif
                   
@@ -1202,13 +1645,15 @@ c				write(3,*) dFp_T
           
           
           gsum = gsum_t + sum(dabs(gammadot))*dt
+          
+          gint = gint_t + dabs(gammadot)*dt
                    
 
   
 c		write(3,*) 'innoit:  ',innoit
 c		END of INNER iteration loop	
 c		Calculate amount of slip system hardening	
-		call hardening(gammadot, state, gsum, temp, state0, statedot)
+		call hardening(gammadot,state,gsum,gint,temp,state0,statedot,dt)
 c          write(6,*) 'statedot',statedot
 c		Residual increments of slip resistance
           count=0
@@ -1274,8 +1719,13 @@ c     Plastic part of the deformation gradient
 c     Invert Fp
 	call invert3x3(Fp,invFp,detFp)
       
+c     Modifed for residual deformation
+      Fe=matmul(F,invFp)      
+      
 c	Calculate the elastic part of the deformation
-	Fe=matmul(F,invFp)
+	Fe=matmul(Fe,invFr_0)
+      
+
      
       
       
@@ -1288,10 +1738,13 @@ c     Vectorize strains
 c     Calculate the stresses
       S_vec = matmul(elas66,Ee_vec)
       
-      
-     
+
+c     Modifed for residual deformation
+      Fsum = matmul(Fe,Fr_0)
+
+c     Modifed for residual deformation     
 c	Calculate Cauchy stress
-	call cauchystress(S_vec,Fe,Cauchy,Cauchy_vec)
+	call cauchystress(S_vec,Fsum,Cauchy,Cauchy_vec)
       
       
 c     Set flag for convergence
@@ -1346,12 +1799,11 @@ c	OUTPUTS:Ce(3,3), T_T_vec(6), tau(12), gammadot(12), dgammadot_dtau(12), Lp(3,3
 c	USES: Schmid(12,3,3), Schmid_vec(12,6), zeta66(6,6), gammadot0, mm, I3(3,3)
       subroutine constitutive(S_vec,C_vec,state,temp,
      + tau,gammadot,dgammadot_dtau,Lp,sumG)
-      
-	  use globalvars, only : I3,elas66,Schmid
-      use globalvars, only : Schmid_vec,numslip,numstvar
+      use globalvars, only : I3,elas66,Schmid,Schmid_vec
+      use globalvars, only : numslip,numstvar
       use globalsubs, only : convert3x3to6
       use slipratelaws, only: sliprate
-      implicit none
+	implicit none
 c	Input variable declarations
       real(8) S_vec(6),C_vec(6,numslip),temp
 c	Output variable declarations
@@ -1360,7 +1812,7 @@ c	Output variable declarations
       real(8) sumG(6)
 c	Variables used within the code
       real(8) E(3,3),E_vec(6)
-      integer xx,i
+	integer xx,i
       real(8)	state(numslip,numstvar)
 c	ASSIGNMENT OF GLOBAL VARIABLES
 
@@ -1454,21 +1906,22 @@ c	This subroutine calculates the amount of hardening for a given shear rate
 c	INPUTS:		gammadot(12), tauc(12)
 c	OUTPUTS:	dtauc(12)
 c	USES:		h0, ss, a, hardmat
-      subroutine hardening(gammadot, state, gsum, temp, 
-     + state0, statedot)
-	
+      subroutine hardening(gammadot,state,gsum,gint,
+     + temp,state0,statedot,dt)
       use globalvars, only: intmat, numslip, modelno, numstvar
+      use globalvars, only: sliphard_param
       use sliphardlaws, only: sliphard
-      implicit none
+	implicit none
 c	Input variable declarations
-      real(8) gammadot(numslip), gsum, temp
+	real(8) gammadot(numslip), gsum, gint(numslip), temp, dt
 c	Input variable declarations
 c	Variables used within this subroutine
       real(8) taucdot(numslip), tothard
-      integer xx, i, j
+	integer xx, i, j
       real(8)	state(numslip,numstvar),state0(numslip,numstvar)
       real(8)	statedot(numslip,numstvar)
       real(8) statedot_(numslip,numstvar+1)
+      real(8) Q_3
 
       
       statedot = 0.
@@ -1479,8 +1932,8 @@ c	Variables used within this subroutine
           
       
 
-          call sliphard(state(xx,1:numstvar), gsum, gammadot(xx), temp,
-     &            state0(xx,1:numstvar),statedot_(xx,1:numstvar+1))
+          call sliphard(state(xx,1:numstvar),gsum,gint(xx),gammadot(xx),
+     &    temp,state0(xx,1:numstvar),statedot_(xx,1:numstvar+1))
           
            
           
@@ -1536,6 +1989,20 @@ c     An if statement is placed specific to the model due to the state variables
           taucdot = matmul(intmat,taucdot)
       
           statedot(:,1) = taucdot 
+          
+          
+      elseif (modelno.eq.3) then
+          
+          taucdot =  statedot(:,1)/dt
+          
+c         Hardening parameter of Code Aster - MFRONT          
+          Q_3 = sliphard_param(3)
+      
+          taucdot = matmul(intmat,taucdot)
+      
+          statedot(:,1) = Q_3 * taucdot     
+          
+          
           
           
       endif

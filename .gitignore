@@ -59,7 +59,8 @@ temp_print_trace.*
 *.plt
 *.slh
 *.eps
-*.dat
+# allow .dat for Bristol UMAT
+# *.dat
 *.gp
 *.plugin
 *.outp

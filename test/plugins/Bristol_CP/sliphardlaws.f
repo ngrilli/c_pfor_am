@@ -9,17 +9,20 @@ c
       
       
       
-      subroutine sliphard(sstate, gsum, gdot, temp, sstate0, sstatedot)
+      subroutine sliphard(sstate, gsum, gint, gdot, temp, sstate0,
+     &sstatedot)
       use globalvars, only: modelno,sliphard_param,Rgas,numstvar,
      &numslip
       implicit none
-      real(8) gsum, gdot, temp
+      real(8) gsum, gint, gdot, temp
       real(8)	sstatedot(numstvar+1), sstate(numstvar), sstate0(numstvar)
 c     variables for Voce hardening law      
       real(8) h0_1, ss_1, n_1
       real(8) hb_1
-c     variables for is0tropic and kinematic hardening        
+c     variables for isotropic and kinematic hardening with AR thermal softening 
       real(8) tauc0_2, h0_2, n_2, A_2, Q_2, d_2, h_2, hD_2
+c     variables for isotropic and kinematic hardening (Code Aster model) 
+      real(8) tauc0_3, b_3, Q_3, C_3, D_3      
       real(8) tauc, x
       
       
@@ -72,8 +75,8 @@ c           write(6,*) 'sstate(1)', sstate(1)
           
           
 c         self-hardening          
-      sstatedot(1) = h0_2*dabs(gdot)*(1.+
-     + (h0_2*gsum/tauc0_2/n_2))**(n_2-1.)
+      sstatedot(1) = h0_2*dabs(gdot)
+     + * (1.+(h0_2*gsum/tauc0_2/n_2))**(n_2-1.)
           
 c         Thermal softening
           sstatedot(3) = -A_2 * (tauc**d_2) * dexp(-Q_2/Rgas/temp) 
@@ -82,7 +85,29 @@ c         kinematic hardening
           sstatedot(2) = h_2*gdot - hd_2*x*dabs(gdot)
           
 
-
+      elseif (modelno.eq.3) then
+          
+    
+          
+          
+          tauc = sstate(1)
+          x = sstate(2)
+          
+          b_3 = sliphard_param(2)
+c          Q_3 = sliphard_param(3)
+          C_3 = sliphard_param(4)
+          D_3 = sliphard_param(5)
+          
+          
+c         self-hardening          
+c		sstatedot(1) = Q_3 * (1. - dexp(-b_3*gint))
+          sstatedot(1) = (1. - dexp(-b_3*gint))
+          
+ 
+c         kinematic hardening
+          sstatedot(2) = C_3*gdot - D_3*x*dabs(gdot)
+          
+          
       endif
       
       

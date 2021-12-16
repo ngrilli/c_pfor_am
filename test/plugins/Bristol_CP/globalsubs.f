@@ -1,32 +1,36 @@
-! Chris Allen
-! Edward Horton
-! Eralp Demir
-! Aug. 12th, 2021 - 1st working version
-!
-! This block stores the global variables & symmetry operators 
-! used in misorientation calculation
-!
+c Chris Allen
+c Edward Horton
+c Eralp Demir
+c Aug. 12th, 2021 - 1st working version
+c
+c This block stores the global variables & symmetry operators 
+c used in misorientation calculation
+c
 	module globalsubs
       implicit none
 	contains
-!
-!     This subroutine call all the other initialization routines
-!	and assigns initial orientations to every integration point
-           
-    
-!
-!	This subroutine calculates the misorientation
-!	INPUTS:
-!	g1:		1st orientation 
-!	g2:		2nd orientation
-!	typ:	Type of crystal symmetry; 1:cubic, 2:tetragonal, 3:hexagonal
-!	OUTPUTS:
-!	uvw:	Misorientation axis
-!	ang:	Misorientation angle (in degrees)
-!	dg:		net rotation
-!	USES:
-!	Vars:	cubsym,tetsym,hcpsym
-!	Consts:	pi
+c
+c     This subroutine call all the other initialization routines
+c	and assigns initial orientations to every integration point
+c           
+c    
+c
+c
+c
+c
+c
+c	This subroutine calculates the misorientation
+c	INPUTS:
+c	g1:		1st orientation 
+c	g2:		2nd orientation
+c	typ:	Type of crystal symmetry; 1:cubic, 2:tetragonal, 3:hexagonal
+c	OUTPUTS:
+c	uvw:	Misorientation axis
+c	ang:	Misorientation angle (in degrees)
+c	dg:		net rotation
+c	USES:
+c	Vars:	cubsym,tetsym,hcpsym
+c	Consts:	pi
 	subroutine misorientation(g1,g2,typ,uvw,ang,dg)
       use globalvars, only: cubsym,tetsym,hcpsym,pi,I3
 	implicit none
@@ -53,30 +57,30 @@
 
 
       
-!	Initially set the angle to be maximum (62.4 degrees indeed)
+c	Initially set the angle to be maximum (62.4 degrees indeed)
 	ang=pi/2.0
 
-!	1: Crystal Symmetry to 1st orientation
+c	1: Crystal Symmetry to 1st orientation
 	do s1=1,nosym
           sym1=sym(s1,:,:)
           !do i=1,3
           !    write(1,*) (s(i,j), j=1,3)
           !enddo
 		g11=matmul(sym1, g1)
-!	2: Crystal Symmetry to 2nd orientation
+c	2: Crystal Symmetry to 2nd orientation
 		do s2=1,nosym
               sym2 = sym(s2,:,:)
 			g22=matmul(sym2,g2)
-!	3: Net rotations (g2*inv(g1)=g2*transpose(g1))
-      dg1=matmul(g22,transpose(g11))										
-      dg2=matmul(g11,transpose(g22))		
+c	3: Net rotations (g2*inv(g1)=g2*transpose(g1))
+			dg1=matmul(g22,transpose(g11))										
+			dg2=matmul(g11,transpose(g22))		
 
      
-!	5. CHECK IF THE MISORIENTATION IS IN FUNDAMENTAL ZONE
-!	5.a. For 1st result: (dg1)
-      sq=dsqrt((dg1(2,3)-dg1(3,2))**2.0+(dg1(1,3)-
-     + dg1(3,1))**2.0+(dg1(2,1)-dg1(1,2))**2.0)
-!      write(6,*) 'sq', sq
+c	5. CHECK IF THE MISORIENTATION IS IN FUNDAMENTAL ZONE
+c	5.a. For 1st result: (dg1)
+      sq=dsqrt((dg1(2,3)-dg1(3,2))**2.0+(dg1(1,3)-dg1(3,1))**2.0+ 
+     & (dg1(2,1)-dg1(1,2))**2.0)
+c      write(6,*) 'sq', sq
       if (dabs(sq).gt.1.0d-10) then
 		x1=(dg1(2,3)-dg1(3,2))/sq
 		x2=(dg1(3,1)-dg1(1,3))/sq
@@ -92,8 +96,8 @@
 								ang=temp_ang
 								dg=dg1
 								uvw(1)=x1
-                                    uvw(2)=x2
-                                    uvw(3)=x3
+                                  uvw(2)=x2
+                                  uvw(3)=x3
 							endif
 						endif
 					endif
@@ -105,10 +109,10 @@
           
 
  
-!	5.a. For the 2nd result: (dg2)
-      sq=dsqrt((dg2(2,3)-dg2(3,2))**2.0+
-     + (dg2(1,3)-dg2(3,1))**2.0+(dg2(2,1)-dg2(1,2))**2.0)
-!      write(6,*) 'sq', sq
+c	5.a. For the 2nd result: (dg2)
+     	sq=dsqrt((dg2(2,3)-dg2(3,2))**2.0+(dg2(1,3)-dg2(3,1))**2.0+ 
+     & (dg2(2,1)-dg2(1,2))**2.0)
+c      write(6,*) 'sq', sq
       if (dabs(sq).gt.1.0d-10) then
    	    x1=(dg2(2,3)-dg2(3,2))/sq
 	    x2=(dg2(3,1)-dg2(1,3))/sq
@@ -124,8 +128,8 @@
 							    ang=temp_ang
 							    dg=dg2
 							    uvw(1)=x1
-                                    uvw(2)=x2
-                                    uvw(3)=x3
+                                  uvw(2)=x2
+                                  uvw(3)=x3
 						    endif
 					    endif
 				    endif
@@ -140,16 +144,16 @@
           
     
 
-!     Check for zero misorientation      
+c     Check for zero misorientation      
       if (ang.gt.0.9*pi/2.0) then
           ang = 0.0d+0
           uvw=0.0d+0
-!         Assign a unit vector
+c         Assign a unit vector
           uvw(1)=1.0
           dg=I3
       endif
        
-!     Convert the misorientation angle into degrees      
+c     Convert the misorientation angle into degrees      
 	ang=ang*180.0/pi
       
       
@@ -157,10 +161,10 @@
       
 	return
 	end subroutine misorientation
-!
-!	This subroutine calculates the Von-Mises stress
-!	INPUTS: Stress						---	sigma(3,3)
-!	OUTPUT: Von-Mises stress (scalar)	--- vms
+c
+c	This subroutine calculates the Von-Mises stress
+c	INPUTS: Stress						---	sigma(3,3)
+c	OUTPUT: Von-Mises stress (scalar)	--- vms
 	subroutine vonmises_stress(sigma,vms)
 	use globalvars, only: I3
       implicit none
@@ -175,66 +179,66 @@
       
       dev = sigma -hyd/3.0*I3
       
-!
-!	Take the inner product
+c
+c	Take the inner product
 	sum=0
 	do i=1,3
 		do j=1,3
 			sum=sum+(3.0*dev(i,j)*dev(i,j)/2.0)
 		enddo
 	enddo
-!	Find the Von-Mises stress
+c	Find the Von-Mises stress
 	vms=dsqrt(sum)
 	return
 	end subroutine vonmises_stress
-!
-!	This subroutine calculates the Von-Mises strain
-!	INPUTS: Strain						---	eps(3,3)
-!	OUTPUT: Von-Mises strain (scalar)	--- evm
+c
+c	This subroutine calculates the Von-Mises strain
+c	INPUTS: Strain						---	eps(3,3)
+c	OUTPUT: Von-Mises strain (scalar)	--- evm
 	subroutine vonmises_strain(eps,evm)	
 	implicit none
 	real(8) eps(3,3),evm
 	integer i,j
 	real(8) sum
-!
+c
 
       
 
 
-!	Take the inner product
+c	Take the inner product
 	sum=0.0
 	do i=1,3
 		do j=1,3
 			sum=sum+(2.0*eps(i,j)*eps(i,j)/3.0)
 		enddo
 	enddo
-!	Find the Von-Mises strain
+c	Find the Von-Mises strain
 	evm=dsqrt(sum)
 	return 
 	end subroutine vonmises_strain
-!
-!	This subroutine calculates the Taylor factor
-!	INPUTS:
-!	F: Deformation gradient at a certain reference 
-!	g: Transformation matrix from the reference frame at which F is defined to the crystal frame
-!	OUTPUT: 
-!	M: Taylor factor
-!	USES:
-!	BHstress: Bishop Hill stress states
+c
+c	This subroutine calculates the Taylor factor
+c	INPUTS:
+c	F: Deformation gradient at a certain reference 
+c	g: Transformation matrix from the reference frame at which F is defined to the crystal frame
+c	OUTPUT: 
+c	M: Taylor factor
+c	USES:
+c	BHstress: Bishop Hill stress states
 	subroutine taylorfactor(F,g,M)
 	use globalvars, only: BHstress
 	implicit none
 	real(8) F(3,3),g(3,3),M
 	integer i,j,k,l
 	real(8) Fc(3,3),sum,evm,st(3,3),st_vec(6),w,max_w
-!
-!	Find the Von-Mises strain
+c
+c	Find the Von-Mises strain
 	call vonmises_strain(F,evm)
 	if (evm.eq.0) then
 		M=3.0
 		return
 	endif
-!	Transform the deformation gradient to crystal frame	
+c	Transform the deformation gradient to crystal frame	
 	do i=1,3
 		do j=1,3
 			sum=0
@@ -246,17 +250,17 @@
 			Fc(i,j)=sum
 		enddo
 	enddo
-!	Strain part of the transformed deformation
+c	Strain part of the transformed deformation
 	st=(Fc+transpose(Fc))/2.0
-!	Vectorizing stress (Convention used is different than in MARC)
-!	Check Read's "Deformation Geometry" for details
+c	Vectorizing stress (Convention used is different than in MARC)
+c	Check Read's "Deformation Geometry" for details
 	st_vec(1)=st(2,2)
 	st_vec(2)=-st(1,1)
 	st_vec(3)=st(3,3)
 	st_vec(4)=st(1,2)+st(2,1)
 	st_vec(5)=st(3,1)+st(1,3)
       st_vec(6)=st(2,3)+st(3,2)
-!	Calculating work 
+c	Calculating work 
 	max_w=0.0
 	do i=1,28
 		w=0.0
@@ -270,195 +274,235 @@
 	M=sqrt(6.0)*max_w/evm;
 	return
 	end subroutine taylorfactor
-!
-!	This subroutine converts a symmetric 2nd order tensor to a vector
-!	INPUTS: Matrix			--- s(3,3)
-!	OUTPUT: Vectorized form	--- v(6)	
+c
+c
+c	This subroutine calculates the Macauley function
+c	INPUTS: scalar              		--- A
+c	OUTPUT: Macauley function value		--- B
+	subroutine Macauley(A,B)
+	implicit none
+	real(8) A, B
+c
+	if (A.lt.0.0) then
+          B = 0.0
+c     A >= 0          
+      else
+          B = A
+      endif
+      
+	return
+	end subroutine Macauley
+c
+c
+c
+c	This subroutine converts a symmetric 2nd order tensor to a vector
+c	INPUTS: Matrix			--- s(3,3)
+c	OUTPUT: Vectorized form	--- v(6)	
 	subroutine convert3x3to6(s,v)
+      use globalvars, only : order6x6
 	implicit none
 	real(8) s(3,3),v(6)
-!	
-	v(1)=s(1,1)
-	v(2)=s(2,2)
-	v(3)=s(3,3)
-	v(4)=(s(1,2)+s(2,1))/2.0
-	v(5)=(s(3,1)+s(1,3))/2.0
-      v(6)=(s(2,3)+s(3,2))/2.0
+      integer i
+c	
+	
+      do i=1,6
+
+          v(i) = (s(order6x6(i,1), order6x6(i,2)) +
+     &            s(order6x6(i,2), order6x6(i,1)) )/2.0
+          
+      enddo
+      
+      
+      
+      
 	return
 	end subroutine convert3x3to6
-!
-!	This subroutine converts a vector to a SYMMETRIC 2nd order tensor
-!	INPUTS: Vectorized form		--- v(6)
-!	OUTPUT: Matrix				--- s(3,3)
+c
+c
+c
+c	This subroutine converts a vector to a SYMMETRIC 2nd order tensor
+c	INPUTS: Vectorized form		--- v(6)
+c	OUTPUT: Matrix				--- s(3,3)
 	subroutine convert6to3x3(v,s)
+      use globalvars, only : order6x6
 	implicit none
 	real(8) s(3,3),v(6)
-!
-	s(1,1)=v(1)
-	s(2,2)=v(2)
-	s(3,3)=v(3)
-	s(1,2)=v(4)
-	s(2,1)=v(4)
-	s(1,3)=v(5)
-	s(3,1)=v(5)      
-	s(2,3)=v(6)
-	s(3,2)=v(6)
+      integer i
+c
+
+      do i=1,6
+
+          s(order6x6(i,1),order6x6(i,2)) = v(i)
+          
+          s(order6x6(i,2),order6x6(i,1)) = v(i)
+          
+      enddo
+
+
 	return
 	end subroutine convert6to3x3
-!
-!	This subroutine is written to convert 4th order elasticity tensor to 6x6 matrix
-!	INPUTS : 4th order tensor		--- C4(3,3,3,3)
-!	OUTPUTS: Matrix					---	C_6x6(6,6)
-	subroutine convert3x3x3x3to6x6(C4,C_6x6)
+c
+c	This subroutine is written to convert 4th order elasticity tensor to 6x6 matrix
+c	INPUTS : 4th order tensor		--- C3333(3,3,3,3)
+c	OUTPUTS: Matrix					---	C66(6,6)
+	subroutine convert3x3x3x3to6x6(C3333,C66)
+      use globalvars, only : order6x6
 	implicit none
-	real(8) C_6x6(6,6), C4(3,3,3,3)
-	integer i,j,k,l
-
-
-      do i=1,3
-          do j=1,3
-              do k=1,3
-                  do l=1,3
-                      C4(i,j,k,l) = (C4(i,j,k,l) + C4(j,i,k,l))/2.0
-                      C4(i,j,k,l) = (C4(i,j,k,l) + C4(j,i,l,k))/2.0
-                  end do
-              end do
-          end do
-      end do
+	real(8) C66(6,6), C3333(3,3,3,3)
+	integer i,j
 
       
-      
-!     1=11 / 2=22 / 3=33 / 4=12 / 5=13 / 6=23
-      
-
-!     Stiffness Matrix(6x6)
-
-      C_6x6 = 0.0
-      C_6x6(1,1) = C4(1,1,1,1)
-      C_6x6(1,2) = C4(1,1,2,2) 
-      C_6x6(1,3) = C4(1,1,3,3)
-      C_6x6(1,4) = C4(1,1,1,2) 
-      C_6x6(1,5) = C4(1,1,1,3) 
-      C_6x6(1,6) = C4(1,1,2,3)
-      
-      C_6x6(2,1) = C4(2,2,1,1)
-      C_6x6(2,2) = C4(2,2,2,2) 
-      C_6x6(2,3) = C4(2,2,3,3) 
-      C_6x6(2,4) = C4(2,2,1,2)
-      C_6x6(2,5) = C4(2,2,1,3)
-      C_6x6(2,6) = C4(2,2,2,3)
-      
-      C_6x6(3,1) = C4(3,3,1,1)
-      C_6x6(3,2) = C4(3,3,2,2)
-      C_6x6(3,3) = C4(3,3,3,3)
-      C_6x6(3,4) = C4(3,3,1,2)
-      C_6x6(3,5) = C4(3,3,1,3)
-      C_6x6(3,6) = C4(3,3,2,3)
-      
-      C_6x6(4,1) = C4(1,2,1,1)
-      C_6x6(4,2) = C4(1,2,2,2)
-      C_6x6(4,3) = C4(1,2,3,3)
-      C_6x6(4,4) = C4(1,2,1,2)
-      C_6x6(4,5) = C4(1,2,1,3)
-      C_6x6(4,6) = C4(1,2,2,3)
-      
-      C_6x6(5,1) = C4(1,3,1,1)
-      C_6x6(5,2) = C4(1,3,2,2)
-      C_6x6(5,3) = C4(1,3,3,3)
-      C_6x6(5,4) = C4(1,3,1,2)
-      C_6x6(5,5) = C4(1,3,1,3)
-      C_6x6(5,6) = C4(1,3,2,3)
-      
-      C_6x6(6,1) = C4(2,3,1,1)
-      C_6x6(6,2) = C4(2,3,2,2)
-      C_6x6(6,3) = C4(2,3,3,3)
-      C_6x6(6,4) = C4(2,3,1,2)
-      C_6x6(6,5) = C4(2,3,1,3)
-      C_6x6(6,6) = C4(2,3,2,3)
-      
-
-
-
+      C66 = 0.0d+0
+      do i=1,6
+          do j=1,6
+              
+              C66(i,j) = C3333(   order6x6(i,1), order6x6(i,2), 
+     &                            order6x6(j,1), order6x6(j,2)    )   
+              
+          enddo
+      enddo
+c     
+c
+c
 	return
 	end subroutine convert3x3x3x3to6x6
-!
-!
-!     
-!
-!	This subroutine converts a 4th order tensor to 9x9 matrix
-!	INPUTS: 4th order tensor	--- r(3,3,3,3)
-!	OUTPUT: Matrix				--- s(9,9)
-!	USES  :	Order of indices	---	order(9,2)
+c
+c
+c	This subroutine is written to convert 6x6 matrix to 4th order elasticity tensor
+c	INPUTS : Matrix					---	C66(6,6)
+c	OUTPUTS: 4th order tensor		--- C3333(3,3,3,3)
+	subroutine convert6x6to3x3x3x3(C66,C3333)
+      use globalvars, only : order6x6
+	implicit none
+	real(8) C66(6,6), C3333(3,3,3,3)
+	integer i,j
+c      
+c      
+c      
+      C3333=0.0d+0
+      do i=1,6
+          do j=1,6
+              
+              C3333(  order6x6(i,1), order6x6(i,2), 
+     &                order6x6(j,1), order6x6(j,2)  ) = C66(i,j)
+              
+              
+              C3333(  order6x6(i,2), order6x6(i,1), 
+     &                order6x6(j,1), order6x6(j,2)  ) = C66(i,j)
+              
+              
+              C3333(  order6x6(i,1), order6x6(i,2), 
+     &                order6x6(j,2), order6x6(j,1)  ) = C66(i,j)
+              
+              
+              C3333(  order6x6(i,2), order6x6(i,1), 
+     &                order6x6(j,2), order6x6(j,1)  ) = C66(i,j)     
+              
+              
+          enddo
+      enddo
+      
+	return
+	end subroutine convert6x6to3x3x3x3
+c     
+c
+c	This subroutine converts a 4th order tensor to 9x9 matrix
+c	INPUTS: 4th order tensor	--- r(3,3,3,3)
+c	OUTPUT: Matrix				--- s(9,9)
+c	USES  :	Order of indices	---	order9x9(9,2)
 	subroutine convert3x3x3x3to9x9(r,s)
-	use globalvars, only : order
+	use globalvars, only : order9x9
 	implicit none
 	real(8) r(3,3,3,3), s(9,9)
 	integer i,j,a,b,c,d
-!	
+c	
 	do i=1,9
-		a=order(i,1)
-		b=order(i,2)
+		a=order9x9(i,1)
+		b=order9x9(i,2)
 		do j=1,9
-			c=order(j,1)
-			d=order(j,2)
+			c=order9x9(j,1)
+			d=order9x9(j,2)
 			s(i,j)=r(a,b,c,d)
 		enddo
 	enddo
 	return
-	end subroutine convert3x3x3x3to9x9
-!
-!	This subroutine converts a vectorized 2nd order tensor to a matrix 
-!	INPUTS: Vectorized form		--- s(9)
-!	OUTPUT: Matrix				--- r(3,3)
-!	USES  :	Order of indices	---	order(9,2)
+      end subroutine convert3x3x3x3to9x9
+c      
+c	This subroutine converts a 9x9 matrix to 4th order tensor
+c	INPUTS: 4th order tensor	--- s(9,9)
+c	OUTPUT: Matrix				--- r(3,3,3,3)
+c	USES  :	Order of indices	---	order9x9(9,2)
+	subroutine convert9x9to3x3x3x3(s,r)
+	use globalvars, only : order9x9
+	implicit none
+	real(8) r(3,3,3,3), s(9,9)
+	integer i,j,a,b,c,d
+c	
+	do i=1,9
+		a=order9x9(i,1)
+		b=order9x9(i,2)
+		do j=1,9
+			c=order9x9(j,1)
+			d=order9x9(j,2)
+			r(a,b,c,d) = s(i,j)
+		enddo
+	enddo
+	return
+	end subroutine convert9x9to3x3x3x3      
+c
+c	This subroutine converts a vectorized 2nd order tensor to a matrix 
+c	INPUTS: Vectorized form		--- s(9)
+c	OUTPUT: Matrix				--- r(3,3)
+c	USES  :	Order of indices	---	order9x9(9,2)
 	subroutine convert9to3x3(s,r)
-	use globalvars, only : order
+	use globalvars, only : order9x9
 	implicit none
 	real(8) r(3,3), s(9)
 	integer i,a,b
-!	
+c	
 	do i=1,9
-		a=order(i,1)
-		b=order(i,2)
+		a=order9x9(i,1)
+		b=order9x9(i,2)
 		r(a,b)=s(i)
 	enddo
 	return
 	end subroutine convert9to3x3
-!
-!	This subroutine converts a matrix to a vectorized form
-!	INPUTS: Matrix				--- r(3,3)
-!	OUTPUT: Vectorized form		--- s(9)
-!	USES  :	Order of indices	---	order(9,2)
+c
+c	This subroutine converts a matrix to a vectorized form
+c	INPUTS: Matrix				--- r(3,3)
+c	OUTPUT: Vectorized form		--- s(9)
+c	USES  :	Order of indices	---	order9x9(9,2)
 	subroutine convert3x3to9(r,s)
-	use globalvars, only : order
+	use globalvars, only : order9x9
 	implicit none
 	real(8) r(3,3), s(9)
 	integer i,a,b
-!	
+c	
 	do i=1,9
-		a=order(i,1)
-		b=order(i,2)
+		a=order9x9(i,1)
+		b=order9x9(i,2)
 		s(i)=r(a,b)
 	enddo
 	return
 	end subroutine convert3x3to9
-!
-!
-!	This subroutine transforms a 2nd order tensor using a given transformation matrix
-!	INPUTS : Transformation matrix, 2nd order tensor	--- g, A33
-!	OUTPUTS: Transformed 2nd order tensor				--- A33_tr
+c
+c
+c	This subroutine transforms a 2nd order tensor using a given transformation matrix
+c	INPUTS : Transformation matrix, 2nd order tensor	--- g, A33
+c	OUTPUTS: Transformed 2nd order tensor				--- A33_tr
 	subroutine transform2(g,A33,A33_tr)
 	implicit none
 	real(8) g(3,3),A33_tr(3,3),A33(3,3)
 	real(8) sum
 	integer i,j,m,n
-!
+c
 	do i=1,3
 		do j=1,3
 			sum=0.0
 			do m=1,3
 				do n=1,3
-					sum=sum+(g(i,m)*g(j,n)*A33(m,n))
+					sum=sum+
+     &                     (g(i,m)*g(j,n)*A33(m,n))
 				enddo	
 			enddo
 			A33_tr(i,j)=sum
@@ -466,16 +510,16 @@
 	enddo
 	return
 	end subroutine transform2
-!
-!	This subroutine transforms a 4th order tensor using a given transformation matrix
-!	INPUTS : Transformation matrix, 4th order tensor	--- g, A3333
-!	OUTPUTS: Transformed 4th order tensor				--- A3333_tr
+c
+c	This subroutine transforms a 4th order tensor using a given transformation matrix
+c	INPUTS : Transformation matrix, 4th order tensor	--- g, A3333
+c	OUTPUTS: Transformed 4th order tensor				--- A3333_tr
 	subroutine transform4(g,A3333,A3333_tr)
 	implicit none
 	real(8) g(3,3),A3333(3,3,3,3),A3333_tr(3,3,3,3)
 	real(8) sum
 	integer i,j,k,l,m,n,o,p
-!		
+c		
 
 	do i=1,3
 		do j=1,3
@@ -486,7 +530,8 @@
 						do n=1,3
 							do o=1,3
 								do p=1,3
-									sum=sum+(g(i,m)*g(j,n)*g(k,o)*g(l,p)*A3333(m,n,o,p))
+									sum=sum+
+     &                    (g(i,m)*g(j,n)*g(k,o)*g(l,p)*A3333(m,n,o,p))
 								enddo
 							enddo
 						enddo	
@@ -502,16 +547,16 @@
       
 	return
 	end subroutine transform4
-!
-!	This subroutine calculates the square norm of a matrix
-!	INPUTS: Matrix, dimension(n)		--- A(nxn),dim
-!	OUTPUT: Square norm				--- norm
+c
+c	This subroutine calculates the square norm of a matrix
+c	INPUTS: Matrix, dimension(n)		--- A(nxn),dim
+c	OUTPUT: Square norm				--- norm
 	subroutine normmat(A,dim,norm)
 	implicit none
 	integer dim
 	real(8) A(dim,dim),norm
 	integer i,j
-!
+c
 	norm=0.0
 	do i=1,dim
 		do j=1,dim
@@ -521,31 +566,31 @@
 	norm=dsqrt(norm)
 	return
 	end subroutine normmat
-!
-!	This subroutine calculates the trace of a matrix
-!	INPUTS: Matrix, dimension(n)		--- A(nxn),dim
-!	OUTPUT: Trace of a matrix			--- value
+c
+c	This subroutine calculates the trace of a matrix
+c	INPUTS: Matrix, dimension(n)		--- A(nxn),dim
+c	OUTPUT: Trace of a matrix			--- value
 	subroutine trace(A,dim,value)
 	implicit none
 	integer dim
 	real(8) A(dim,dim),value
 	integer i
-!
+c
 	value=0.0
 	do i=1,dim
 		value=value+A(i,i)
 	enddo
 	return
 	end subroutine trace
-!
-!	This subroutine calculates the square norm of a column vector
-!	INPUTS: Vector, dimension(n)		--- A(nx1),dim
-!	OUTPUT: Square norm				--- norm
+c
+c	This subroutine calculates the square norm of a column vector
+c	INPUTS: Vector, dimension(n)		--- A(nx1),dim
+c	OUTPUT: Square norm				--- norm
 	subroutine normvec(A,dim,norm)
 	implicit none
 	integer i,dim
 	real(8) A(dim),norm
-!
+c
 	norm=0.0
 	do i=1,dim
 		norm=norm+(A(i)*A(i))
@@ -553,15 +598,15 @@
 	norm=dsqrt(norm)
 	return
 	end subroutine normvec
-!
-!	This subroutine multiplies a matrix with a matrix
-!	INPUTS: Matrix (nxn), vector (nx1), dimension (n)	--- A(nxn),B(n,n),dim
-!	OUTPUT: Result										--- C(nxn)
+c
+c	This subroutine multiplies a matrix with a matrix
+c	INPUTS: Matrix (nxn), vector (nx1), dimension (n)	--- A(nxn),B(n,n),dim
+c	OUTPUT: Result										--- C(nxn)
 	subroutine matmulmat(A,B,dim,C)
 	implicit none
 	integer i,j,k,dim
 	real(8) A(dim,dim),B(dim,dim),C(dim,dim)
-!
+c
 	C=0.0
 	do i=1,dim
 		do j=1,dim
@@ -572,15 +617,15 @@
 	enddo
 	return
 	end subroutine matmulmat
-!
-!	This subroutine multiplies a matrix with a vector
-!	INPUTS: Matrix (nxn), vector (nx1), dimension (n)	--- A(nxn),b(n,1),dim
-!	OUTPUT: Result										---	c(n,1)
+c
+c	This subroutine multiplies a matrix with a vector
+c	INPUTS: Matrix (nxn), vector (nx1), dimension (n)	--- A(nxn),b(n,1),dim
+c	OUTPUT: Result										---	c(n,1)
 	subroutine matmulvec(A,b,dim,c)
 	implicit none
 	integer i,j,k,dim
 	real(8) A(dim,dim),b(dim),c(dim)
-!
+c
 	c=0.0
 	do i=1,dim
 		do j=1,dim
@@ -589,33 +634,33 @@
 	enddo
 	return
 	end subroutine matmulvec
-!
-!	This subroutine is written to check the determinant
-!	INPUTS: 3x3 matrix	--- a(3,3)
-!	OUTPUT: Determinant	--- det
+c
+c	This subroutine is written to check the determinant
+c	INPUTS: 3x3 matrix	--- a(3,3)
+c	OUTPUT: Determinant	--- det
 	subroutine determinant(a,det)
 	implicit none
 	real(8) a(3,3),det
 	real(8) v1,v2,v3
-!	
+c	
 	v1=a(1,1)*((a(2,2)*a(3,3))-(a(2,3)*a(3,2)))
 	v2=-a(1,2)*((a(2,1)*a(3,3))-(a(2,3)*a(3,1)))
 	v3=a(1,3)*((a(2,1)*a(3,2))-(a(2,2)*a(3,1)))
 	det=v1+v2+v3
 	return
 	end subroutine determinant
-!
-!	This subroutine inverts a 3x3 matrix
-!	INPUT:	Matrix								---	A(3,3)
-!	OUTPUT:	Invereted matrix, determinant		---	invA(3,3),det
+c
+c	This subroutine inverts a 3x3 matrix
+c	INPUT:	Matrix								---	A(3,3)
+c	OUTPUT:	Invereted matrix, determinant		---	invA(3,3),det
 	subroutine invert3x3(A,invA,det)
 	implicit none
 	integer i,j
 	real(8) A(3,3),invA(3,3),det
-!
-!	First calculate the determinant
+c
+c	First calculate the determinant
 	call determinant(A,det)
-!	If the determinant is greater than certain value
+c	If the determinant is greater than certain value
 	if (det.lt.1.d-10) then
 		invA=0.0
 	else
@@ -631,17 +676,17 @@
 	endif
 	return
 	end subroutine invert3x3
-!
-!	This subroutine orientation matrix from Euler angles
-!	INPUT:	Angles(deg)			---	ang(3)
-!	OUTPUT:	Orientation matrix	---	R(3,3)
-!     USES:     Number pi           --- pi
+c
+c	This subroutine orientation matrix from Euler angles
+c	INPUT:	Angles(deg)			---	ang(3)
+c	OUTPUT:	Orientation matrix	---	R(3,3)
+c     USES:     Number pi           --- pi
 	subroutine ang2ori(ang,R)
 	use globalvars, only : pi
 	implicit none
 	real(8) ang(3),R(3,3)
 	real(8) phi1,phi2,PHI
-!
+c
 	phi1=ang(1)*pi/180.0
 	phi2=ang(3)*pi/180.0
 	PHI=ang(2)*pi/180.0
@@ -656,17 +701,17 @@
       R(3,3)=dcos(PHI)	
 	return
 	end subroutine ang2ori
-!
-!	This subroutine orientation matrix from Euler angles
-!	INPUT:	Orientation matrix	---	R(3)
-!	OUTPUT:	Angles(deg)			---	ang(3)
-!     USES:     Number pi           --- pi
+c
+c	This subroutine orientation matrix from Euler angles
+c	INPUT:	Orientation matrix	---	R(3)
+c	OUTPUT:	Angles(deg)			---	ang(3)
+c     USES:     Number pi           --- pi
 	subroutine ori2ang(R,ang)
 	use globalvars, only : pi
 	implicit none
 	real(8) ang(3),R(3,3)
 	real(8) phi1,phi2,PHI
-!
+c
 	if (R(3,3).eq.1) then
 		PHI=0.0
 		phi1=atan2(R(1,2),R(1,1))
@@ -679,41 +724,40 @@
 	ang=ang*180.0/pi
 	return
 	end subroutine ori2ang
-!
-!	This subroutine calculates angle and axis pair from orientation matrix
-!	INPUT:	Orientation matrix	--- R(3,3)
-!	OUTPUT:	Angle(deg), axis	---	ang, ax(3)
-!     USES:     Number pi           --- pi
+c
+c	This subroutine calculates angle and axis pair from orientation matrix
+c	INPUT:	Orientation matrix	--- R(3,3)
+c	OUTPUT:	Angle(deg), axis	---	ang, ax(3)
+c     USES:     Number pi           --- pi
 	subroutine ori2angax(R,ang,ax)
 	use globalvars, only : pi
 	implicit none
 	real(8) R(3,3),ang,ax(3)
 	real(8) trace,norm,t,mag
-!
-      norm=dsqrt((R(2,3)-R(3,2))**2.0+(R(1,3)-
-     + R(3,1))**2.0+(R(1,2)-R(2,1))**2.0)
-	 
+c
+	norm=dsqrt((R(2,3)-R(3,2))**2.0+(R(1,3)-R(3,1))**2.0+
+     &(R(1,2)-R(2,1))**2.0)
 	trace=R(1,1)+R(2,2)+R(3,3)
 	ang=2.0*acos(dsqrt(1+trace)/2.0)
 	t=dtan(ang/2.0)
 	ax(1)=t*(R(2,3)-R(3,2))/norm
 	ax(2)=t*(R(3,1)-R(1,3))/norm
 	ax(3)=t*(R(1,2)-R(2,1))/norm	
-!	Normalize the axis vector
+c	Normalize the axis vector
 	mag=dsqrt(ax(1)**2.0+ax(2)**2.0+ax(3)**2.0)
 	ax=ax/mag		
 	ang=ang*180.0/pi
 	return
 	end subroutine ori2angax
-!
-!	This subroutine finds the symmetric part of a matirx
-!	INPUT: 2nd order tensor	--- F(3,3)
-!	OUPUT:	Symmetric part	--- S(3,3)
+c
+c	This subroutine finds the symmetric part of a matirx
+c	INPUT: 2nd order tensor	--- F(3,3)
+c	OUPUT:	Symmetric part	--- S(3,3)
 	subroutine sym(F,S)
 	implicit none
 	real(8) F(3,3),S(3,3)
 	integer i,j
-!
+c
 	do i=1,3
 		do j=1,3
 			S(i,j)=0.5*(F(i,j)+F(j,i))
@@ -721,15 +765,15 @@
 	enddo
 	return
 	end subroutine sym
-!
-!	This subroutine finds the skew-symmetric part of a matirx
-!	INPUT: 2nd order tensor	--- F(3,3)
-!	OUPUT:	Symmetric part	--- S(3,3)
+c
+c	This subroutine finds the skew-symmetric part of a matirx
+c	INPUT: 2nd order tensor	--- F(3,3)
+c	OUPUT:	Symmetric part	--- S(3,3)
 	subroutine skew(F,S)
 	implicit none
 	real(8) F(3,3),S(3,3)
 	integer i,j
-!
+c
 	do i=1,3
 		do j=1,3
 			S(i,j)=0.5*(F(i,j)-F(j,i))
@@ -737,96 +781,229 @@
 	enddo
 	return
 	end subroutine skew
-!
-!	Polar decomposition of deformation
-!	The method mentioned in 'Mechanics of deformable solids' by
-!	Isaam Dogri was implemented
-!	INPUT:	2nd order tensor	--- F(3,3)
-!	USES :	Indentity matrix	--- I3(3,3)
-!	OUPUT:	Rotation	--- R(3,3)
-!			Stretch		--- U(3,3)
-	subroutine polar(F,R,U,sing)
-	use globalvars, only : I3
-	implicit none
-	real(8) F(3,3),R(3,3),U(3,3)
-	real(8) RC(3,3),inv1,inv2,inv3,dummy,mat(3,3)
-	real(8) p,q,p3,Cf,f3,lambda1,lambda2,lambda3
-	real(8) ii1,ii2,ii3,check,invU(3,3)
-	integer i,j,sing
-!	Assign zero to nozero
-	sing=0
-!	Find the right Cauchy
-	RC=matmul(transpose(F),F)
-!	Find the principal invariants
-!	First invariant is the trace along the diagonals
-	call trace(RC,3,inv1)
-!	Assign the multiplier sign in front of the equation
-	inv1=-inv1
-!	Second invariant
-	mat=matmul(RC,RC)
-	call trace(mat,3,dummy)
-	inv2=((inv1**2.0)-dummy)/2.0
-!	Third invariant
-	call determinant(RC,inv3)
-!	Assign the sing as well
-	inv3=-inv3
-!	The constants
-	p=(-(inv1**2.0)/3.0)+inv2
-	q=(-(inv2+(p*2.0))*inv1/9.0)+inv3;
-	check=(4.0*(p**3.0))+(27.0*(q**2.0));
-!	If the check is greater than zero then there exists only one
-!	real eigenvalues and two complex eigenvalues
-	if (check.gt.0) then
-		sing=1
-		return
-	else
-		if (p.lt.0) then
-			P3=dsqrt(-p/3.0)
-			Cf=3.0*q/(2.0*p*P3)
-			if (Cf.gt.1) then
-			  Cf=1.0
-			elseif (Cf.lt.-1) then
-			  Cf=-1.0
-			endif
-			f3=dacos(Cf)/3.0
-      lambda1=dsqrt((-inv1/3.0)+(2.0*P3*dcos(f3)))
-      lambda2=dsqrt((-inv1/3.0)-(P3*(dcos(f3)+
-     + (dsin(f3)*dsqrt(3.0d+0)))))
-      lambda3=dsqrt((-inv1/3.0)-(P3*(dcos(f3)-
-     + (dsin(f3)*dsqrt(3.0d+0)))))
-		else
-			sing=1
-			return
-		endif
-		ii1=lambda1+lambda2+lambda3
-		ii2=(lambda1*lambda2)+(lambda3*lambda2)+(lambda1*lambda3)
-		ii3=lambda1*lambda2*lambda3
-!		Another check for the singularity
-		check=(ii1*ii2)-ii3
-		if (check.eq.0.0) then
-			sing=1
-			return
-		else
-			U=((-mat)+(((ii1**2.0)-ii2)*RC)+(ii1*ii3*I3))/check
-			invU=(RC-(ii1*U)+(ii2*I3))/ii3
-			R=matmul(F,invU)
-		endif
-	endif
-	return
-	end subroutine polar
-!
-!	This subroutine calculates the L-U decomp.
-!	INPUT: Matrix, dimension					--- F(n,n), n
-!	OUTPUT: Lower tri., Upper tri., determinant --- L(n,n), U(n,n), det
+c
+!c	Polar decomposition of deformation
+!c	The method mentioned in 'Mechanics of deformable solids' by
+!c	Isaam Dogri was implemented
+!c	INPUT:	2nd order tensor	--- F(3,3)
+!c	USES :	Indentity matrix	--- I3(3,3)
+!c	OUPUT:	Rotation	--- R(3,3)
+!c			Stretch		--- U(3,3)
+!	subroutine polar(F,R,U,sing)
+!	use globalvars, only : I3
+!	implicit none
+!	real(8) F(3,3),R(3,3),U(3,3)
+!	real(8) RC(3,3),inv1,inv2,inv3,dummy,mat(3,3)
+!	real(8) p,q,p3,Cf,f3,lambda1,lambda2,lambda3
+!	real(8) ii1,ii2,ii3,check,invU(3,3)
+!	integer i,j,sing
+!c	Assign zero to nozero
+!	sing=0
+!c	Find the right Cauchy
+!	RC=matmul(transpose(F),F)
+!c	Find the principal invariants
+!c	First invariant is the trace along the diagonals
+!	call trace(RC,3,inv1)
+!c	Assign the multiplier sign in front of the equation
+!	inv1=-inv1
+!c	Second invariant
+!	mat=matmul(RC,RC)
+!	call trace(mat,3,dummy)
+!	inv2=((inv1**2.0)-dummy)/2.0
+!c	Third invariant
+!	call determinant(RC,inv3)
+!c	Assign the sing as well
+!	inv3=-inv3
+!c	The constants
+!	p=(-(inv1**2.0)/3.0)+inv2
+!	q=(-(inv2+(p*2.0))*inv1/9.0)+inv3;
+!	check=(4.0*(p**3.0))+(27.0*(q**2.0));
+!c	If the check is greater than zero then there exists only one
+!c	real eigenvalues and two complex eigenvalues
+!	if (check.gt.0) then
+!		sing=1
+!		return
+!	else
+!		if (p.lt.0) then
+!			P3=dsqrt(-p/3.0)
+!			Cf=3.0*q/(2.0*p*P3)
+!			if (Cf.gt.1) then
+!			  Cf=1.0
+!			elseif (Cf.lt.-1) then
+!			  Cf=-1.0
+!			endif
+!			f3=dacos(Cf)/3.0
+!			lambda1=dsqrt((-inv1/3.0)+(2.0*P3*dcos(f3)))
+!			lambda2=dsqrt((-inv1/3.0)-(P3*(dcos(f3)+(dsin(f3)*dsqrt(3.0d+0)))))
+!			lambda3=dsqrt((-inv1/3.0)-(P3*(dcos(f3)-(dsin(f3)*dsqrt(3.0d+0)))))
+!		else
+!			sing=1
+!			return
+!		endif
+!		ii1=lambda1+lambda2+lambda3
+!		ii2=(lambda1*lambda2)+(lambda3*lambda2)+(lambda1*lambda3)
+!		ii3=lambda1*lambda2*lambda3
+!c		Another check for the singularity
+!		check=(ii1*ii2)-ii3
+!		if (check.eq.0.0) then
+!			sing=1
+!			return
+!		else
+!			U=((-mat)+(((ii1**2.0)-ii2)*RC)+
+!     &	(ii1*ii3*I3))/check
+!			invU=(RC-(ii1*U)+(ii2*I3))/ii3
+!			R=matmul(F,invU)
+!		endif
+!	endif
+!	return
+!      end subroutine polar
+!c    
+c      
+c      
+c********1*********2*********3*********4*********5*********6*********7**
+c
+c	MATPP3(G,R,S)
+c
+c	positive polar decomposition of 3x3 matrix  G = R * S
+c	forcing positive orthonormal rotation matrix
+c
+c	INPUTS
+c	G = 3x3 general matrix
+c
+c	OUTPUTS
+c	R = 3x3 positive orthonormal matrix
+c	S = 3x3 symmetric matrix
+c
+c	PRECISION:	single
+c	COMMONS:	none
+c	CALLS:		none
+c	FUNCTIONS:	ABS, SQRT
+c	REFERENCE:	Veldpaus, F.E., H.J. Woltring, and L.J.M.G. Dortmans,
+c				A Least-Squares Algorithm for the Equiform
+c				Transformation from Spatial Marker Coordinates, 
+c				J. Biomechanics, 21(1):45-54 (1988).
+c	DATE:		10/8/92 - HJSIII
+c
+c
+      SUBROUTINE polar(G,R,S)
+c
+      implicit none
+c	declarations
+      REAL(8) G(3,3),R(3,3),S(3,3)
+      REAL(8) COG(3,3),P(3,3),ADP(3,3),PBI(3,3)
+      real(8) EPS, G1SQ, G1, G2SQ, G2, G3, H1, H2, X, Y
+      real(8) DEN, RES1, RES2, DX, DY, BETA1, BETA2, DETPBI
+      integer I
+c
+c	constants
+      EPS=1.0E-5
+c
+c	cofactors and determinant of g
+      COG(1,1)=G(2,2)*G(3,3)-G(2,3)*G(3,2)
+      COG(2,1)=G(1,3)*G(3,2)-G(1,2)*G(3,3)
+      COG(3,1)=G(1,2)*G(2,3)-G(1,3)*G(2,2)
+      COG(1,2)=G(2,3)*G(3,1)-G(2,1)*G(3,3)
+      COG(2,2)=G(1,1)*G(3,3)-G(1,3)*G(3,1)
+      COG(3,2)=G(1,3)*G(2,1)-G(1,1)*G(2,3)
+      COG(1,3)=G(2,1)*G(3,2)-G(2,2)*G(3,1)
+      COG(2,3)=G(1,2)*G(3,1)-G(1,1)*G(3,2)
+      COG(3,3)=G(1,1)*G(2,2)-G(1,2)*G(2,1)
+      G3=G(1,1)*COG(1,1)+G(2,1)*COG(2,1)+G(3,1)*COG(3,1)
+c
+c	P = trans(G) * G = S * S
+      DO I=1,3
+      P(I,1)=G(1,I)*G(1,1)+G(2,I)*G(2,1)+G(3,I)*G(3,1)
+      P(I,2)=G(1,I)*G(1,2)+G(2,I)*G(2,2)+G(3,I)*G(3,2)
+      P(I,3)=G(1,I)*G(1,3)+G(2,I)*G(2,3)+G(3,I)*G(3,3)
+      ENDDO
+c
+c	adjoint of P
+      ADP(1,1)=P(2,2)*P(3,3)-P(2,3)*P(3,2)
+      ADP(2,2)=P(1,1)*P(3,3)-P(1,3)*P(3,1)
+      ADP(3,3)=P(1,1)*P(2,2)-P(1,2)*P(2,1)
+c
+c	G invariants
+      G1SQ=P(1,1)+P(2,2)+P(3,3)
+      G1=SQRT(G1SQ)
+      G2SQ=ADP(1,1)+ADP(2,2)+ADP(3,3)
+      G2=SQRT(G2SQ)
+c
+c	initialize iteration
+      H1=G2/G1SQ
+      H2=G3*G1/G2SQ
+      X=1.0
+      Y=1.0
+c
+c	iteration loop
+      DO WHILE (ABS(DX/X).GT.EPS.OR.ABS(DY/Y).GT.EPS)
+      DEN=2.0*(X*Y-H1*H2)
+      RES1=1.0-X*X+2.0*H1*Y
+      RES2=1.0-Y*Y+2.0*H2*X
+      DX=(Y*RES1+H1*RES2)/DEN
+      DY=(H2*RES1+X*RES2)/DEN
+      X=X+DX
+      Y=Y+DY
+      ENDDO
+c
+c	BETA invariants
+      BETA1=X*G1
+      BETA2=Y*G2
+c
+c	invert ( trans(G) * G + BETA2 * identity )
+      P(1,1)=P(1,1)+BETA2
+      P(2,2)=P(2,2)+BETA2
+      P(3,3)=P(3,3)+BETA2
+      PBI(1,1)=P(2,2)*P(3,3)-P(2,3)*P(3,2)
+      PBI(1,2)=P(1,3)*P(3,2)-P(1,2)*P(3,3)
+      PBI(1,3)=P(1,2)*P(2,3)-P(1,3)*P(2,2)
+      PBI(2,1)=P(2,3)*P(3,1)-P(2,1)*P(3,3)
+      PBI(2,2)=P(1,1)*P(3,3)-P(1,3)*P(3,1)
+      PBI(2,3)=P(1,3)*P(2,1)-P(1,1)*P(2,3)
+      PBI(3,1)=P(2,1)*P(3,2)-P(2,2)*P(3,1)
+      PBI(3,2)=P(1,2)*P(3,1)-P(1,1)*P(3,2)
+      PBI(3,3)=P(1,1)*P(2,2)-P(1,2)*P(2,1)
+      DETPBI=P(1,1)*PBI(1,1)+P(2,1)*PBI(1,2)+P(3,1)*PBI(1,3)
+c
+c	R = (cofac(G)+BETA1*G) * inv(trans(G)*G+BETA2*identity)
+      DO I=1,3
+      R(I,1)=((COG(I,1)+BETA1*G(I,1))*PBI(1,1)
+     1       +(COG(I,2)+BETA1*G(I,2))*PBI(2,1)
+     2       +(COG(I,3)+BETA1*G(I,3))*PBI(3,1))/DETPBI
+      R(I,2)=((COG(I,1)+BETA1*G(I,1))*PBI(1,2)
+     1       +(COG(I,2)+BETA1*G(I,2))*PBI(2,2)
+     2       +(COG(I,3)+BETA1*G(I,3))*PBI(3,2))/DETPBI
+      R(I,3)=((COG(I,1)+BETA1*G(I,1))*PBI(1,3)
+     1       +(COG(I,2)+BETA1*G(I,2))*PBI(2,3)
+     2       +(COG(I,3)+BETA1*G(I,3))*PBI(3,3))/DETPBI
+      ENDDO
+c
+c	S = trans(R) * G
+      DO I=1,3
+      S(I,1)=R(1,I)*G(1,1)+R(2,I)*G(2,1)+R(3,I)*G(3,1)
+      S(I,2)=R(1,I)*G(1,2)+R(2,I)*G(2,2)+R(3,I)*G(3,2)
+      S(I,3)=R(1,I)*G(1,3)+R(2,I)*G(2,3)+R(3,I)*G(3,3)
+      ENDDO
+c
+c	done
+      RETURN
+      END SUBROUTINE polar
+c
+c********1*********2*********3*********4*********5*********6*********7**      
+c      
+c      
+c
+c	This subroutine calculates the L-U decomp.
+c	INPUT: Matrix, dimension					--- F(n,n), n
+c	OUTPUT: Lower tri., Upper tri., determinant --- L(n,n), U(n,n), det
 	subroutine LUdecomp(A,n,L,U,det)
 	implicit none
 	integer n,i,j,k
 	real(8) A(n,n),L(n,n),U(n,n)
 	real(8) factor(n,n), det
-!
+c
 	U=A
 	factor=0.0
-!	Triangularization
+c	Triangularization
 	do k=1,n-1
 		do i=k+1,n
 			factor(i,k)=U(i,k)/U(k,k)
@@ -835,76 +1012,76 @@
 			enddo	
 		enddo
 	enddo
-!	Lower triangular matrix
+c	Lower triangular matrix
 	L=factor
 	do i=1,n
 		L(i,i)=1.0
 	enddo
-!	Multiplication of the elements at the diagonal is the determinant
+c	Multiplication of the elements at the diagonal is the determinant
 	det=1;
 	do k=1,n
 		det=det*L(k,k)*U(k,k)
 	enddo
 	return
 	end subroutine LUdecomp
-!	
-!	This subroutine inverts a nxn matrix
-!	INPUT:	Matrix, size of the matrix		---	A(n,n),n
-!	OUTPUT:	Invereted matrix, determinant	---	invA(n,n),det
-	subroutine invertnxn(A,n,invA,det)
-	implicit none
-	integer n,i,j,m
-	real(8) A(n,n),invA(n,n),det,sum
-	real(8) L(n,n),U(n,n),B(n,n),C(n,n),Ct(n,n),Lt(n,n)
-!	First decompose into lower and upper triangles	
-	call LUdecomp(A,n,L,U,det)
-!	If the determinant is greater than zero
-	if (det.gt.1.0d-10) then
-!		Inversion algorithm (For the UPPER triangular matrix)
-		do i=1,n
-			do j=1,n
-				if (i.gt.j) then
-					B(i,j)=0.0
-				elseif (i==j) then
-					B(i,j)=1/U(i,j)			
-				else
-					sum=0.0
-					do m=1,j-1
-						sum=sum-(B(i,m)*U(m,j))
-					enddo
-					B(i,j)=sum/U(j,j)
-				endif
-			enddo
-		enddo
-!		First transpose (For the LOWER triangular matrix)
-		Lt=transpose(L)
-		do i=1,n
-			do j=1,n
-				if (i.gt.j) then
-					Ct(i,j)=0
-				elseif (i==j) then
-					Ct(i,j)=1/Lt(i,j)			
-				else
-					sum=0.0
-					do m=1,j-1
-						sum=sum-(Ct(i,m)*Lt(m,j))
-					enddo
-					Ct(i,j)=sum/Lt(j,j)
-				endif
-			enddo
-		enddo
-!		Transpose the result back finally
-		C=transpose(Ct)
-!		Calculate the overall inverse
-		invA=matmul(B,C)
-	else
-		invA=0.0
-      endif
-      
-	return
-	end subroutine invertnxn
-!
-      subroutine inverse(a,c,n)
+c	
+!c	This subroutine inverts a nxn matrix
+!c	INPUT:	Matrix, size of the matrix		---	A(n,n),n
+!c	OUTPUT:	Invereted matrix, determinant	---	invA(n,n),det
+!	subroutine invertnxn(A,n,invA,det)
+!	implicit none
+!	integer n,i,j,m
+!	real(8) A(n,n),invA(n,n),det,sum
+!	real(8) L(n,n),U(n,n),B(n,n),C(n,n),Ct(n,n),Lt(n,n)
+!c	First decompose into lower and upper triangles	
+!	call LUdecomp(A,n,L,U,det)
+!c	If the determinant is greater than zero
+!	if (det.gt.1.0d-10) then
+!c		Inversion algorithm (For the UPPER triangular matrix)
+!		do i=1,n
+!			do j=1,n
+!				if (i.gt.j) then
+!					B(i,j)=0.0
+!				elseif (i==j) then
+!					B(i,j)=1/U(i,j)			
+!				else
+!					sum=0.0
+!					do m=1,j-1
+!						sum=sum-(B(i,m)*U(m,j))
+!					enddo
+!					B(i,j)=sum/U(j,j)
+!				endif
+!			enddo
+!		enddo
+!c		First transpose (For the LOWER triangular matrix)
+!		Lt=transpose(L)
+!		do i=1,n
+!			do j=1,n
+!				if (i.gt.j) then
+!					Ct(i,j)=0
+!				elseif (i==j) then
+!					Ct(i,j)=1/Lt(i,j)			
+!				else
+!					sum=0.0
+!					do m=1,j-1
+!						sum=sum-(Ct(i,m)*Lt(m,j))
+!					enddo
+!					Ct(i,j)=sum/Lt(j,j)
+!				endif
+!			enddo
+!		enddo
+!c		Transpose the result back finally
+!		C=transpose(Ct)
+!c		Calculate the overall inverse
+!		invA=matmul(B,C)
+!	else
+!		invA=0.0
+!      endif
+!      
+!	return
+!	end subroutine invertnxn
+c
+      subroutine invertnxn(a,c,n)
       !============================================================
       ! Inverse matrix
       ! Method: Based on Doolittle LU factorization for Ax=b
@@ -982,7 +1159,8 @@
           end do
           b(k)=0.0
       end do
-      end subroutine inverse
+      return
+      end subroutine invertnxn
       
       
       

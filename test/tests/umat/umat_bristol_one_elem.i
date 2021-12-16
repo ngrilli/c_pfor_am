@@ -261,7 +261,7 @@
   nl_abs_tol = 1e-8
   
   start_time = 0.0
-  end_time = 0.02 # run until 3.0 to see the elasto-plastic stress strain curve
+  end_time = 0.2 # run until 3.0 to see the elasto-plastic stress strain curve
   
   # if the number of non-linear iterations is in the interval
   # [optimal_iterations-iteration_window ; optimal_iterations+iteration_window]

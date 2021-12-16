@@ -25,16 +25,21 @@ c
 c       
 c      
 c
-      integer, intent(in) :: LOP,LRESTART,KSTEP,KINC 
-      real(8), dimension(1),intent(in) :: DTIME
-      real(8), dimension(2),intent(in) :: TIME
+      integer,                        intent(in) ::
+     & LOP,
+     & LRESTART,
+     & KSTEP,
+     & KINC 
+      real(8), dimension(1),          intent(in) ::
+     & DTIME
+      real(8), dimension(2),          intent(in) ::
+     & TIME
 c      
 c
 c
 c      
 c      
-      foldername= "/home/michael/projects/c_pfor_am/test/tests/umat"
-	  write(6,*) 'debug before initialisation'
+      foldername= "/home/nicolo/projects/c_pfor_am/test/tests/umat"
 c      
 c
 c      
@@ -144,9 +149,6 @@ c      write(6,*) 'KSTEP',KSTEP
 c      write(6,*) 'DFGRD0',DFGRD0
 c      write(6,*) 'DFGRD1',DFGRD1
 c      write(6,*) 'STRESS',STRESS
-c      write(6,*) 'DTIME',DTIME
-c      write(6,*) 'TEMP',TEMP
-c      write(6,*) 'COORDS',COORDS
 c      
 c
 c
@@ -215,7 +217,7 @@ c
 c
 c
 c
-      integer i, j, k, typ, sing, varno
+      integer i, j, k, typ, varno
       real(8) U(3,3)
 c      real(8) sigma_av(7), sigma33(3,3), evm
       real(8) g1(3,3), g2(3,3), dg(3,3), mis, ax(3)
@@ -257,14 +259,14 @@ c
 c	        Initial orientation
 	        g1=global_ori(NOEL,NPT,:,:)
 c	        Polar decomposition of the elastic part of the deformation gradient
-	        call polar(global_Fe(NOEL,NPT,:,:),g2,U,sing)
-c	        If singularity does no exist calculate
-	        if (sing.eq.0d+0)	then
+	        call polar(global_Fe(NOEL,NPT,:,:),g2,U)
+!c	        If singularity does no exist calculate
+!	        if (sing.eq.0d+0)	then
 c		        Calcualte misorientation using the subroutine
 		        call misorientation(g1,g2,typ,ax,mis,dg)
-              else
-                  mis=0.0d+0
-	        endif                  
+         !     else
+         !         mis=0.0d+0
+	        !endif                  
 c                  
           endif
 c          
