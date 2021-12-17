@@ -4,4 +4,10 @@
     input = 'umat_bristol_one_elem.i'
     exodiff = 'umat_bristol_one_elem_out.e'
   [../]
+  
+  [./umat_visualise_SDV]
+    type = 'Exodiff'
+    input = 'umat_visualise_SDV.i'
+    exodiff = 'umat_visualise_SDV_out.e'
+  [../]
 []

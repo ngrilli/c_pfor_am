@@ -73,6 +73,7 @@ c
      4 CELENT,DFGRD0,DFGRD1,NOEL,NPT,LAYER,KSPT,KSTEP,KINC)
 c
       use calculations, only: calcs
+      use globalvars, only: global_state
 c
 c
 c
@@ -151,6 +152,7 @@ c      write(6,*) 'DFGRD1',DFGRD1
 c      write(6,*) 'STRESS',STRESS
 c      
 c
+      STATEV(1) = global_state(1,1,1,1)
 c
 c     Perform all the calculations     
       call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL+1,NPT+1,

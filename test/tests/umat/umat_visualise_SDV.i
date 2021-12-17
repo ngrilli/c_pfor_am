@@ -3,6 +3,8 @@
 # that must be changed to point to this folder
 # would be better to read the path from inputs.dat in the future
 
+# state variables STATEV can be visualised using MaterialStdVectorAux
+
 [GlobalParams]
   displacements = 'disp_x disp_y disp_z'
 []
@@ -82,6 +84,11 @@
   [./stress_zy]
     order = CONSTANT
     family = MONOMIAL
+  [../]
+  
+  [./statev_1]
+    order = CONSTANT
+    family = MONOMIAL  
   [../]
 
 []
@@ -166,6 +173,14 @@
     rank_two_tensor = stress
     index_j = 1
     index_i = 2
+    execute_on = timestep_end
+  [../]
+  
+  [./statev_1]
+    type = MaterialStdVectorAux
+    variable = statev_1
+    property = state_var
+    index = 0
     execute_on = timestep_end
   [../]
 
