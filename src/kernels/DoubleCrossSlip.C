@@ -24,7 +24,7 @@ validParams<DoubleCrossSlip>()
   params.addCoupledVar("rho_gnd_screw", 0.0, "Screw GND dislocation density");
   params.addCoupledVar("rho_tot", 0.0, "Total dislocation density: rho_t."); 
   params.addCoupledVar("temp",303.0,"Temperature");  
-  params.addParam<Real>("p_cs", 0.0,"Probability rate for cross slip in El-Azab 2016 paper. "
+  params.addParam<Real>("p_cs", 0.0,"Probability rate for cross slip in Christophe Depres thesis. "
                                     "This is the pre-factor that multiplies total screw "
 									"density and gives rate of increase of curvature density. ");
   params.addParam<Real>("remain_rho_tol",0.000001,"Tolerance on small values of remain_rho_tot.");
@@ -36,6 +36,8 @@ validParams<DoubleCrossSlip>()
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for stage III resolved shear stress");
   params.addParam<Real>("kB",0.0,"Boltzmann constant");
   params.addParam<Real>("Vact",0.0,"Activation volume");
+  params.addParam<Real>("drho_cs_tol",0.0,"Upper limit of the cross slip rate of dislocation density");  
+  params.addParam<Real>("R_cs",0.0,"Radius of cross slipped dislocation segment");
   return params;
 }
 
@@ -60,6 +62,8 @@ DoubleCrossSlip::DoubleCrossSlip(const InputParameters & parameters)
     _reference_temperature(getParam<Real>("reference_temperature")),
 	_kB(getParam<Real>("kB")),
 	_Vact(getParam<Real>("Vact")),
+    _drho_cs_tol(getParam<Real>("drho_cs_tol")),
+    _R_cs(getParam<Real>("R_cs")),
 	_tau_out(getMaterialProperty<std::vector<Real>>("tau_out")) // Resolved shear stress (signed)
 {
 }
@@ -72,6 +76,7 @@ DoubleCrossSlip::computeQpResidual()
   Real rss_cross_slip = 0.0; // resolved shear stress on the cross slip system
   Real temp = _temp[_qp]; // current temperature
   Real tauIII_T = 0.0;  // Stage III stress at temperature T
+  Real drho_cs = 0.0; // cross slip rate of screw dislocation density
 
   remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
 	             - _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
@@ -88,6 +93,14 @@ DoubleCrossSlip::computeQpResidual()
   val = std::exp(((rss_cross_slip - tauIII_T) * _Vact) / (_kB * temp));
   val = _p_cs * val * std::sqrt(remain_rho_tot);
 
+  drho_cs = val * _R_cs;
+
+  if (drho_cs >= _drho_cs_tol) {
+
+     val = _drho_cs_tol / _R_cs;
+
+  }
+
   return - _test[_i][_qp] * val; // minus sign because this is in the LHS of the equation
 }
 
@@ -101,15 +114,18 @@ DoubleCrossSlip::computeQpJacobian()
 Real
 DoubleCrossSlip::computeQpOffDiagJacobian(unsigned int jvar)
 {	  
-  Real jac = 0;
+  Real jac = 0.0;
   Real remain_rho_tot;
   Real rss_cross_slip = 0.0; // resolved shear stress on the cross slip system
   Real val;
   Real temp = _temp[_qp]; // current temperature
   Real tauIII_T = 0.0;  // Stage III stress at temperature T
+  Real drho_cs = 0.0; // cross slip rate of screw dislocation density
 
   remain_rho_tot = _rho_tot[_qp]*_rho_tot[_qp]
 	             - _rho_gnd_edge[_qp]*_rho_gnd_edge[_qp];
+				 
+  remain_rho_tot = std::max(remain_rho_tot,0.0);
 				 
   tauIII_T = _tauIII + _dtauIII_dT * (temp - _reference_temperature);	
   
@@ -119,19 +135,32 @@ DoubleCrossSlip::computeQpOffDiagJacobian(unsigned int jvar)
 				 
   // val is positive
   val = std::exp(((rss_cross_slip - tauIII_T) * _Vact) / (_kB * temp));
+  val = _p_cs * val * std::sqrt(remain_rho_tot);
+
+  drho_cs = val * _R_cs;
+  
+  if (drho_cs >= _drho_cs_tol) { 
+  
+    // return 0 if rate is above limit because
+	// rate is constant and does not depend on _rho_tot[_qp]
+	// or on _rho_gnd_edge[_qp]
+
+	return jac;
+
+  }
 
   if (remain_rho_tot > _remain_rho_tol) { // check that denominator is not close to zero
 	  
     if (_rho_tot_coupled && jvar == _rho_tot_var) {
 
-      jac = - _p_cs * val
-	      * (_rho_tot[_qp] / std::sqrt(remain_rho_tot))
+      jac = - val
+	      * (_rho_tot[_qp] / remain_rho_tot)
 	      * _phi[_j][_qp] * _test[_i][_qp];
 	
     } else if (_rho_gnd_edge_coupled && jvar == _rho_gnd_edge_var) {
 
-      jac = _p_cs * val
-          * (_rho_gnd_edge[_qp] / std::sqrt(remain_rho_tot)) 
+      jac = val
+          * (_rho_gnd_edge[_qp] / remain_rho_tot) 
 	      * _phi[_j][_qp] * _test[_i][_qp];
 	 
     }	  

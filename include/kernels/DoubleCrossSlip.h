@@ -4,6 +4,12 @@
 // University of Bristol
 // 13 Novembre 2021
 
+// Cross slip rate based on equation 2.5 in Christophe Depres 2004 Thesis
+// MODÉLISATION PHYSIQUE DES STADES PRÉCURSEURS
+// DE L’ENDOMMAGEMENT EN FATIGUE
+// DANS L’ACIER INOXYDABLE AUSTÉNITIQUE 316L
+// http://www.numodis.fr/download/2004_These_Christophe_DEPRES.pdf
+
 #pragma once
 
 #include "Kernel.h"
@@ -78,6 +84,18 @@ private:
   
   // Activation volume
   const Real _Vact;
+  
+  // Upper limit of the cross slip rate of dislocation density
+  // It corresponds to the situation in which most screw dislocations
+  // on the primary slip plane would move to a cross slip plane
+  const Real _drho_cs_tol;
+
+  // radius of the cross slip dislocation segment
+  // it is about 44 burgers vectors according to
+  // Nicolò Grilli, Koenraad G.F. Janssens, Helena Van Swygenhoven
+  // Crystal plasticity finite element modelling of low cycle fatigue in fcc metals
+  // Journal of the Mechanics and Physics of Solids 84 (2015) 424–435
+  const Real _R_cs;
 
   // resolved shear stress value (signed) on all slip systems
   // it is used to calculate the resolved shear stress
