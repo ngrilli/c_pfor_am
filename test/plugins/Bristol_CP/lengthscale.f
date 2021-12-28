@@ -293,8 +293,8 @@ c     The result is transposed since crystal to sample transformation is require
 	   !find the coordinates of the identified shared boundary nodes
 	   allocate (featureboundsnodes(val-1,3))
 	   featureboundsnodes=reshape((/nodex(grainb,grainboundindex), 
-     + nodey(grainb,grainboundindex),                       
-     + nodez(grainb,grainboundindex)/),(/val-1,3/))
+     1   	 nodey(grainb,grainboundindex),                       
+     2    	nodez(grainb,grainboundindex)/),(/val-1,3/))
 		
 		 
 	   !calculate the vector from the boundary nodes to the current
@@ -520,11 +520,11 @@ c		   rdistance=0.5D0*voxelsize
 			slpdirrotatenorm=norm2(slpdirrotate,dim=2)
 			
 			do i=1,size(slpdirrotate,1)
-      lxtotal(i,:,:)=reshape((/nodex(grainb,int(nodesnotindex))   
-     + - rnodes(i,1),                                
-     + nodey(grainb,int(nodesnotindex))-rnodes(i,2),
-     + nodez(grainb,int(nodesnotindex))-rnodes(i,3) 
-     + /),(/valb-1,3/))
+				lxtotal(i,:,:)=reshape((/nodex(grainb,int(nodesnotindex))   
+     1         				 -rnodes(i,1),                                
+     2          			 nodey(grainb,int(nodesnotindex))-rnodes(i,2),
+     3         				 nodez(grainb,int(nodesnotindex))-rnodes(i,3) 
+     4          			/),(/valb-1,3/))
 				lxnormin=lxtotal(i,:,:)
 				!******can be replaced with norm2 function
 				!call enorm(lxnormin,valb-1,lxnorm)
@@ -532,9 +532,8 @@ c		   rdistance=0.5D0*voxelsize
 				!find the angle between the vectors from the shared boundary to 
 				!boundary nodes in grain b and the vector developed from the voxel
 				!to the shared boundary
-      lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),
-     + slpdirrotate(i,:))/(lxnorm
-     + * slpdirrotatenorm(i)))
+      lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),slpdirrotate(i,:))/
+     + (lxnorm*slpdirrotatenorm(i)))
 				minxval0(i,:)=minloc(lxangle(i,:))
 				minxval0act(i,:)=lxangle(i,int(minxval0(i,:)))
 				minxval180(i,:)=minloc(abs(lxangle(i,:)-pi))
@@ -649,8 +648,8 @@ c         Therefore noscaling is used.
 
 
 		  !need to make sure to deallocate arrays
-		 deallocate (vect,mindist,sortmindist,mk, 
-     + minindex,sortedbgrains,  
+      deallocate (vect,mindist  ,sortmindist, mk, minindex,
+     + sortedbgrains,  
      + uniqgraindist,slpdirrotate,slpplanrotate,slpdirrotatea,   
      + slpplanrotatea,grainboundindex,featureboundsnodes,        
      + bxvalue,byvalue,bzvalue,btotal,bangle,normarray,normslp,  

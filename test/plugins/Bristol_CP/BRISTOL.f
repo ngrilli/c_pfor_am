@@ -7,6 +7,7 @@ c
       include "globalvars.f"
       include "globalsubs.f"
       include "lengthscale.f"
+      include "gndslipgrad.f"
       include "initialization.f"
       include "slipratelaws.f"
       include "sliphardlaws.f"      
@@ -17,12 +18,20 @@ c
       SUBROUTINE UEXTERNALDB(LOP,LRESTART,TIME,DTIME,KSTEP,KINC)
 c     Subroutine for initialization      
       use initialization, only : initialize_all
-      use globalvars, only: foldername
-c
+      use globalvars, only: foldername, GNDeffect
+      use gndslipgrad, only: calculategnds, calculatebackstress
       implicit none
+c
+c      INCLUDE 'ABA_PARAM.INC'
+c      
+c
+#      include <SMAAspUserSubroutines.hdr>
+c
+c
 c      
 c      
-c       
+c
+
 c      
 c
       integer,                        intent(in) ::
@@ -39,7 +48,6 @@ c
 c
 c      
 c      
-      foldername= "/home/nicolo/projects/c_pfor_am/test/tests/umat"
 c      
 c
 c      
@@ -47,14 +55,44 @@ c
 c
 c     At the start of the analysis (only ONCE!)
       if (LOP.eq.0) then
-          write(6,*) 'initialization has started!'
-           write(6,*) '********************************'
+c          
+          foldername= "../../tests/umat/"          
+c          
+c          
+          write(6,*) 'initialization has started!' 
+          write(6,*) '********************************'
           call initialize_all(foldername)
           write(6,*) '********************************'
           write(6,*) 'initialization has ended!'
       endif
 c      
-c      
+c
+c     GND calculations require non-local method, so MUTEX is placed here!
+      if (GNDeffect.eq.1) then
+c          call MutexInit( 1 )      ! initialize Mutex #1
+c
+c     At the end of each increment update and calculate GNDs (nonlocal calculations)
+c     This is done at the end of calculations because the GNDs that belong to the
+c     PREVOUS time step are used. Initially GNDs are assumed to have "0" values. 
+          if (LOP.eq.2) then
+c          
+c              call MutexLock( 1 )      ! lock Mutex #1
+c          
+c                 Calculate GNDs
+                  call calculategnds(DTIME(1))
+c              
+c                 Calculate Backstress from GND gradients              
+                  call calculatebackstress             
+c          
+c              call MutexUnlock( 1 )    ! unlock Mutex #1
+c          
+              return
+c          
+              write(6,*) 'end of increment: ', KINC
+              write(6,*) 'GND calculation completed!'
+
+          endif
+      endif
 c      
 c      
       RETURN
@@ -73,7 +111,6 @@ c
      4 CELENT,DFGRD0,DFGRD1,NOEL,NPT,LAYER,KSPT,KSTEP,KINC)
 c
       use calculations, only: calcs
-      use globalvars, only: global_state
 c
 c
 c
@@ -152,7 +189,6 @@ c      write(6,*) 'DFGRD1',DFGRD1
 c      write(6,*) 'STRESS',STRESS
 c      
 c
-      STATEV(1) = global_state(1,1,1,1)
 c
 c     Perform all the calculations     
       call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL+1,NPT+1,

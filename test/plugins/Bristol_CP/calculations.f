@@ -9,29 +9,23 @@ c
 c
 c	This subroutine calculates the two main variables: Stress and Consistent tangent	
       subroutine calcs(F_t,F,t,dt,temp,inc,el_no,ip_no,
-     + sigma,jacob,pnewdt,coords)
-      use globalvars, only: global_Fp,global_Fp_t
-	  use globalvars, only: global_Fe,global_Fe_t
-      use globalvars, only: global_state,global_state_t
-	  use globalvars, only: I3,inc_old,elas66
-      use globalvars, only: global_ori,njaco,innoitmax
-	  use globalvars, only: ounoitmax,global_gammadot_t
-      use globalvars, only: global_sigma,global_jacob_t
-	  use globalvars, only: global_jacob,TF,phaseID,numslip
-      use globalvars, only: global_gammadot,global_S
-	  use globalvars, only: global_S_t,t_old,ratio_lb,ratio_ub
-      use globalvars, only: dgamma_s,global_gamma_t
-	  use globalvars, only: global_gamma,global_sigma_t
-      use globalvars, only: global_gamma_sum_t,global_gamma_sum
-	  use globalvars, only: numstvar,thermo,temp0
-      use globalvars, only: GSeffect,grainID,grainsize_init
-	  use globalvars, only: global_state0,tstep_forw
-      use globalvars, only: tstep_back,numel,numip
-	  use globalvars, only: global_Fr0,tres,resdef,mtdjaco
-      use globalvars, only: coords_init,global_coords
-	  use globalsubs, only: convert3x3to6,invert3x3
-	  use globalsubs, only: skew,misorientation,polar
-      use initialization, only: initialize_grainsize
+     &sigma,jacob,pnewdt,coords)
+      use globalvars, only: global_Fp,global_Fp_t,global_Fe,
+     + global_Fe_t,
+     + global_state,global_state_t,I3,inc_old,elas66,global_coords,
+     + global_ori,njaco,innoitmax,ounoitmax,global_gammadot_t,
+     + global_sigma,global_jacob_t,global_jacob,TF,phaseID,numslip,
+     + global_gammadot,global_S,global_S_t,t_old,ratio_lb,ratio_ub,
+     + dgamma_s,global_gamma_t,global_gamma,global_sigma_t,GNDeffect,
+     + global_gamma_sum_t,global_gamma_sum,numstvar,thermo,temp0,
+     + GSeffect,grainID,grainsize_init,global_state0,
+     + tstep_forw,GND_init,
+     + tstep_back,numel,numip,global_Fr0,tres,resdef,
+     + mtdjaco,coords_init
+	use globalsubs, only: convert3x3to6,invert3x3,skew,misorientation,
+     &polar
+      use initialization, only: initialize_grainsize, 
+     &initialize_gndslipgradel
 	implicit none
 c	Inputs
       integer inc
@@ -39,20 +33,18 @@ c	Inputs
 c	Outputs
 	real(8) sigma(6),jacob(6,6),pnewdt,coords(3)
 c	Variables used within this subroutine
-      real(8) Fp_t(3,3),Fe_t(3,3),tauc_t(numslip)
-      real(8) Fr(3,3),Fr_t(3,3)
-      real(8) Fp(3,3),Fe(3,3),tauc(numslip),Cauchy(3,3)
-      real(8) S(6),S_t(6),det,C(3,3,numslip),epsdot
-      real(8) Lp(3,3),R(3,3),U(3,3),gammadot(numslip)
-	  real(8) dgammadot_dtau(numslip)
-      integer is,el_no,ip_no,gr_no
-      real(8) g1(3,3),ang,ax(3),dg(3,3)
-      real(8) ratio,dgamma_max,gsum_t,gsum
-	  real(8) gint_t(numslip),gint(numslip)
-      integer sconv, jconv, i, j
-      real(8) state(numslip,numstvar),state_t(numslip,numstvar)
-      real(8) state0(numslip,numstvar),sgint_t,sgint
-      real(8) sstate(numstvar),sstate_t(numstvar),sstate0(numstvar)
+	real(8) Fp_t(3,3),Fe_t(3,3),tauc_t(numslip), Fr(3,3),Fr_t(3,3)
+	real(8) Fp(3,3),Fe(3,3),tauc(numslip),Cauchy(3,3)
+	real(8) S(6),S_t(6),det,C(3,3,numslip),epsdot
+      real(8) Lp(3,3),R(3,3),U(3,3),gammadot(numslip),
+     + dgammadot_dtau(numslip)
+	integer is,el_no,ip_no,gr_no
+	real(8) g1(3,3),ang,ax(3),dg(3,3)
+      real(8) ratio,dgamma_max,gsum_t,gsum,gint_t(numslip),gint(numslip)
+      integer sconv, jconv, i, j, flag
+      real(8)	state(numslip,numstvar),state_t(numslip,numstvar),
+     &state0(numslip,numstvar),sgint_t,sgint
+      real(8)	sstate(numstvar),sstate_t(numstvar),sstate0(numstvar)
 
       
       
@@ -62,7 +54,7 @@ c     - Change in INC does not work here!!! Because, during sub time stepping,
 c       INC also increases while time remains the same
 c	if ((t.gt.t_old).or.(inc.ne.inc_old)) then
       if (t.gt.t_old(el_no,ip_no)) then
-         write(6,*) 'Updated the state variables'
+c         write(6,*) 'Updated the state variables'
          t_old(el_no,ip_no)=t
          inc_old(el_no,ip_no)=inc
          global_Fp_t(el_no,ip_no,:,:)=global_Fp(el_no,ip_no,:,:)
@@ -78,14 +70,14 @@ c	if ((t.gt.t_old).or.(inc.ne.inc_old)) then
       
       
       
-c     If length scale calculation is "ON"
+c     If length scale calculation is "ON" - Dylan's version
       if (GSeffect.eq.1) then
 c         If not initialized
           if (grainsize_init(el_no,ip_no).eq.0) then
 
               
 c             flag for initialization
-              grainsize_init(el_no,ip_no) = 1d+0
+              grainsize_init(el_no,ip_no)=1
 
           
 c              write(6,*) 'element no.: ', el_no
@@ -105,25 +97,60 @@ c              write(6,*) 'coordinates: ', coords
       endif
          
       
-c     Initialize IP coordinates
-c     Store IP coordinates once at the beginning of the calculations
-c     Do it only once at the beginning
-      if (inc.le.1) then
-          if (coords_init(el_no,ip_no).eq.0) then
-          
-              coords_init(el_no,ip_no) = 1d+0
-          
-              global_coords(el_no,ip_no,1:3) = coords
-              
-              write(6,*) 'element no.: ', el_no
-          
-              write(6,*) 'IP no.: ', ip_no
 
-              write(6,*) 'coordinates: ', global_coords(el_no,ip_no,1:3)
-          
-          endif
-      endif
       
+      
+
+c     If not initialized
+      if (coords_init(el_no,ip_no).eq.0) then
+
+              
+c         flag for initialization
+          coords_init(el_no,ip_no) = 1d+0
+
+          
+c          write(6,*) 'element no.: ', el_no
+          
+c          write(6,*) 'IP no.: ', ip_no
+          
+c          write(6,*) 'coordinates: ', coords
+          
+          global_coords(el_no,ip_no,1:3) = coords
+          
+      endif      
+      
+      
+      
+c     Initialize GND calculation from slip gradients
+      if (GNDeffect.eq.1) then
+
+
+c         Not yet initialized (done only once)
+          if (GND_init.eq.0) then
+          
+          
+c             Once the calculations are complete
+              flag=0d+0
+              do i=1, numel
+                  do j=1,numip
+                      flag = flag + coords_init(i,j)
+                  enddo
+              enddo
+          
+c             Once the coordinates are computed          
+              if (flag.eq.numel*numip) then
+              
+                  GND_init = 1d+0
+              
+c                 initialize calculations for GND mapping after all the element information is complete!
+c                 This is done ONCE!
+                  call initialize_gndslipgradel
+              
+              endif
+              
+          endif
+          
+      endif      
       
 
       
@@ -275,9 +302,8 @@ c	        Note, jacobian is needed at the first calculation
 	        if (modulo(inc,njaco).eq.0) then
 c		    Calculate the material tangent (using perturbation)
 
-   
-      call J2_jacobian(dt,F_t,F,Fe_t,
-     + Fp_t,sstate_t,gsum_t,sgint_t,
+    
+      call J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,gsum_t,sgint_t,
      + temp,sstate0,sigma,jacob,jconv)
               
               
@@ -368,11 +394,9 @@ c
 c	    Calculate stress and shear resistance
 c	    Note: el_no and ip_no are needed to get the values of Schmid vectors and
 c	    elasticity tensor from the global variables
-      call SC_main(dt,F,Fp_t,Fr,S_t,state_t,
-     + gsum_t,gint_t,temp,
-     + state0,C,S,Lp,Fp,Fe,sigma,gammadot,
-     + dgammadot_dtau,state,gsum,
-     + gint,sconv)
+          call SC_main(dt,F,Fp_t,Fr,S_t,state_t,gsum_t,gint_t,temp,
+     &    state0,C,S,Lp,Fp,Fe,sigma,gammadot,dgammadot_dtau,state,gsum,
+     &    gint,sconv)
 c
 
       
@@ -600,13 +624,11 @@ c
 c      
 c     Main routine for jacobian calculation for Martensite 
 c	This subroutine calculates consistent tangent
-      subroutine J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,
-     + gsum_t,sgint_t,temp,
-     + sstate0,Cauchy_vec,jacob,jconv)
-      use globalvars, only : deps,innoitmax,ounoitmax
-	  use globalvars, only : numslip,numstvar
-      use globalsubs, only : convert3x3to6,convert6to3x3
-      implicit none
+      subroutine J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,gsum_t,
+     + sgint_t,temp,sstate0,Cauchy_vec,jacob,jconv)
+	use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
+	use globalsubs, only : convert3x3to6,convert6to3x3
+	implicit none
 c	Inputs
       real(8) F_t(3,3),F(3,3),dt,gsum_t,sgint_t,temp
 	real(8) Fp_t(3,3),Fe_t(3,3),Cauchy_vec(6)
@@ -881,8 +903,8 @@ c          write(6,*) 'sstatedot',sstatedot
 
 c		Increment in shear resistance
 c		Residual in the shear resistance
-      R2=sstate(1:numstvar)-sstate_t(1:numstvar)
-     + - sstatedot(1:numstvar)*dt
+      R2=sstate(1:numstvar)-sstate_t(1:numstvar)-
+     + sstatedot(1:numstvar)*dt
 
 c		Absolute tolerance
 		xx2=maxval(dabs(R2))
@@ -980,8 +1002,8 @@ c
 c      
 c
 c	This subroutine calculates consistent tangent
-      subroutine SC_jacobian_per(dt,F_t,F,S_vec_t,Fp_t,
-     + Fr,state_t,gsum_t,
+      subroutine SC_jacobian_per(dt,F_t,F,S_vec_t,
+     + Fp_t,Fr,state_t,gsum_t,
      + gint_t,temp,state0,Cauchy_vec,jacob,jconv)
 	use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
 	use globalsubs, only : convert6to3x3, determinant
@@ -1023,16 +1045,14 @@ c		Note it is not deps/2 since during conversion only one component is considere
           endif
 
 c		Convert the vector to a matrix
-      call convert6to3x3(dFrel_vec,dFrel)
-      F_per=F+matmul(dFrel,F_t)
+		call convert6to3x3(dFrel_vec,dFrel)
+		F_per=F+matmul(dFrel,F_t)
 c		Call the calculation procedure
-      call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,state_t,
-     + gsum_t,gint_t,temp,
-     + state0,dummy1,dummy2,dummy3,dummy4,dummy5,
-     + Cauchy_per_vec,dummy6,
-     + dummy7,state,dummy8,dummy9,sconv)
+		call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,state_t,gsum_t,gint_t,temp,
+     &state0,dummy1,dummy2,dummy3,dummy4,dummy5,Cauchy_per_vec,dummy6,
+     &dummy7,state,dummy8,dummy9,sconv)
 c
-      if (sconv.eq.0) jconv=0
+          if (sconv.eq.0) jconv=0
 
 c
 c		Assignment of jacobian components
@@ -1469,10 +1489,10 @@ c	INPUTS: F_T(3,3), Fe_t0(3,3), Fp_t0(3,3), tauc_t0(12), dt
 c	OUPUTS: invFp_T(3,3), T_T_vec(6), gammadot(12), dgammadot_dtau(12),
 c			 Lp(3,3), tauc(12), initno, ouitno
 c	USES:	scale, innertol, outertol, innoitmax, ounoitmax
-      subroutine SC_main(dt,F,Fp_t,Fr_0,S_vec_t,state_t,
-     + gsum_t,gint_t,temp,
-     + state0,C,S_vec,Lp,Fp,Fe,Cauchy_vec,
-     + gammadot,dgammadot_dtau,state,
+      subroutine SC_main(dt,F,Fp_t,Fr_0,S_vec_t,
+     + state_t,gsum_t,gint_t,temp,
+     + state0,C,S_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,
+     + dgammadot_dtau,state,
      + gsum,gint,sconv)
 c      
 c      
@@ -1485,14 +1505,14 @@ c	Input variable declarations
 	real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,gint_t(numslip),temp
       real(8) Fr_0(3,3)
 c	Output variable declarations
-      real(8) C(3,3,numslip),S_vec(6),Lp(3,3)
-      real(8) Fp(3,3),Fe(3,3),Cauchy(3,3)
+      real(8) C(3,3,numslip),S_vec(6),Lp(3,3),Fp(3,3),
+     + Fe(3,3),Cauchy(3,3)
       real(8) Cauchy_vec(6), gammadot(numslip),dgammadot_dtau(numslip)
 	real(8) gsum,gint(numslip)
 	integer ounoit,innoit,i,j,is,sconv,count
 c	Variables used within this subroutine
-      real(8) detFp_t,invFp_t(3,3),A(3,3)
-	  real(8) B(3,3,numslip),B_vec(6,numslip)
+      real(8) detFp_t,invFp_t(3,3),A(3,3),
+     + B(3,3,numslip),B_vec(6,numslip)
       real(8) E_tr(3,3),E_vec_tr(6),S_vec_tr(6),C_vec(6,numslip)
       real(8) sumG(6), tau(numslip),inres,invFr_0(3,3),detFr_0,Fsum(3,3)
       real(8) dG(6,6),dS_vec(6),invdG(6,6),detdG,G_vec(6)
@@ -1510,8 +1530,8 @@ c	Calculation of known quantities
 	call invert3x3(Fr_0,invFr_0,detFr_0)      
       
 c     First calculate the original one!
-      A=matmul(transpose(invFp_t),matmul(matmul(transpose(F),F),
-     + invFp_t))
+      A=matmul(transpose(invFp_t),
+     + matmul(matmul(transpose(F),F),invFp_t))
 c     Modified for residual deformation
       A=matmul(transpose(invFr_0),matmul(A,invFr_0))
       
@@ -1643,9 +1663,10 @@ c				write(3,*) dFp_T
 			endif
           enddo
           
-          
+c         cumulative slip          
           gsum = gsum_t + sum(dabs(gammadot))*dt
           
+c         time integrated value of slip          
           gint = gint_t + dabs(gammadot)*dt
                    
 
@@ -1653,7 +1674,8 @@ c				write(3,*) dFp_T
 c		write(3,*) 'innoit:  ',innoit
 c		END of INNER iteration loop	
 c		Calculate amount of slip system hardening	
-		call hardening(gammadot,state,gsum,gint,temp,state0,statedot,dt)
+      call hardening(gammadot,state0,state_t,state,
+     + gsum,gint,temp,dt,statedot)
 c          write(6,*) 'statedot',statedot
 c		Residual increments of slip resistance
           count=0
@@ -1797,21 +1819,21 @@ c	This subroutine includes the constitutive calculations
 c	INPUTS: C(3,3), invFp_T(3,3), tauc(12)
 c	OUTPUTS:Ce(3,3), T_T_vec(6), tau(12), gammadot(12), dgammadot_dtau(12), Lp(3,3)
 c	USES: Schmid(12,3,3), Schmid_vec(12,6), zeta66(6,6), gammadot0, mm, I3(3,3)
-      subroutine constitutive(S_vec,C_vec,state,temp,
-     + tau,gammadot,dgammadot_dtau,Lp,sumG)
-      use globalvars, only : I3,elas66,Schmid,Schmid_vec
-      use globalvars, only : numslip,numstvar
-      use globalsubs, only : convert3x3to6
+	subroutine constitutive(S_vec,C_vec,state,temp,
+     &tau,gammadot,dgammadot_dtau,Lp,sumG)
+      use globalvars, only : I3,elas66,Schmid,
+     + Schmid_vec,numslip,numstvar
+	use globalsubs, only : convert3x3to6
       use slipratelaws, only: sliprate
 	implicit none
 c	Input variable declarations
-      real(8) S_vec(6),C_vec(6,numslip),temp
+	real(8) S_vec(6),C_vec(6,numslip),temp
 c	Output variable declarations
-      real(8) tau(numslip),gammadot(numslip)
-      real(8) dgammadot_dtau(numslip),Lp(3,3)
-      real(8) sumG(6)
+      real(8) tau(numslip),gammadot(numslip),
+     + dgammadot_dtau(numslip),Lp(3,3)
+	real(8) sumG(6)
 c	Variables used within the code
-      real(8) E(3,3),E_vec(6)
+	real(8) E(3,3),E_vec(6)
 	integer xx,i
       real(8)	state(numslip,numstvar)
 c	ASSIGNMENT OF GLOBAL VARIABLES
@@ -1901,27 +1923,26 @@ c     Tangent of the residual
 
 
 
-
 c	This subroutine calculates the amount of hardening for a given shear rate
 c	INPUTS:		gammadot(12), tauc(12)
 c	OUTPUTS:	dtauc(12)
 c	USES:		h0, ss, a, hardmat
-      subroutine hardening(gammadot,state,gsum,gint,
-     + temp,state0,statedot,dt)
-      use globalvars, only: intmat, numslip, modelno, numstvar
-      use globalvars, only: sliphard_param
+      subroutine hardening(gammadot,state0,state_t,state,
+     + gsum,gint,temp,dt,statedot)
+	use globalvars, only: intmat, numslip, modelno, numstvar,
+     & sliphard_param
       use sliphardlaws, only: sliphard
 	implicit none
 c	Input variable declarations
 	real(8) gammadot(numslip), gsum, gint(numslip), temp, dt
 c	Input variable declarations
 c	Variables used within this subroutine
-      real(8) taucdot(numslip), tothard
+      real(8) taucdot(numslip), tothard, tauc(numslip)
 	integer xx, i, j
-      real(8)	state(numslip,numstvar),state0(numslip,numstvar)
-      real(8)	statedot(numslip,numstvar)
+      real(8)	state0(numslip,numstvar),state_t(numslip,numstvar)
+      real(8)	state(numslip,numstvar),statedot(numslip,numstvar)
       real(8) statedot_(numslip,numstvar+1)
-      real(8) Q_3
+      real(8) Q_3, tauc0_3, tauc_3(numslip), rhoSSDdot(numslip)
 
       
       statedot = 0.
@@ -1933,7 +1954,7 @@ c	Variables used within this subroutine
       
 
           call sliphard(state(xx,1:numstvar),gsum,gint(xx),gammadot(xx),
-     &    temp,state0(xx,1:numstvar),statedot_(xx,1:numstvar+1))
+     & temp,state0(xx,1:numstvar),statedot_(xx,1:numstvar+1))
           
            
           
@@ -1976,9 +1997,8 @@ c     An if statement is placed specific to the model due to the state variables
 
           taucdot =  statedot(:,1)
       
-          taucdot = matmul(intmat,taucdot)
+          statedot(:,1) = matmul(intmat,taucdot)
       
-          statedot(:,1) = taucdot
 
            
           
@@ -1986,26 +2006,43 @@ c     An if statement is placed specific to the model due to the state variables
           
           taucdot =  statedot(:,1)
       
-          taucdot = matmul(intmat,taucdot)
-      
-          statedot(:,1) = taucdot 
+          statedot(:,1) = matmul(intmat,taucdot)
+
           
           
       elseif (modelno.eq.3) then
           
-          taucdot =  statedot(:,1)/dt
+          tauc =  statedot(:,1)
           
 c         Hardening parameter of Code Aster - MFRONT          
           Q_3 = sliphard_param(3)
+          
+c         Initial slip resistance          
+          tauc0_3 = sliphard_param(1)
       
-          taucdot = matmul(intmat,taucdot)
+          tauc_3 = Q_3 * matmul(intmat,tauc)
+          
+          
+c         Calculate the rate to trick the hardening integraion    
+          do xx=1,numslip
+              statedot(xx,1) = (tauc_3(xx) + tauc0_3 - state_t(xx,1))/dt
+          enddo
+          
+          
+      elseif (modelno.eq.4) then
+          
+          rhoSSDdot = statedot(:,1)
+                
+          statedot(:,1) = matmul(intmat,rhoSSDdot)
       
-          statedot(:,1) = Q_3 * taucdot     
+         
           
           
           
           
-      endif
+      endif         
+          
+
       
       
       

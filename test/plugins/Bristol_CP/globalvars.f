@@ -16,6 +16,8 @@ c	Total number of elements in the mesh
 	integer, public :: numel
 c	Number of integration points per element
       integer, public :: numip
+c     Number of nodes per element
+      integer, public :: nnpe      
 c     Number of grains in the mesh (computed from materials.dat file)
       integer, public :: numgrain
 c     ______________________________________________________
@@ -61,12 +63,8 @@ c	Global current jacobian matrix
 c	Global current stress vector - Cauchy
       real(8), allocatable, public ::	 global_sigma(:,:,:)
       real(8), allocatable, public ::	 global_sigma_t(:,:,:)  
-c
-c     Global undeformed IP coordinates
-      real(8), allocatable, public :: global_coords(:,:,:)
-c     flag for coordinate initialization
-      integer, allocatable, public :: coords_init(:,:)
-
+c     Global IP coordinates      
+      real(8), allocatable, public ::	 global_coords(:,:,:)
 c	Constants used everywhere
 c     ______________________________________________________
 c	Constant pi
@@ -80,7 +78,9 @@ c     Number of slip systems
 c	Schmid tensor
 	real(8)	, allocatable, public :: Schmid(:,:,:)
 c	Climb tensor
-	real(8)	, allocatable, public :: Climb(:,:,:)      
+	real(8)	, allocatable, public :: Climb(:,:,:)    
+c	Slip System to Crystal transformation
+	real(8)	, allocatable, public :: Slip2Crys(:,:,:)        
 c	Schmid tensor - transpose
 	real(8)	, allocatable, public :: SchmidT(:,:,:)      
 c	Vectorized Schmid tensor
@@ -156,9 +156,12 @@ c	modelno: 1/2/3/4/5
 c	interno: 0/1/2
 	integer, public :: interno
       
-c	Length scale effect - Dylan's model: 0 (OFF) /1 (ON)
+C	LENGTHSCALE PARAMETERS
+c     ______________________________________________________      
+c      
+c	Strain hardening interaction: 0 (OFF) /1 (ON)
 	integer, public :: GSeffect
-     
+      
 c	Strain rate parameters (1:param)
 	real(8), allocatable, public :: sliprate_param(:)
 c      
@@ -177,7 +180,7 @@ c	Length scale parameters (1:2)
 c     grainsize(2): "k", linear hardening coefficient
 c     grainsize(3): "c", hardening exponent for grain boundary mismatch
 c
-c     Global variables related with length scale calculation - Dylan's length scale model
+c     Global variables related with length scale calculation
 c      real(8), allocatable, public :: oriensh(:,:)
       real(8), allocatable, public :: grainori(:,:)
       real(8), allocatable, public :: nodex(:,:)
@@ -187,7 +190,37 @@ c      real(8), allocatable, public :: oriensh(:,:)
       real(8), allocatable, public :: elcent(:,:)
       integer, public :: nodeout
 
+c     ______________________________________________________  
 
+
+C     STRAIN GRADIENT PARAMETERS
+c     ______________________________________________________  
+          
+c	Strain gradient: 0 (OFF) /1 (curl of Fp) / 2 (slip gradients)
+	integer, public :: GNDeffect     
+
+c     Global initialization flag for IP coordinates
+      integer, allocatable, public ::	 coords_init(:,:)
+c      
+c     Initialiation of elemental GND calculations 
+      integer GND_init
+	data    GND_init     /0/
+c     Integration point coordinates in the iso-parametric space
+c     Parameters are consistent with ABAQUS - g, h, r
+      real(8), allocatable, public :: IPghr(:,:)
+c     Integration weights            
+      real(8), allocatable, public :: wtghr(:)
+c     Inverse of Nmat: IP to node mapping
+      real(8), allocatable, public :: invNmat(:,:)
+c     Interpolation function derivatives
+      real(8), allocatable, public :: dNmat(:,:,:)
+c     Gradient mapping
+      real(8), allocatable, public :: Gmat(:,:,:)      
+c     
+c     Gradient map for elements
+      real(8), allocatable, public :: gradIP2IP(:,:,:,:,:)
+c     ______________________________________________________  
+      
 
 c     Equivalent isotropic Young's modulus
       real(8), public :: E
@@ -474,14 +507,14 @@ c
 c
 c	Symmetry operators for hexagonal materials
 c	Constant for hexagonal materials
-	real(8), parameter :: hex=0.866025403d+0
-      real(8), public :: hcpsym(12,3,3)
+	real(8), parameter ::  hex=0.866025403d+0
+	real(8), public ::  hcpsym(12,3,3)
 c	6-2 symmetry
-      data hcpsym(1,1,:) /1, 0, 0/
-      data hcpsym(1,2,:) /0, 1, 0/
-      data hcpsym(1,3,:) /0, 0, 1/
-      data hcpsym(2,1,:) /-0.5, 0.866025403d+0, 0/
-      data hcpsym(2,2,:) /-0.866025403d+0, -0.5 , 0/
+	data hcpsym(1,1,:) /1, 0, 0/
+	data hcpsym(1,2,:) /0, 1, 0/
+	data hcpsym(1,3,:) /0, 0, 1/
+	data hcpsym(2,1,:) /-0.5, 0.866025403d+0, 0/
+	data hcpsym(2,2,:) /-0.866025403d+0, -0.5 , 0/
 	data hcpsym(2,3,:) /0, 0, 1/
 	data hcpsym(3,1,:) /-0.5, -0.866025403d+0, 0/
 	data hcpsym(3,2,:) /0.866025403d+0, -0.5 , 0/
