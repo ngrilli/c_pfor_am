@@ -209,7 +209,7 @@
   [umat]
     type = AbaqusUMATStress
     constant_properties = '0'
-    plugin = '/home/nicolo/projects/c_pfor_am/test/plugins/Bristol_CP/BRISTOL'
+    plugin = '../../plugins/Bristol_CP/BRISTOL'
     num_state_vars = 1
   []
 []
@@ -219,7 +219,7 @@
   # this runs the UExternalDB subroutine once at the first time step
   [uexternaldb]
     type = AbaqusUExternalDB
-    plugin = '/home/nicolo/projects/c_pfor_am/test/plugins/Bristol_CP/BRISTOL'
+    plugin = '../../plugins/Bristol_CP/BRISTOL'
     execute_on = 'INITIAL'
   []
   
