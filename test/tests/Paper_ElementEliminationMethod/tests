@@ -1,8 +1,14 @@
 [Tests]
-  [./test]
+  [./test_8um_mesh]
     type = 'Exodiff'
     input = 'Case2DegradEigenBFI3.i'
     exodiff = 'Case2DegradEigenBFI3_out.e'
+	heavy = true
+  [../]
+  [./test_4um_mesh]
+    type = 'Exodiff'
+    input = 'Case2DegradEigenBFI3_4um.i'
+    exodiff = 'Case2DegradEigenBFI3_4um_out.e'
 	heavy = true
   [../]
 []

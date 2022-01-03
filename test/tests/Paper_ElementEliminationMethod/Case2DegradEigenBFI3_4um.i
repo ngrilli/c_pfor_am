@@ -1,15 +1,15 @@
-# This is similar to the simulation used in
+# This is the simulation used in
 # Nicolò Grilli, Daijun Hu, Dewen Yushu, Fan Chen, Wentao Yan
 # Crystal plasticity model of residual stress in additive manufacturing 
 # using the element elimination and reactivation method
 # Computational Mechanics (Springer) 2021
 # https://doi.org/10.1007/s00466-021-02116-z
 # https://link.springer.com/article/10.1007/s00466-021-02116-z
-# but with 8 micron mesh instead of 4 micron
+# it is used in Figures 8, 11, 12, 14 of the article
 
-# the temperature file
-# Temperature8umToRT.txt
-# contains all the temperature time steps
+# the temperature file Temperature4umToRT2.txt
+# is truncated to two temperature time steps
+# so that it does not occupy much space in github
 
 [Problem]
   kernel_coverage_check = false
@@ -19,12 +19,12 @@
   [./gen]
     type = GeneratedMeshGenerator
     dim = 3
-    nx = 25 
-    ny = 20
-    nz = 14
+    nx = 50 
+    ny = 40
+    nz = 27
     xmax = 200.0
     ymax = 160.0
-    zmax = 112.0
+    zmax = 108.0
     elem_type = HEX8
     displacements = 'disp_x disp_y disp_z'
   [../]
@@ -32,20 +32,20 @@
     input = gen
     type = SubdomainBoundingBoxGenerator
     bottom_left = '0.0 0.0 0.0'
-    top_right = '200.0 152.0 112.0'
+    top_right = '200.0 160.0 104.0'
     block_id = 1
   [../]
   [./deactivated_domain]
     input = active_domain
     type = SubdomainBoundingBoxGenerator
-    bottom_left = '0.0 152.0 0.0'
-    top_right = '200.0 160.0 112.0'
+    bottom_left = '0.0 0.0 104.0'
+    top_right = '200.0 160.0 108.0'
     block_id = 2
   [../]
   [./sidesets]
     input = deactivated_domain
     type = SideSetsAroundSubdomainGenerator
-    normal = '0 1 0'
+    normal = '0 0 1'
     block = 1
     new_boundary = 'moving_interface'
   []
@@ -382,7 +382,7 @@
 [UserObjects]
   [./prop_read]
     type = GrainPropertyReadFile
-    prop_file_name = 'GGEuler8umChen2019.txt'
+    prop_file_name = 'GGEuler4umChen2019.txt'
     # Enter file data as prop#1, prop#2, .., prop#nprop
     nprop = 3
     read_type = element
@@ -390,8 +390,8 @@
 
   [./temperature_read]
     type = LaserTempReadFile
-    temperature_file_name = 'Temperature8umToRT.txt'
-    temperature_num_step = 80
+    temperature_file_name = 'Temperature4umToRT2.txt'
+    temperature_num_step = 2
   [../]
   
   [./activated_elem_uo]
@@ -1031,7 +1031,7 @@
   [../]
   
   start_time = 0.0
-  end_time = 3555.0
+  end_time = 1.0 # 3555.0 microseconds
 
   dtmin = 1.0e-99
   timestep_tolerance = 1.0e-99  
@@ -1040,14 +1040,14 @@
 
 [Outputs]
   csv = false
-  [./my]
-    type = Checkpoint
-    num_files = 2
-    interval = 45
-  [../]
+  #[./my]
+  #  type = Checkpoint
+  #  num_files = 2
+  #  interval = 45
+  #[../]
   [./out]
     type = Exodus
-    interval = 45
+    interval = 1
   [../]
 []
 
