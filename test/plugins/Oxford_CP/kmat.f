@@ -103,7 +103,9 @@ C      INCLUDE 'ABA_PARAM.INC'
       ! 5 = Original slip rule with GND coupling 
       ! 6 = Slip rule with constants alpha and beta: alpha.sinh[ beta(tau-tauc)sgn(tau) ]
       ! 7 = Powerlaw plasticity
-      integer, parameter :: kslip = 7
+      ! 8 = Double Exponent law
+      ! 9 = 'Nickel_supperalloy' coupled double exponent law and tertiary creep law (additive)
+      integer, parameter :: kslip = 9
 
       ! initial temperature and temperature rate
       real*8, parameter :: Temperature = 293.0
@@ -124,7 +126,14 @@ C      INCLUDE 'ABA_PARAM.INC'
 	  
       ! use temperature provided by Abaqus solver
 	  ! through the TEMP and DTEMP variables
-      integer, parameter :: use_abaqus_temperature = 0 
+      integer, parameter :: use_abaqus_temperature = 0
+
+      ! 0 = temperature in K
+	  ! 1 = temperature in C
+      integer, parameter :: temp_in_celsius = 0 
+
+      ! 1 = activate creep for CMSX-4 alloy
+      integer, parameter :: creep = 0		  
 
 **       End of parameters to set       **
 ******************************************
@@ -134,13 +143,6 @@ C      INCLUDE 'ABA_PARAM.INC'
 
       ! dimension of Voigt vectors
       INTEGER, parameter :: KM=6,KN=6
-
-      ! number of active slip systems considered
-      integer, parameter :: L0=12 ! HCP
-      integer, parameter :: L1=12 ! BCC
-      integer, parameter :: L2=12 ! FCC
-      integer, parameter :: L4=7  ! Olivine
-      integer, parameter :: LalphaUranium=8 ! alpha-uranium
 
       ! stress matrix in the Newton-Raphson loop
       REAL*8 :: stressM(3,3)
@@ -251,6 +253,9 @@ C      INCLUDE 'ABA_PARAM.INC'
 
       ! rotated slip normals and directions (gmatinv)
       REAL*8,dimension(nSys,M) :: xNorm,xDir
+	  
+      ! Back stress for double exponent law
+      REAL*8,dimension(nSys) :: Backstress
 
       ! resolved shear stress on slip system
       ! and its sign
@@ -423,6 +428,7 @@ C     *** INITIALIZE ZERO ARRAYS ***
       tauctwin(1:nTwin) = 0.0
       rhossd = 0.0
       pdot = 0.0
+      Backstress = 0.0
 
       ! define identity matrix
       DO I=1,KM; xIden6(I,I)=1.; END DO      
@@ -437,11 +443,17 @@ C     *** INITIALIZE ZERO ARRAYS ***
       else
         CurrentTemperature = Temperature + ytemprate*time(2) 
       end if
+	  
+	  ! add 273.15 if temperature is in Celsius
+      if (temp_in_celsius == 1) then
+        CurrentTemperature = CurrentTemperature + 273.15
+      end if
 
       ! set materials constants
       call kMaterialParam(iphase,caratio,compliance,G12,thermat,
      + gammast,burgerv,nSys,tauc,screwplanes,CurrentTemperature,
-     + tauctwin,nTwin,twinon,nTwinStart,nTwinEnd,TwinIntegral)
+     + tauctwin,nTwin,twinon,nTwinStart,nTwinEnd,TwinIntegral,
+     + cubicslip)
 
       ! define rotation matrices due to twinning (in the lattice system)
       TwinRot = 0.0
@@ -568,7 +580,7 @@ C     *** INITIALIZE USER ARRAYS FROM STATE VARIABLES ***
 C     *** DIRECTIONS FROM LATTICE TO DEFORMED AND TWINNED SYSTEM ***
 
       CALL kdirns(gmatinv,TwinRot,iphase,nSys,nTwin,xDir,xNorm,
-     + xTwinDir,xTwinNorm,caratio)
+     + xTwinDir,xTwinNorm,caratio,cubicslip)
 
 
 C     *** STIFFNESS FROM LATTICE TO DEFORMED SYSTEM ***
@@ -717,6 +729,18 @@ C     *** USE NEWTON METHOD TO DETERMINE STRESS INCREMENT ***
      +        rhossd,twinvolfrac,twinvolfractotal,
      +        Lp,tmat,gammaDot,gammatwindot,twinon,
      +        nTwinStart,nTwinEnd)
+
+      ELSE IF (kslip == 8) THEN ! Double Exponent law 
+            
+      CALL kslipDoubleExponent(xNorm,xDir,tau,signtau,tauc,
+     + burgerv,dtime,nSys,iphase,CurrentTemperature,Backstress,Lp,
+     + tmat,gammaDot)
+      
+      ELSE IF (kslip == 9) THEN ! Plasticity-tertiary creep law for Nickel superalloys
+      
+      CALL NickelSuperalloy(xNorm,xDir,tau,signtau,tauc,
+     + burgerv,dtime,nSys,iphase,CurrentTemperature,Lp,
+     + tmat,gammaDot,cubicslip,creep,usvars,nsvars)
 
       END IF
 
