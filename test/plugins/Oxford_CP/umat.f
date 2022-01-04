@@ -50,6 +50,9 @@ C #include <SMAAspUserSubroutines.hdr>
       ! 0 = off ; 1 = on 
       integer, parameter :: irradiate = 0
 
+      ! Activate cubic slip systems for single crystal FCC
+      integer, parameter :: cubicslip = 0
+
 **       End of parameters to set       **
 ******************************************
 
@@ -115,7 +118,7 @@ C #include <SMAAspUserSubroutines.hdr>
       ! number of active slip systems considered
       integer :: L0=12 ! HCP
       integer :: L1=12 ! BCC
-      integer :: L2=12 ! FCC
+      integer :: L2 ! FCC: variable because cubic systems can be included
       integer :: L4=7  ! Olivine
       integer :: LalphaUranium=8 ! alpha-uranium
 
@@ -201,7 +204,13 @@ C #include <SMAAspUserSubroutines.hdr>
      + noel, npt, time
           !call MutexUnlock( 1 )      ! lock Mutex #1
           return
-      end if   
+      end if  
+
+      if (cubicslip == 0) then
+        L2=12
+      else  
+        L2=18
+      end if	  
 
       ! read crystal type from input file
       ! first material constant
@@ -400,7 +409,7 @@ C      and stress
      +    L,iphase,irradiate,DDSDDE,stressvec,
      +    dstressinc,totstran,dtotstran,
      +    TEMP,DTEMP,vms,pdot,pnewdt,gndon,nSys,nTwin,ns,coords,
-     +    TwinIntegral,nTwinStart,nTwinEnd,twinon)
+     +    TwinIntegral,nTwinStart,nTwinEnd,twinon,cubicslip)
 
       ! store twin phase field
       ! in common block variable

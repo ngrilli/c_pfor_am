@@ -9,7 +9,8 @@
      + dstressinc,totstran,dtotstran,
      + TEMP,DTEMP,vms,pdot,pnewdt,gndon,
      + nSys,nTwin,ns,coords,
-     + TwinIntegral,nTwinStart,nTwinEnd,twinon)
+     + TwinIntegral,nTwinStart,nTwinEnd,twinon,
+     + cubicslip)
 
 C      INCLUDE 'ABA_PARAM.INC'
 
@@ -47,6 +48,9 @@ C      INCLUDE 'ABA_PARAM.INC'
 
       ! twin systems activation flag
       INTEGER,intent(in) :: twinon
+	  
+	  ! Activate cubic slip systems for single crystal FCC
+      INTEGER,intent(in) :: cubicslip
 
       ! time increment
       REAL*8,intent(in) :: dtime
