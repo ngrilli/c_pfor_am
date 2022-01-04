@@ -108,7 +108,7 @@ C      INCLUDE 'ABA_PARAM.INC'
       integer, parameter :: kslip = 9
 
       ! initial temperature and temperature rate
-      real*8, parameter :: Temperature = 293.0
+      real*8, parameter :: Temperature = 1000.0
       real*8, parameter :: ytemprate = 0.0
 
       ! homogenize twin model
@@ -133,7 +133,7 @@ C      INCLUDE 'ABA_PARAM.INC'
       integer, parameter :: temp_in_celsius = 0 
 
       ! 1 = activate creep for CMSX-4 alloy
-      integer, parameter :: creep = 0		  
+      integer, parameter :: creep = 1		  
 
 **       End of parameters to set       **
 ******************************************
@@ -664,7 +664,7 @@ C     *** PLASTIC DEFORMATION ***
 
       ! decide if Newton Raphson loop starts
       EnterNRLoop = 0
-      if (xtau >= 0.5 .or. xtautwin >= 0.5) then ! stress condition
+      if (xtau > 0.0 .or. xtautwin >= 0.5) then ! stress condition
         EnterNRLoop = 1
       else
         ! twinvolfrac > 0.5 is needed for twin completion
