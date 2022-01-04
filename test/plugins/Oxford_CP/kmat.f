@@ -1084,6 +1084,20 @@ C     *** UPDATE STATE VARIABLES *** !
         END DO
 
       end if
+	  
+	  ! Output for CMSX-4 alloy
+      if (kslip == 9) then
+
+        do i=1,nSys
+          ! accumulated shear strains in slip systems          
+          usvars(89+i) = usvars(89+i) + abs(gammaDot(i)) * dtime
+          ! RSS in slip systems
+          usvars(107+i) = tau(i)
+        end do
+        ! maximum RSS
+        usvars(125) = maxval(abs(tau))
+
+      end if
 
       RETURN
 
