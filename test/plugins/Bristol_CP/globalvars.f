@@ -1,6 +1,9 @@
 c Chris Allen
 c Edward Horton
 c Eralp Demir
+c Hugh Dorward
+c Michael Salvini
+c
 c Aug. 12th, 2021 - 1st working version
 c
 c     This module contains all the global variables stored in the code
@@ -64,7 +67,24 @@ c	Global current stress vector - Cauchy
       real(8), allocatable, public ::	 global_sigma(:,:,:)
       real(8), allocatable, public ::	 global_sigma_t(:,:,:)  
 c     Global IP coordinates      
-      real(8), allocatable, public ::	 global_coords(:,:,:)
+      real(8), allocatable, public ::	 global_coords(:,:,:)   
+
+
+c     Nico modification start
+c     Damage variable
+      real(8), allocatable, public :: global_damage(:,:)
+c     tensile part of the Helmholtz free energy
+c	  which is degraded by damage
+	  real(8), allocatable, public :: global_F_pos(:,:)
+c     compressive part of the Helmholtz free energy
+c	  which is degraded by damage
+      real(8), allocatable, public :: global_F_neg(:,:)
+c     tensile part of the second Piola-Kirchoff stress
+c     this is needed for calculating _dstress_dc
+      real(8), allocatable, public :: global_pk2_pos(:,:,:,:)
+c     Nico modification finish
+
+	  
 c	Constants used everywhere
 c     ______________________________________________________
 c	Constant pi
@@ -78,9 +98,7 @@ c     Number of slip systems
 c	Schmid tensor
 	real(8)	, allocatable, public :: Schmid(:,:,:)
 c	Climb tensor
-	real(8)	, allocatable, public :: Climb(:,:,:)    
-c	Slip System to Crystal transformation
-	real(8)	, allocatable, public :: Slip2Crys(:,:,:)        
+	real(8)	, allocatable, public :: Climb(:,:,:)  
 c	Schmid tensor - transpose
 	real(8)	, allocatable, public :: SchmidT(:,:,:)      
 c	Vectorized Schmid tensor
@@ -120,6 +138,12 @@ c	Total amount of time for residual deformation
 c      
 c	Thermally-coupled or mechanical problem
       integer, public :: thermo
+
+c     Nico modification begin
+c     Flag indicating coupling with fracture is active
+      integer, public :: phasefielddamageflag
+c     Nico modification finish
+
 c      
 c	Temperature (K) - initial temperature
       real(8), public :: temp0
@@ -190,6 +214,9 @@ c      real(8), allocatable, public :: oriensh(:,:)
       real(8), allocatable, public :: elcent(:,:)
       integer, public :: nodeout
 
+c     Size to indicate the grain morphology
+      real(8), allocatable, public :: grainmorph(:,:,:)
+      
 c     ______________________________________________________  
 
 
@@ -218,7 +245,7 @@ c     Gradient mapping
       real(8), allocatable, public :: Gmat(:,:,:)      
 c     
 c     Gradient map for elements
-      real(8), allocatable, public :: gradIP2IP(:,:,:,:,:)
+      real(8), allocatable, public :: gradIP2IP(:,:,:,:)
 c     ______________________________________________________  
       
 
@@ -249,8 +276,10 @@ c     ______________________________________________________
 
 c	Inner loop exit tolerance (ABSOLUTE)
 	real(8), public :: innertol
-c	Outer loop exit tolerance (RELATIVE)
+c	Outer loop exit tolerance (ABSOLUTE)
 	real(8), public :: outertol
+c     Outer relative tolerance (RELATIVE)
+      real(8), allocatable, public :: outerreltol(:)
 c	Maximum number of iterations allowed for inner loop
 	integer, public :: innoitmax
 c	Maximum number of iterations allowed for outer loop
@@ -285,8 +314,12 @@ c     Forward fraction of time
 
 c     Backward fraction of time
       real(8), public :: tstep_back      
-      
-      
+
+c	Small real number
+      real(8), parameter, public :: smallnum = 1.0d-20
+
+c	Large real number
+      real(8), parameter, public :: largenum = 1.0d+20      
 c     ______________________________________________________
 c
 c

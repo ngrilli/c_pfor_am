@@ -1,3 +1,10 @@
+c Chris Allen
+c Edward Horton
+c Eralp Demir
+c Hugh Dorward
+c Michael Salvini
+c
+c      
       module gndslipgrad
       implicit none
       contains
@@ -7,57 +14,83 @@
       
       
       subroutine calculategnds(dt)
-      use globalvars, only : numel, numip, 
-     + numslip, gradIP2IP,
-     + global_state, global_state_t, sliphard_param, 
-     + global_gammadot_t
+      use globalvars, only : numel, numip, numslip, gradIP2IP,
+     & global_state, global_state_t, sliphard_param, global_gammadot_t,
+     & b_slip, l_slip
       implicit none
-      integer iele, iqpt, islp
-      real(8) dt, b, SF, gdot(numip), grad(3,numip), rhodotGND(3)
+      integer iele, iqpt, islp, iq
+      real(8) dt, b, SF, C, gdot(numip), grad(3,numip), gradgdot(3)
+      real(8) rhodotGNDe, rhodotGNDs 
 
       
 c     Burger's vector
       b = sliphard_param(3)
       
-c     Size factor (mesh size, i.e. micrometer to mm)
+c     Size factor of gradient (mesh size, i.e. micrometer to mm)
       SF = sliphard_param(8)
+      
+c     Scaling factor for GNDs      
+      C = sliphard_param(9)      
       
       
 c     Loop over the elements
       do iele=1,numel
           
           
-c         Loop over the slip systems
-          do islp=1,numslip
-          
               
                          
-c             Vectorize element slip rates              
-              gdot=0.0
-              do iqpt=1,numip
-                  
-                  gdot(iqpt) = global_gammadot_t(iele,iqpt,islp)
+
               
-              enddo
-              
-              do iqpt=1,numip
+          do iqpt=1,numip
                   
-c                 Gradient operator
-                  grad = gradIP2IP(iele,iqpt,islp,1:3,1:numip)
+c             Gradient operator
+              grad = gradIP2IP(iele,iqpt,1:3,1:numip)
+              
+              
+              
+
+                  
+c             write(6,*) 'grad'
+c             write(6,*) grad
+
+c             Loop over the slip systems
+              do islp=1,numslip
+                  
+                  
+                  
+c                 Vectorize element slip rates              
+                  gdot=0.0
+                  do iq=1,numip
+                  
+                      gdot(iq) = global_gammadot_t(iele,iq,islp)
+              
+                  enddo              
+              
+              
               
 c                 Slip gradient
-                  rhodotGND = matmul(grad,gdot)/SF/b
+                  gradgdot = matmul(grad,gdot)*C/SF/b               
+                  
+                  
+          
+c                 Edge dislocation
+                  rhodotGNDe = -dot_product(b_slip(islp,:),gradgdot)
+
+
+c                 Screw dislocation
+                  rhodotGNDs = dot_product(l_slip(islp,:),gradgdot)
 
               
 c                 Store and update the state variables
 c                 Edge dislocaitons
                   global_state(iele,iqpt,islp,2)=
-     & global_state_t(iele,iqpt,islp,2) - rhodotGND(1)*dt
+     & global_state_t(iele,iqpt,islp,2) + rhodotGNDe*dt
               
+                  
 c                 Store and update the state variables
 c                 Screw dislocaitons
                   global_state(iele,iqpt,islp,3)=
-     & global_state_t(iele,iqpt,islp,3) + rhodotGND(3)*dt
+     & global_state_t(iele,iqpt,islp,3) + rhodotGNDs*dt
                   
                   
               enddo       
@@ -83,11 +116,12 @@ c
       
       subroutine calculatebackstress
       use globalvars, only : global_state, numel, numip, numslip,
-     & gradIP2IP, G, nu, sliphard_param
+     & gradIP2IP, G, nu, sliphard_param, b_slip, l_slip
       implicit none
       integer iele, iqpt, islp
       real(8) rhoGNDe(numip), rhoGNDs(numip), grad(3,numip)
-      real(8) nabla_rhoGNDe(3), nabla_rhoGNDs(3), X, b, R
+      real(8) nabla_rhoGNDe(3), nabla_rhoGNDs(3), X, b, R, SF
+      real(8) rhoGNDe_x, rhoGNDs_x
       
       
       
@@ -97,14 +131,21 @@ c     Burger's vector
 c     Effective radius
       R = sliphard_param(7)
       
+c     Size factor of gradient (mesh size, i.e. micrometer to mm)
+      SF = sliphard_param(8)      
+      
+ 
+      
+      
 c     Loop over the elements
-      do iele=1,numel
-          
-          
+      do iele=1,numel     
+              
+c         Gradient operator at the element center
+          grad = gradIP2IP(iele,numip+1,1:3,1:numip)
+              
 c         Loop over the slip systems
           do islp=1,numslip
 
-              
               
 c             Vectorize element GNDs              
               do iqpt=1,numip
@@ -115,28 +156,34 @@ c                 Edge dislocations
 c                 Screw dislocations                  
                   rhoGNDs(iqpt) = global_state(iele,iqpt,islp,3)
               
-              enddo              
+              enddo       
               
-              
-              
-c             Gradient operator
-              grad = gradIP2IP(iele,numip+1,islp,1:3,1:numip)
               
               
               
 c             gradient of edge dislocatinos              
-              nabla_rhoGNDe = matmul(grad,rhoGNDe)              
+              nabla_rhoGNDe = matmul(grad,rhoGNDe)/SF
+              
+c             gradient along slip direction
+              rhoGNDe_x = dot_product(b_slip(islp,:),nabla_rhoGNDe)
               
 c             gradient of screw dislocatinos              
-              nabla_rhoGNDs = matmul(grad,rhoGNDs)                 
+              nabla_rhoGNDs = matmul(grad,rhoGNDs)/SF
+              
+c             gradient along line direction
+              rhoGNDs_x = dot_product(l_slip(islp,:),nabla_rhoGNDs)
+   
+              
+
+                            
       
 c             Calculate and assign the same backstress value to all of the ips of an element             
               do iqpt=1,numip      
                   
 c                 Backstres              
-                  X = nabla_rhoGNDe(1)*G*b*(R**2.)/8./(1.-nu)
-     &              - nabla_rhoGNDs(3)*G*b*(R**2.)/4.
-                  
+                  X = rhoGNDe_x*G*b*(R**2.0d+0)/8.0d+0/(1.0d+0-nu)
+     &              - rhoGNDs_x*G*b*(R**2.0d+0)/4.0d+0
+                   
 c                 Store the backstress as another state variable
                   global_state(iele,iqpt,islp,4) = X
                   
@@ -174,7 +221,7 @@ c     Calculates the shape function mapping for gradients
       use globalvars, only: IPghr, wtghr, invNmat, dNmat, Gmat
       use globalsubs, only: invertnxn
       implicit none
-      integer nnpe, i, j, numip
+      integer nnpe, i, j, numip, iqpt
       real(8) Nmat(numip,nnpe)
       real(8) g, h, r, N(nnpe), dN(3,nnpe), dNc(3,nnpe)
       
@@ -182,17 +229,16 @@ c     nnpe: number of nodes per element
       
 c     allocate arrays
       allocate (IPghr(numip,3))
-      IPghr=0.0
+      IPghr=0.0d+0
       allocate (wtghr(numip))
-      wtghr=0.0
+      wtghr=0.0d+0
       allocate(invNmat(nnpe,numip))
-      invNmat=0.0
+      invNmat=0.0d+0
 c     array size has "numip+1" because of the gradient at the center of the element
       allocate(dNmat(numip+1,3,nnpe))
-      dNmat=0.0
+      dNmat=0.0d+0
       allocate(Gmat(numip+1,3,numip))
-      Gmat=0.0
-
+      Gmat=0.0d+0
       
 c     4-node linear tetrahedron - C3D4 (nnpe=4, numip=1)
 
@@ -206,7 +252,7 @@ c     20-node quadratic brick - C3D20 (nnpe=20, numip=27)
       
       
 c     Solid Brick element - C3D8      
-      if (nnpe.eq.8) then
+      if (nnpe.eq.8d+0) then
           
 
       
@@ -229,7 +275,7 @@ c         Quad point locations
           IPghr(8,1:3) = (/ 1.0,  1.0,  1.0 /)
               
           
-          IPghr = 1.0d+0/dsqrt(3.0d+0) * IPghr
+          IPghr = IPghr/dsqrt(3.0d+0)
 
           
           
@@ -244,18 +290,18 @@ c         Integration weights
           
           
           
-          do i=1,numip
+          do iqpt=1,numip
           
-              g = IPghr(i,1)
-              h = IPghr(i,2)
-              r = IPghr(i,3)
+              g = IPghr(iqpt,1)
+              h = IPghr(iqpt,2)
+              r = IPghr(iqpt,3)
               
               
               call shapefunctions(nnpe,g,h,r,N)
               
 
               
-              Nmat(i,:) = N
+              Nmat(iqpt,:) = N
               
               
           enddo
@@ -278,21 +324,27 @@ c         Integration weights
           
           
     
-          do i=1,numip
+          do iqpt=1,numip
           
-              g = IPghr(i,1)
-              h = IPghr(i,2)
-              r = IPghr(i,3)
+              g = IPghr(iqpt,1)
+              h = IPghr(iqpt,2)
+              r = IPghr(iqpt,3)
           
           
           
               call shapefunctionderivatives(nnpe,g,h,r,dN)
               
-              dNmat(i,:,:) = dN
+              dNmat(iqpt,:,:) = dN
               
-              
+              write(6,*) 'IP no: ', iqpt
+              write(6,*) 'dN'
+              do i=1,3
+                  write(6,*) (dN(i,j), j=1,nnpe)
+              enddo   
            
-              Gmat(i,:,:) = matmul(dN,invNmat)
+              Gmat(iqpt,:,:) = matmul(dN,invNmat)
+              
+
               
               
           enddo
@@ -341,24 +393,24 @@ c         gradient at the element center
 c     Solid Brick element - C3D8      
       if (nnpe.eq.8) then
       
-          N(1) = 1./8.* (1.-g) * (1.-h) * (1.-r)
+          N(1) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0-h) * (1.0d+0-r)
 
-          N(2) = 1./8.* (1.+g) * (1.-h) * (1.-r)
+          N(2) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0-h) * (1.0d+0-r)
 
-          N(3) = 1./8.* (1.+g) * (1.+h) * (1.-r)
+          N(3) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0+h) * (1.0d+0-r)
 
-          N(4) = 1./8.* (1.-g) * (1.+h) * (1.-r)
-
-
+          N(4) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0+h) * (1.0d+0-r)
 
 
-          N(5) = 1./8.* (1.-g) * (1.-h) * (1.+r)
 
-          N(6) = 1./8.* (1.+g) * (1.-h) * (1.+r)
 
-          N(7) = 1./8.* (1.+g) * (1.+h) * (1.+r)
+          N(5) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0-h) * (1.0d+0+r)
 
-          N(8) = 1./8.* (1.-g) * (1.+h) * (1.+r)
+          N(6) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0-h) * (1.0d+0+r)
+
+          N(7) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0+h) * (1.0d+0+r)
+
+          N(8) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0+h) * (1.0d+0+r)
       
           
 
@@ -387,62 +439,62 @@ c     Solid Brick element - C3D8
           
 c         dN_dg          
           
-          dN(1,1) = 1./8.* (-1.) * (1.-h) * (1.-r)
+          dN(1,1) = 1.0d+0/8.0d+0* (-1.0d+0) * (1.0d+0-h) * (1.0d+0-r)
 
-          dN(1,2) = 1./8.* (1.) * (1.-h) * (1.-r)
+          dN(1,2) = 1.0d+0/8.0d+0* (1.0d+0) * (1.0d+0-h) * (1.0d+0-r)
 
-          dN(1,3) = 1./8.* (1.) * (1.+h) * (1.-r)
+          dN(1,3) = 1.0d+0/8.0d+0* (1.0d+0) * (1.0d+0+h) * (1.0d+0-r)
 
-          dN(1,4) = 1./8.* (-1.) * (1.+h) * (1.-r)
+          dN(1,4) = 1.0d+0/8.0d+0* (-1.0d+0) * (1.0d+0+h) * (1.0d+0-r)
 
-          dN(1,5) = 1./8.* (-1.) * (1.-h) * (1.+r)
+          dN(1,5) = 1.0d+0/8.0d+0* (-1.0d+0) * (1.0d+0-h) * (1.0d+0+r)
 
-          dN(1,6) = 1./8.* (1.) * (1.-h) * (1.+r) 
+          dN(1,6) = 1.0d+0/8.0d+0* (1.0d+0) * (1.0d+0-h) * (1.0d+0+r) 
           
-          dN(1,7) = 1./8.* (1.) * (1.+h) * (1.+r)
+          dN(1,7) = 1.0d+0/8.0d+0* (1.0d+0) * (1.0d+0+h) * (1.0d+0+r)
 
-          dN(1,8) = 1./8.* (-1.) * (1.+h) * (1.+r)
+          dN(1,8) = 1.0d+0/8.0d+0* (-1.0d+0) * (1.0d+0+h) * (1.0d+0+r)
       
           
 c         dN_dh       
           
-          dN(2,1) = 1./8.* (1.-g) * (-1.) * (1.-r)
+          dN(2,1) = 1.0d+0/8.0d+0* (1.0d+0-g) * (-1.0d+0) * (1.0d+0-r)
 
-          dN(2,2) = 1./8.* (1.+g) * (-1.) * (1.-r)
+          dN(2,2) = 1.0d+0/8.0d+0* (1.0d+0+g) * (-1.0d+0) * (1.0d+0-r)
 
-          dN(2,3) = 1./8.* (1.+g) * (1.) * (1.-r)
+          dN(2,3) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0) * (1.0d+0-r)
 
-          dN(2,4) = 1./8.* (1.-g) * (1.) * (1.-r)
+          dN(2,4) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0) * (1.0d+0-r)
 
 
-          dN(2,5) = 1./8.* (1.-g) * (-1.) * (1.+r)
+          dN(2,5) = 1.0d+0/8.0d+0* (1.0d+0-g) * (-1.0d+0) * (1.0d+0+r)
 
-          dN(2,6) = 1./8.* (1.+g) * (-1.) * (1.+r)
+          dN(2,6) = 1.0d+0/8.0d+0* (1.0d+0+g) * (-1.0d+0) * (1.0d+0+r)
 
-          dN(2,7) = 1./8.* (1.+g) * (1.) * (1.+r)
+          dN(2,7) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0) * (1.0d+0+r)
 
-          dN(2,8) = 1./8.* (1.-g) * (1.) * (1.+r)
+          dN(2,8) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0) * (1.0d+0+r)
           
           
           
 c         dN_dr     
           
-          dN(3,1) = 1./8.* (1.-g) * (1.-h) * (-1.) ;
+          dN(3,1) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0-h) * (-1.0d+0)
 
-          dN(3,2) = 1./8.* (1.+g) * (1.-h) * (-1.) ;
+          dN(3,2) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0-h) * (-1.0d+0)
 
-          dN(3,3) = 1./8.* (1.+g) * (1.+h) * (-1.) ;
+          dN(3,3) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0+h) * (-1.0d+0)
 
-          dN(3,4) = 1./8.* (1.-g) * (1.+h) * (-1.) ;
+          dN(3,4) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0+h) * (-1.0d+0)
 
 
-          dN(3,5) = 1./8.* (1.-g) * (1.-h) * (1.) ;
+          dN(3,5) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0-h) * (1.0d+0)
 
-          dN(3,6) = 1./8.* (1.+g) * (1.-h) * (1.) ;
+          dN(3,6) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0-h) * (1.0d+0)
 
-          dN(3,7) = 1./8.* (1.+g) * (1.+h) * (1.) ;
+          dN(3,7) = 1.0d+0/8.0d+0* (1.0d+0+g) * (1.0d+0+h) * (1.0d+0)
 
-          dN(3,8) = 1./8.* (1.-g) * (1.+h) * (1.) ;         
+          dN(3,8) = 1.0d+0/8.0d+0* (1.0d+0-g) * (1.0d+0+h) * (1.0d+0)
           
       
       endif

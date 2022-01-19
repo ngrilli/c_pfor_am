@@ -1,6 +1,9 @@
 c Chris Allen
 c Edward Horton
 c Eralp Demir
+c Hugh Dorward
+c Michael Salvini
+c
 c Aug. 12th, 2021 - 1st working version
 c
 c
@@ -226,10 +229,11 @@ c     The result is transposed since crystal to sample transformation is require
 	!rotate slip systems for the current grain
 c	call eulercosmatrix(oriensh(feature,:),totalrota)
 c     This has changed to the ang2ori(ang,R)
+c     TRANSPOSE IS REVERT BACK TO THE ORIGINAL VERSION
 c     The result is transposed since crystal to sample transformation is required
       Bunge = grainori(int(feature),:)
       call ang2ori(Bunge,totalrota)
-      totalrota=transpose(totalrota)
+c      totalrota=transpose(totalrota)
 		
 	do j =1, NSLPTL
 		slpdirrotatea(j,:)= matmul(totalrota, slpdir(j,:))
@@ -249,11 +253,13 @@ c     The result is transposed since crystal to sample transformation is require
 	! check to remove values of interest **this for loop can be replaced with 
 	! 'findloc' if it is available**
 	
-	
-      testera=minloc(nodey(int(grainb),:),dim=1)
+c     THIS LINE IS CONVERTED TO ORIGINAL VERSION - IT DOES NOT EXIST
+c      testera=minloc(nodey(int(grainb),:),dim=1)
 
 	checkerloopb: DO i=1,nodeout
-		if(nodex(int(grainb),i) < 0)then
+c         THIS LINE IS CONVERTED TO ORIGINAL VERSION          
+c		if(nodex(int(grainb),i) < 0)then
+          if(nodex(int(grainb),i) ==9999999)then 
 			arraysizeb=i-1
 			exit checkerloopb
 		else
@@ -292,9 +298,9 @@ c     The result is transposed since crystal to sample transformation is require
         
 	   !find the coordinates of the identified shared boundary nodes
 	   allocate (featureboundsnodes(val-1,3))
-	   featureboundsnodes=reshape((/nodex(grainb,grainboundindex), 
-     1   	 nodey(grainb,grainboundindex),                       
-     2    	nodez(grainb,grainboundindex)/),(/val-1,3/))
+      featureboundsnodes=reshape((/nodex(grainb,grainboundindex), 
+     & nodey(grainb,grainboundindex),                       
+     & nodez(grainb,grainboundindex)/),(/val-1,3/))
 		
 		 
 	   !calculate the vector from the boundary nodes to the current
@@ -413,6 +419,7 @@ c     The result is transposed since crystal to sample transformation is require
      3              	/),(/size(slpdirrotate,1),3/))
 						   
 		   ! calculate the distance from the voxel centroid to the boundary nodes
+c             WHY THIS IS IN 2D?             
 		   rdistance=norm2(vectr,dim=2)
 		   !call enorm(vectr,size(slpdirrotate,1),rdistance)
 		   
@@ -420,9 +427,9 @@ c     The result is transposed since crystal to sample transformation is require
 		
 	   !since the voxel is on the boundary, the distance to the boundary is taken 
 	   !as half the voxel characteristic length
-
-		   !rdistance(1:size(slpdirrotate,1))=charcterlengt*0.5D0
-             rdistance=0.5D0
+c         THIS IS CHANGED BY ERALP
+		   rdistance(1:size(slpdirrotate,1))=charcterlengt*0.5D0
+c             rdistance=0.5D0
 cc             Need to multiply with the real voxelsize
 c		   rdistance=0.5D0*voxelsize
 		
@@ -532,8 +539,9 @@ c		   rdistance=0.5D0*voxelsize
 				!find the angle between the vectors from the shared boundary to 
 				!boundary nodes in grain b and the vector developed from the voxel
 				!to the shared boundary
-      lxangle(i,:)= dacos(matmul(lxtotal(i,:,:),slpdirrotate(i,:))/
-     + (lxnorm*slpdirrotatenorm(i)))
+      lxangle(i,:)= dacos(
+     & matmul(lxtotal(i,:,:),slpdirrotate(i,:))/(lxnorm
+     & *slpdirrotatenorm(i)))
 				minxval0(i,:)=minloc(lxangle(i,:))
 				minxval0act(i,:)=lxangle(i,int(minxval0(i,:)))
 				minxval180(i,:)=minloc(abs(lxangle(i,:)-pi))
@@ -545,7 +553,7 @@ c		   rdistance=0.5D0*voxelsize
 				if(minxval0act(i,1)<minxval180act(i,1))then   
 					minxangle(i)=minxval0(i,1)
 					minxangleact(i)=minxval0act(i,1)
-				else
+				else 
 					minxangle(i)=minxval180(i,1)
 					minxangleact(i)=minxval180act(i,1)
 				end if
@@ -648,19 +656,19 @@ c         Therefore noscaling is used.
 
 
 		  !need to make sure to deallocate arrays
-      deallocate (vect,mindist  ,sortmindist, mk, minindex,
-     + sortedbgrains,  
-     + uniqgraindist,slpdirrotate,slpplanrotate,slpdirrotatea,   
-     + slpplanrotatea,grainboundindex,featureboundsnodes,        
-     + bxvalue,byvalue,bzvalue,btotal,bangle,normarray,normslp,  
-     + minangleval,minang180,minangleval180,minang0,             
-     + minangleactual,minangleactloc,boundnodegrainb,rnodes,     
-     + nodesnotindex,nodesnot,lxtotal,lxnorm,lxangle,lxnormin,   
-     + minxval0,minxval180,minxval180act,minxval0act,minxangle,  
-     + minxangleact,vectrnorm,slpdirrotatenorm,lxnodesindex,     
-     + lxnodes,vecb,veca,vanorm,vbnorm,checkangle,     
-     + slpplanrotatenorm,slpdirrotateanorm,slpplanrotateanorm,   
-     + cosphi,cosk)
+      deallocate (vect,mindist  ,sortmindist, mk, 
+     & minindex,sortedbgrains,  
+     & uniqgraindist,slpdirrotate,slpplanrotate,slpdirrotatea,   
+     & slpplanrotatea,grainboundindex,featureboundsnodes,        
+     & bxvalue,byvalue,bzvalue,btotal,bangle,normarray,normslp,  
+     & minangleval,minang180,minangleval180,minang0,             
+     & minangleactual,minangleactloc,boundnodegrainb,rnodes,     
+     & nodesnotindex,nodesnot,lxtotal,lxnorm,lxangle,lxnormin,   
+     & minxval0,minxval180,minxval180act,minxval0act,minxangle,  
+     & minxangleact,vectrnorm,slpdirrotatenorm,lxnodesindex,     
+     & lxnodes,vecb,veca,vanorm,vbnorm,checkangle,     
+     & slpplanrotatenorm,slpdirrotateanorm,slpplanrotateanorm,   
+     & cosphi,cosk)
 		
 		
 	  

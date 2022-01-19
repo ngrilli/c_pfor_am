@@ -1,9 +1,12 @@
 c Chris Allen
 c Edward Horton
 c Eralp Demir
+c Hugh Dorward
+c Michael Salvini
+c
 c Aug. 12th, 2021 - 1st working version
 c
-      
+c      
       include "globalvars.f"
       include "globalsubs.f"
       include "lengthscale.f"
@@ -25,13 +28,12 @@ c
 c      INCLUDE 'ABA_PARAM.INC'
 c      
 c
-#      include <SMAAspUserSubroutines.hdr>
+c#      include <SMAAspUserSubroutines.hdr>
 c
 c
 c      
 c      
 c
-
 c      
 c
       integer,                        intent(in) ::
@@ -46,18 +48,16 @@ c
 c      
 c
 c
-c      
-c      
-c      
-c
-c      
 c
 c
 c     At the start of the analysis (only ONCE!)
       if (LOP.eq.0) then
 c          
-          foldername= "../../tests/umat/"          
+          foldername= "../../tests/umat/"
 c          
+c
+c
+c
 c          
           write(6,*) 'initialization has started!' 
           write(6,*) '********************************'
@@ -68,10 +68,11 @@ c
 c      
 c
 c     GND calculations require non-local method, so MUTEX is placed here!
-      if (GNDeffect.eq.1) then
+      if (GNDeffect.eq.1d+0) then
 c          call MutexInit( 1 )      ! initialize Mutex #1
 c
-c     At the end of each increment update and calculate GNDs (nonlocal calculations)
+c     At the end of each increment 
+c     Update and calculate GNDs (nonlocal calculations)
 c     This is done at the end of calculations because the GNDs that belong to the
 c     PREVOUS time step are used. Initially GNDs are assumed to have "0" values. 
           if (LOP.eq.2) then
@@ -85,11 +86,13 @@ c                 Calculate Backstress from GND gradients
                   call calculatebackstress             
 c          
 c              call MutexUnlock( 1 )    ! unlock Mutex #1
+
+                  write(6,*) 'end of increment: ', KINC
+                  write(6,*) 'GND & backstress calculations completed!'
 c          
-              return
+                  return
 c          
-              write(6,*) 'end of increment: ', KINC
-              write(6,*) 'GND calculation completed!'
+
 
           endif
       endif
@@ -112,6 +115,17 @@ c
 c
       use calculations, only: calcs
 c
+
+c     Nico modification start
+
+      use globalvars, only : phasefielddamageflag
+      use globalvars, only : global_damage
+	  
+      use phasefieldfracture, only : moose_interface_input
+      use phasefieldfracture, only : moose_interface_output
+
+c     Nico modification finish
+
 c
 c
       implicit none
@@ -180,6 +194,41 @@ c      defaultNumThreadsInt = omp_get_num_threads()    ! remember number of thre
 c      call omp_set_num_threads(defaultNumThreadsInt)  ! set number of threads for parallel execution set by DAMASK_NUM_THREADS      
 c      
 c
+c
+c     Nico modification start
+c     Get information for moose
+c     phase field damage model
+c     through state variables
+c     12 state variables must be declared
+c     for the phase field damage model
+
+      if (phasefielddamageflag == 1) then
+	  
+      call moose_interface_input(NOEL+1,NPT+1,STATEV,NSTATV)
+	  
+	  end if
+
+c     Nico modification finish 
+c
+c
+c     Perform all the calculations     
+      call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL+1,NPT+1,
+     &            STRESS,DDSDDE,PNEWDT,COORDS)
+
+c     Nico modification start
+c      Send information for moose
+c      phase field damage model
+
+      if (phasefielddamageflag == 1) then
+	  
+      call moose_interface_output(NOEL+1,NPT+1,STATEV,NSTATV)
+	  
+	  end if
+
+c     Nico modification finish
+
+c      
+c
 c      write(6,*) 'KINC',KINC
 c      write(6,*) 'NOEL',NOEL
 c      write(6,*) 'NPT',NPT
@@ -187,15 +236,7 @@ c      write(6,*) 'KSTEP',KSTEP
 c      write(6,*) 'DFGRD0',DFGRD0
 c      write(6,*) 'DFGRD1',DFGRD1
 c      write(6,*) 'STRESS',STRESS
-c      
-c
-c
-c     Perform all the calculations     
-      call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL+1,NPT+1,
-     &            STRESS,DDSDDE,PNEWDT,COORDS)
-
-c      
-c
+c      write(6,*) 'DDSDDE',DDSDDE
 c
 c
 c
@@ -214,11 +255,11 @@ c
       SUBROUTINE UVARM(UVAR,DIRECT,T,TIME,DTIME,CMNAME,ORNAME,
      1 NUVARM,NOEL,NPT,LAYER,KSPT,KSTEP,KINC,NDI,NSHR,COORD,
      2 JMAC,JMATYP,MATLAYO,LACCFLA)
-      use globalvars, only: global_ori, global_Fe, global_gammadot,
+      use globalvars, only: global_gammadot,
      & global_state, numslip, numstvar, output_vars, global_gamma_sum,
-     & mattyp, global_sigma, numel, numip, foldername
-      use globalsubs, only: misorientation, polar, convert6to3x3,
-     & vonmises_stress
+     & global_sigma, numel, numip, foldername, grainmorph
+      use globalsubs, only: convert6to3x3, vonmises_stress
+      use calculations, only: calculate_misorientation
       implicit none
 c
 c
@@ -255,10 +296,10 @@ c
 c
 c
 c
-      integer i, j, k, typ, varno
-      real(8) U(3,3)
+      integer i, j, k, varno
+      real(8) mis
 c      real(8) sigma_av(7), sigma33(3,3), evm
-      real(8) g1(3,3), g2(3,3), dg(3,3), mis, ax(3)
+c      
 c
 c     The dimensions of the variables FLGRAY, ARRAY and JARRAY
 c     must be set equal to or greater than 15.
@@ -271,43 +312,10 @@ c
 c     
 c     Misorientation with respect to the initial orientation
 c     Misorientation is calculated in case it is requested since it is tedious!
-      if (output_vars(1) .eq. 1d+0) then
-c
-c          
-c         Set misorientation to zero for isotropic material type
-          if (mattyp.eq.0) then
-c              
-              mis = 0.0d+0
-c              
-c         Calculate misorientations if material is not isotropic              
-          else
-c              
-c             FCC - cubic symmetry operators              
-              if (mattyp.eq.1d+0) then
-                  typ = 1d+0
-c             BCC - cubic symmetry operators                     
-              elseif (mattyp.eq.2d+0) then
-                  typ = 1d+0
-c             HCP - hexagonal symmetry operators
-              elseif (mattyp.eq.3d+0) then
-                  typ = 3d+0
-              endif
-c              
-c              
-c	        Initial orientation
-	        g1=global_ori(NOEL,NPT,:,:)
-c	        Polar decomposition of the elastic part of the deformation gradient
-	        call polar(global_Fe(NOEL,NPT,:,:),g2,U)
-!c	        If singularity does no exist calculate
-!	        if (sing.eq.0d+0)	then
-c		        Calcualte misorientation using the subroutine
-		        call misorientation(g1,g2,typ,ax,mis,dg)
-         !     else
-         !         mis=0.0d+0
-	        !endif                  
-c                  
-          endif
-c          
+      if (output_vars(1).eq.1d+0) then
+c        
+c 
+          call calculate_misorientation(NOEL,NPT,mis)
 c
           UVAR(varno) = mis
 c            
@@ -330,13 +338,13 @@ c
 c     Average state variables
 c     Note that the number of outpus could be 1 or 2 depending
 c     on the number of state variables
-      if (output_vars(3) .eq. 1d+0) then
+      if (output_vars(3).eq.1d+0) then
 c          
 c         Loop through the number of state variables
           do i=1,numstvar
 c              
 c             Calculate the average of the state variable    
-              UVAR(varno) = sum(global_state(NOEL,NPT,:,i))/numslip
+              UVAR(varno)=sum(dabs(global_state(NOEL,NPT,:,i)))/numslip
               varno=varno + 1d+0
 c                  
           enddo
@@ -346,7 +354,7 @@ c
 c
 c
 c     Slip rates
-      if (output_vars(4) .eq. 1d+0) then
+      if (output_vars(4).eq.1d+0) then
             do i=1,numslip
                   UVAR(varno) = global_gammadot(NOEL,NPT,i)
                   varno=varno + 1d+0
@@ -357,10 +365,10 @@ c
 c     State variables per slip system
 c     Note that the number of outpus could be 1 or 2 depending
 c     on the number of state variables
-      if (output_vars(5) .eq. 1d+0) then
+      if (output_vars(5).eq.1d+0) then
             do i=1,numstvar
                   do j=1,numslip
-                        UVAR(varno)= global_state(NOEL,NPT,j,i)
+                        UVAR(varno)= dabs(global_state(NOEL,NPT,j,i))
                         varno=varno + 1d+0
                   enddo
             enddo
@@ -368,7 +376,17 @@ c     on the number of state variables
 c ---ED HORTON EDIT END ---
 c          
 c
-c
+!
+!      if (output_vars(5) .eq. 1d+0) then
+!
+!          do j=1,numslip
+!              UVAR(varno)= 1./grainmorph(NOEL,NPT,j)
+!              varno=varno + 1d+0
+!          enddo
+!
+!      endif
+!
+!c
 !c     Add the average of the stresses over all of the elements and IPs
 !c     Do this calculation only ONCE!
 !      if (NOEL.eq.1) then

@@ -1,6 +1,9 @@
 c Chris Allen
 c Edward Horton
 c Eralp Demir
+c Hugh Dorward
+c Michael Salvini
+c
 c Aug. 12th, 2021 - 1st working version
 c
 c This block stores the global variables & symmetry operators 
@@ -32,7 +35,7 @@ c	USES:
 c	Vars:	cubsym,tetsym,hcpsym
 c	Consts:	pi
 	subroutine misorientation(g1,g2,typ,uvw,ang,dg)
-      use globalvars, only: cubsym,tetsym,hcpsym,pi,I3
+      use globalvars, only: cubsym,tetsym,hcpsym,pi,I3,smallnum
 	implicit none
 	real(8) g1(3,3),g2(3,3),uvw(3),ang,dg(3,3)
 	integer typ,nosym,s1,s2
@@ -43,14 +46,14 @@ c	Consts:	pi
 
 
 
-	if (typ.eq.1) then
-		nosym=24
+	if (typ.eq.1d+0) then
+		nosym=24d+0
 		sym=cubsym
-	elseif (typ.eq.2) then
-		nosym=8
+	elseif (typ.eq.2d+0) then
+		nosym=8d+0
 		sym(1:nosym,:,:)=tetsym
-	elseif (typ.eq.3) then
-		nosym=12
+	elseif (typ.eq.3d+0) then
+		nosym=12d+0
 		sym(1:nosym,:,:)=hcpsym
 	endif
 
@@ -58,7 +61,7 @@ c	Consts:	pi
 
       
 c	Initially set the angle to be maximum (62.4 degrees indeed)
-	ang=pi/2.0
+	ang=pi/2.0d+0
 
 c	1: Crystal Symmetry to 1st orientation
 	do s1=1,nosym
@@ -78,20 +81,20 @@ c	3: Net rotations (g2*inv(g1)=g2*transpose(g1))
      
 c	5. CHECK IF THE MISORIENTATION IS IN FUNDAMENTAL ZONE
 c	5.a. For 1st result: (dg1)
-      sq=dsqrt((dg1(2,3)-dg1(3,2))**2.0+(dg1(1,3)-dg1(3,1))**2.0+ 
-     & (dg1(2,1)-dg1(1,2))**2.0)
+      sq=dsqrt((dg1(2,3)-dg1(3,2))**2.0d+0 + 
+     &(dg1(1,3)-dg1(3,1))**2.0d+0 + (dg1(2,1)-dg1(1,2))**2.0d+0)
 c      write(6,*) 'sq', sq
-      if (dabs(sq).gt.1.0d-10) then
+      if (dabs(sq).gt.smallnum) then
 		x1=(dg1(2,3)-dg1(3,2))/sq
 		x2=(dg1(3,1)-dg1(1,3))/sq
 		x3=(dg1(1,2)-dg1(2,1))/sq
-		if (x1.ge.0.0) then
-			if (x2.ge.0.0) then
-				if (x3.ge.0.0) then
+		if (x1.ge.0.0d+0) then
+			if (x2.ge.0.0d+0) then
+				if (x3.ge.0.0d+0) then
 					if (x1.le.x2) then
 						if (x2.le.x3) then
 							trace=dg1(1,1)+dg1(2,2)+dg1(3,3)
-							temp_ang=dacos((trace-1.0)/2.0)
+							temp_ang=dacos((trace-1.0d+0)/2.0d+0)
 							if (dabs(temp_ang).lt.ang) then
 								ang=temp_ang
 								dg=dg1
@@ -110,20 +113,20 @@ c      write(6,*) 'sq', sq
 
  
 c	5.a. For the 2nd result: (dg2)
-     	sq=dsqrt((dg2(2,3)-dg2(3,2))**2.0+(dg2(1,3)-dg2(3,1))**2.0+ 
-     & (dg2(2,1)-dg2(1,2))**2.0)
+     	sq=dsqrt((dg2(2,3)-dg2(3,2))**2.0d+0 + 
+     &(dg2(1,3)-dg2(3,1))**2.0d+0 + (dg2(2,1)-dg2(1,2))**2.0d+0)
 c      write(6,*) 'sq', sq
-      if (dabs(sq).gt.1.0d-10) then
+      if (dabs(sq).gt.smallnum) then
    	    x1=(dg2(2,3)-dg2(3,2))/sq
 	    x2=(dg2(3,1)-dg2(1,3))/sq
 	    x3=(dg2(1,2)-dg2(2,1))/sq
-	    if (x1.ge.0.0) then
-		    if (x2.ge.0.0) then
-			    if (x3.ge.0.0) then
+	    if (x1.ge.0.0d+0) then
+		    if (x2.ge.0.0d+0) then
+			    if (x3.ge.0.0d+0) then
 				    if (x1.le.x2) then
 					    if (x2.le.x3) then
 						    trace=dg2(1,1)+dg2(2,2)+dg2(3,3)
-						    temp_ang=dacos((trace-1.0)/2.0)
+						    temp_ang=dacos((trace-1.0d+0)/2.0d+0)
 						    if (dabs(temp_ang).lt.ang) then
 							    ang=temp_ang
 							    dg=dg2
@@ -145,16 +148,16 @@ c      write(6,*) 'sq', sq
     
 
 c     Check for zero misorientation      
-      if (ang.gt.0.9*pi/2.0) then
+      if (dabs(ang-pi/2.0).gt.smallnum) then
           ang = 0.0d+0
           uvw=0.0d+0
 c         Assign a unit vector
-          uvw(1)=1.0
+          uvw(1)=1.0d+0
           dg=I3
       endif
        
 c     Convert the misorientation angle into degrees      
-	ang=ang*180.0/pi
+	ang=ang*180.0d+0/pi
       
       
 
@@ -172,19 +175,19 @@ c	OUTPUT: Von-Mises stress (scalar)	--- vms
 	integer i,j
 	real(8) sum
       
-      hyd=0.
+      hyd=0.0d+0
       do i=1,3
-          hyd=hyd +sigma(i,i)
+          hyd=hyd + sigma(i,i)
       enddo
       
-      dev = sigma -hyd/3.0*I3
+      dev = sigma - hyd/3.0d+0*I3
       
 c
 c	Take the inner product
-	sum=0
+	sum=0.0d+0
 	do i=1,3
 		do j=1,3
-			sum=sum+(3.0*dev(i,j)*dev(i,j)/2.0)
+			sum=sum+(3.0d+0*dev(i,j)*dev(i,j)/2.0d+0)
 		enddo
 	enddo
 c	Find the Von-Mises stress
@@ -206,10 +209,10 @@ c
 
 
 c	Take the inner product
-	sum=0.0
+	sum=0.0d+0
 	do i=1,3
 		do j=1,3
-			sum=sum+(2.0*eps(i,j)*eps(i,j)/3.0)
+			sum=sum+(2.0d+0*eps(i,j)*eps(i,j)/3.0d+0)
 		enddo
 	enddo
 c	Find the Von-Mises strain
@@ -234,8 +237,8 @@ c	BHstress: Bishop Hill stress states
 c
 c	Find the Von-Mises strain
 	call vonmises_strain(F,evm)
-	if (evm.eq.0) then
-		M=3.0
+	if (evm.eq.0d+0) then
+		M=3.0d+0
 		return
 	endif
 c	Transform the deformation gradient to crystal frame	
@@ -261,7 +264,7 @@ c	Check Read's "Deformation Geometry" for details
 	st_vec(5)=st(3,1)+st(1,3)
       st_vec(6)=st(2,3)+st(3,2)
 c	Calculating work 
-	max_w=0.0
+	max_w=0.0d+0
 	do i=1,28
 		w=0.0
 		do j=1,6
@@ -271,7 +274,7 @@ c	Calculating work
 			max_w=abs(w)
 		endif
 	enddo
-	M=sqrt(6.0)*max_w/evm;
+	M=sqrt(6.0d+0)*max_w/evm;
 	return
 	end subroutine taylorfactor
 c
@@ -283,8 +286,8 @@ c	OUTPUT: Macauley function value		--- B
 	implicit none
 	real(8) A, B
 c
-	if (A.lt.0.0) then
-          B = 0.0
+	if (A.lt.0.0d+0) then
+          B = 0.0d+0
 c     A >= 0          
       else
           B = A
@@ -308,7 +311,7 @@ c
       do i=1,6
 
           v(i) = (s(order6x6(i,1), order6x6(i,2)) +
-     &            s(order6x6(i,2), order6x6(i,1)) )/2.0
+     &            s(order6x6(i,2), order6x6(i,1)) )/2.0d+0
           
       enddo
       
@@ -356,8 +359,8 @@ c	OUTPUTS: Matrix					---	C66(6,6)
       do i=1,6
           do j=1,6
               
-              C66(i,j) = C3333(   order6x6(i,1), order6x6(i,2), 
-     &                            order6x6(j,1), order6x6(j,2)    )   
+              C66(i,j)=C3333(order6x6(i,1), order6x6(i,2), 
+     &order6x6(j,1), order6x6(j,2))
               
           enddo
       enddo
@@ -557,7 +560,7 @@ c	OUTPUT: Square norm				--- norm
 	real(8) A(dim,dim),norm
 	integer i,j
 c
-	norm=0.0
+	norm=0.0d+0
 	do i=1,dim
 		do j=1,dim
 			norm=norm+(A(i,j)*A(i,j))
@@ -576,7 +579,7 @@ c	OUTPUT: Trace of a matrix			--- value
 	real(8) A(dim,dim),value
 	integer i
 c
-	value=0.0
+	value=0.0d+0
 	do i=1,dim
 		value=value+A(i,i)
 	enddo
@@ -591,7 +594,7 @@ c	OUTPUT: Square norm				--- norm
 	integer i,dim
 	real(8) A(dim),norm
 c
-	norm=0.0
+	norm=0.0d+0
 	do i=1,dim
 		norm=norm+(A(i)*A(i))
 	enddo
@@ -607,7 +610,7 @@ c	OUTPUT: Result										--- C(nxn)
 	integer i,j,k,dim
 	real(8) A(dim,dim),B(dim,dim),C(dim,dim)
 c
-	C=0.0
+	C=0.0d+0
 	do i=1,dim
 		do j=1,dim
 			do k=1,dim
@@ -616,7 +619,28 @@ c
 		enddo
 	enddo
 	return
-	end subroutine matmulmat
+      end subroutine matmulmat
+c
+c
+c	This subroutine computes the cross product of two vectors
+c	INPUTS: vector (3), vector (3)
+c	OUTPUT: vector(3)
+	subroutine cross(a,b,c)
+      use globalvars, only: eijk
+	implicit none
+	integer i,j,k
+	real(8) a(3),b(3),c(3)
+c
+	c=0.0d+0
+	do i=1,3
+		do j=1,3
+			do k=1,3
+                  c(i) = c(i) + (eijk(i,j,k)*a(j)*b(k))
+              enddo
+		enddo
+	enddo
+	return
+	end subroutine cross     
 c
 c	This subroutine multiplies a matrix with a vector
 c	INPUTS: Matrix (nxn), vector (nx1), dimension (n)	--- A(nxn),b(n,1),dim
@@ -626,7 +650,7 @@ c	OUTPUT: Result										---	c(n,1)
 	integer i,j,k,dim
 	real(8) A(dim,dim),b(dim),c(dim)
 c
-	c=0.0
+	c=0.0d+0
 	do i=1,dim
 		do j=1,dim
 			c(i)=c(i)+(A(i,j)*b(j))
@@ -654,6 +678,7 @@ c	This subroutine inverts a 3x3 matrix
 c	INPUT:	Matrix								---	A(3,3)
 c	OUTPUT:	Invereted matrix, determinant		---	invA(3,3),det
 	subroutine invert3x3(A,invA,det)
+      use globalvars, only: smallnum
 	implicit none
 	integer i,j
 	real(8) A(3,3),invA(3,3),det
@@ -661,8 +686,8 @@ c
 c	First calculate the determinant
 	call determinant(A,det)
 c	If the determinant is greater than certain value
-	if (det.lt.1.d-10) then
-		invA=0.0
+	if (det.lt.smallnum) then
+		invA=0.0d+0
 	else
 		invA(1,1)=((A(2,2)*A(3,3))-(A(2,3)*A(3,2)))/det
 		invA(2,1)=-((A(2,1)*A(3,3))-(A(2,3)*A(3,1)))/det
@@ -687,9 +712,9 @@ c     USES:     Number pi           --- pi
 	real(8) ang(3),R(3,3)
 	real(8) phi1,phi2,PHI
 c
-	phi1=ang(1)*pi/180.0
-	phi2=ang(3)*pi/180.0
-	PHI=ang(2)*pi/180.0
+	phi1=ang(1)*pi/180.0d+0
+	phi2=ang(3)*pi/180.0d+0
+	PHI=ang(2)*pi/180.0d+0
       R(1,1)=(dcos(phi1)*dcos(phi2))-(dsin(phi1)*dsin(phi2)*dcos(PHI))
       R(2,1)=-(dcos(phi1)*dsin(phi2))-(dsin(phi1)*dcos(phi2)*dcos(PHI))
       R(3,1)=dsin(phi1)*dsin(PHI)
@@ -713,15 +738,15 @@ c     USES:     Number pi           --- pi
 	real(8) phi1,phi2,PHI
 c
 	if (R(3,3).eq.1) then
-		PHI=0.0
+		PHI=0.0d+0
 		phi1=atan2(R(1,2),R(1,1))
-		phi2=0.0
+		phi2=0.0d+0
 	else
 		PHI=dacos(R(3,3))
 		phi1=atan2(R(3,1)/dsin(PHI),-R(3,2)/dsin(PHI))
 		phi2=atan2(R(1,3)/dsin(PHI),R(2,3)/dsin(PHI))
 	endif
-	ang=ang*180.0/pi
+	ang=ang*180.0d+0/pi
 	return
 	end subroutine ori2ang
 c
@@ -735,18 +760,18 @@ c     USES:     Number pi           --- pi
 	real(8) R(3,3),ang,ax(3)
 	real(8) trace,norm,t,mag
 c
-	norm=dsqrt((R(2,3)-R(3,2))**2.0+(R(1,3)-R(3,1))**2.0+
-     &(R(1,2)-R(2,1))**2.0)
+	norm=dsqrt((R(2,3)-R(3,2))**2.0d+0 + (R(1,3)-R(3,1))**2.0d+0 +
+     &(R(1,2)-R(2,1))**2.0d+0)
 	trace=R(1,1)+R(2,2)+R(3,3)
-	ang=2.0*acos(dsqrt(1+trace)/2.0)
-	t=dtan(ang/2.0)
+	ang=2.0d+0*acos(dsqrt(1.0d+0+trace)/2.0d+0)
+	t=dtan(ang/2.0d+0)
 	ax(1)=t*(R(2,3)-R(3,2))/norm
 	ax(2)=t*(R(3,1)-R(1,3))/norm
 	ax(3)=t*(R(1,2)-R(2,1))/norm	
 c	Normalize the axis vector
-	mag=dsqrt(ax(1)**2.0+ax(2)**2.0+ax(3)**2.0)
+	mag=dsqrt(ax(1)**2.0d+0 + ax(2)**2.0d+0 + ax(3)**2.0d+0)
 	ax=ax/mag		
-	ang=ang*180.0/pi
+	ang=ang*180.0d+0/pi
 	return
 	end subroutine ori2angax
 c
@@ -760,7 +785,7 @@ c	OUPUT:	Symmetric part	--- S(3,3)
 c
 	do i=1,3
 		do j=1,3
-			S(i,j)=0.5*(F(i,j)+F(j,i))
+			S(i,j)=0.5d+0*(F(i,j)+F(j,i))
 		enddo
 	enddo
 	return
@@ -776,88 +801,15 @@ c	OUPUT:	Symmetric part	--- S(3,3)
 c
 	do i=1,3
 		do j=1,3
-			S(i,j)=0.5*(F(i,j)-F(j,i))
+			S(i,j)=0.5d+0*(F(i,j)-F(j,i))
 		enddo
 	enddo
 	return
 	end subroutine skew
 c
-!c	Polar decomposition of deformation
-!c	The method mentioned in 'Mechanics of deformable solids' by
-!c	Isaam Dogri was implemented
-!c	INPUT:	2nd order tensor	--- F(3,3)
-!c	USES :	Indentity matrix	--- I3(3,3)
-!c	OUPUT:	Rotation	--- R(3,3)
-!c			Stretch		--- U(3,3)
-!	subroutine polar(F,R,U,sing)
-!	use globalvars, only : I3
-!	implicit none
-!	real(8) F(3,3),R(3,3),U(3,3)
-!	real(8) RC(3,3),inv1,inv2,inv3,dummy,mat(3,3)
-!	real(8) p,q,p3,Cf,f3,lambda1,lambda2,lambda3
-!	real(8) ii1,ii2,ii3,check,invU(3,3)
-!	integer i,j,sing
-!c	Assign zero to nozero
-!	sing=0
-!c	Find the right Cauchy
-!	RC=matmul(transpose(F),F)
-!c	Find the principal invariants
-!c	First invariant is the trace along the diagonals
-!	call trace(RC,3,inv1)
-!c	Assign the multiplier sign in front of the equation
-!	inv1=-inv1
-!c	Second invariant
-!	mat=matmul(RC,RC)
-!	call trace(mat,3,dummy)
-!	inv2=((inv1**2.0)-dummy)/2.0
-!c	Third invariant
-!	call determinant(RC,inv3)
-!c	Assign the sing as well
-!	inv3=-inv3
-!c	The constants
-!	p=(-(inv1**2.0)/3.0)+inv2
-!	q=(-(inv2+(p*2.0))*inv1/9.0)+inv3;
-!	check=(4.0*(p**3.0))+(27.0*(q**2.0));
-!c	If the check is greater than zero then there exists only one
-!c	real eigenvalues and two complex eigenvalues
-!	if (check.gt.0) then
-!		sing=1
-!		return
-!	else
-!		if (p.lt.0) then
-!			P3=dsqrt(-p/3.0)
-!			Cf=3.0*q/(2.0*p*P3)
-!			if (Cf.gt.1) then
-!			  Cf=1.0
-!			elseif (Cf.lt.-1) then
-!			  Cf=-1.0
-!			endif
-!			f3=dacos(Cf)/3.0
-!			lambda1=dsqrt((-inv1/3.0)+(2.0*P3*dcos(f3)))
-!			lambda2=dsqrt((-inv1/3.0)-(P3*(dcos(f3)+(dsin(f3)*dsqrt(3.0d+0)))))
-!			lambda3=dsqrt((-inv1/3.0)-(P3*(dcos(f3)-(dsin(f3)*dsqrt(3.0d+0)))))
-!		else
-!			sing=1
-!			return
-!		endif
-!		ii1=lambda1+lambda2+lambda3
-!		ii2=(lambda1*lambda2)+(lambda3*lambda2)+(lambda1*lambda3)
-!		ii3=lambda1*lambda2*lambda3
-!c		Another check for the singularity
-!		check=(ii1*ii2)-ii3
-!		if (check.eq.0.0) then
-!			sing=1
-!			return
-!		else
-!			U=((-mat)+(((ii1**2.0)-ii2)*RC)+
-!     &	(ii1*ii3*I3))/check
-!			invU=(RC-(ii1*U)+(ii2*I3))/ii3
-!			R=matmul(F,invU)
-!		endif
-!	endif
-!	return
-!      end subroutine polar
-!c    
+c
+c
+c    
 c      
 c      
 c********1*********2*********3*********4*********5*********6*********7**
@@ -887,102 +839,150 @@ c
 c
       SUBROUTINE polar(G,R,S)
 c
+      use globalvars, only: I3, smallnum
       implicit none
 c	declarations
       REAL(8) G(3,3),R(3,3),S(3,3)
       REAL(8) COG(3,3),P(3,3),ADP(3,3),PBI(3,3)
       real(8) EPS, G1SQ, G1, G2SQ, G2, G3, H1, H2, X, Y
       real(8) DEN, RES1, RES2, DX, DY, BETA1, BETA2, DETPBI
-      integer I
+      integer I, j, k, flag1, flag2
 c
-c	constants
-      EPS=1.0E-5
+      flag1=0d+0
+      flag2=0d+0
+c     If G is identity
+      do j=1,3
+          do k=1,3
+              if (dabs(G(j,k)-I3(j,k)).lt.smallnum) then
+                  flag1 = 1d+0
+              endif
+          enddo
+      enddo
+      
+      
+      if (flag1.eq.0d+0) then
+
+
+
+
+c	    constants
+          EPS=1.0d-5
 c
-c	cofactors and determinant of g
-      COG(1,1)=G(2,2)*G(3,3)-G(2,3)*G(3,2)
-      COG(2,1)=G(1,3)*G(3,2)-G(1,2)*G(3,3)
-      COG(3,1)=G(1,2)*G(2,3)-G(1,3)*G(2,2)
-      COG(1,2)=G(2,3)*G(3,1)-G(2,1)*G(3,3)
-      COG(2,2)=G(1,1)*G(3,3)-G(1,3)*G(3,1)
-      COG(3,2)=G(1,3)*G(2,1)-G(1,1)*G(2,3)
-      COG(1,3)=G(2,1)*G(3,2)-G(2,2)*G(3,1)
-      COG(2,3)=G(1,2)*G(3,1)-G(1,1)*G(3,2)
-      COG(3,3)=G(1,1)*G(2,2)-G(1,2)*G(2,1)
-      G3=G(1,1)*COG(1,1)+G(2,1)*COG(2,1)+G(3,1)*COG(3,1)
+c	    cofactors and determinant of g
+          COG(1,1)=G(2,2)*G(3,3)-G(2,3)*G(3,2)
+          COG(2,1)=G(1,3)*G(3,2)-G(1,2)*G(3,3)
+          COG(3,1)=G(1,2)*G(2,3)-G(1,3)*G(2,2)
+          COG(1,2)=G(2,3)*G(3,1)-G(2,1)*G(3,3)
+          COG(2,2)=G(1,1)*G(3,3)-G(1,3)*G(3,1)
+          COG(3,2)=G(1,3)*G(2,1)-G(1,1)*G(2,3)
+          COG(1,3)=G(2,1)*G(3,2)-G(2,2)*G(3,1)
+          COG(2,3)=G(1,2)*G(3,1)-G(1,1)*G(3,2)
+          COG(3,3)=G(1,1)*G(2,2)-G(1,2)*G(2,1)
+          G3=G(1,1)*COG(1,1)+G(2,1)*COG(2,1)+G(3,1)*COG(3,1)
 c
-c	P = trans(G) * G = S * S
-      DO I=1,3
-      P(I,1)=G(1,I)*G(1,1)+G(2,I)*G(2,1)+G(3,I)*G(3,1)
-      P(I,2)=G(1,I)*G(1,2)+G(2,I)*G(2,2)+G(3,I)*G(3,2)
-      P(I,3)=G(1,I)*G(1,3)+G(2,I)*G(2,3)+G(3,I)*G(3,3)
-      ENDDO
+c	    P = trans(G) * G = S * S
+          DO I=1,3
+              P(I,1)=G(1,I)*G(1,1)+G(2,I)*G(2,1)+G(3,I)*G(3,1)
+              P(I,2)=G(1,I)*G(1,2)+G(2,I)*G(2,2)+G(3,I)*G(3,2)
+              P(I,3)=G(1,I)*G(1,3)+G(2,I)*G(2,3)+G(3,I)*G(3,3)
+          ENDDO
+      
+      
+c         If P is identity
+          do j=1,3
+              do k=1,3
+                  if (dabs(P(j,k)-I3(j,k)).lt.smallnum) then
+                      flag2 = 1
+                  endif
+              enddo
+          enddo
+
+c         Continue if non identity  
+          if (flag2.eq.0d+0) then
+      
 c
-c	adjoint of P
-      ADP(1,1)=P(2,2)*P(3,3)-P(2,3)*P(3,2)
-      ADP(2,2)=P(1,1)*P(3,3)-P(1,3)*P(3,1)
-      ADP(3,3)=P(1,1)*P(2,2)-P(1,2)*P(2,1)
+c	        adjoint of P
+              ADP(1,1)=P(2,2)*P(3,3)-P(2,3)*P(3,2)
+              ADP(2,2)=P(1,1)*P(3,3)-P(1,3)*P(3,1)
+              ADP(3,3)=P(1,1)*P(2,2)-P(1,2)*P(2,1)
 c
-c	G invariants
-      G1SQ=P(1,1)+P(2,2)+P(3,3)
-      G1=SQRT(G1SQ)
-      G2SQ=ADP(1,1)+ADP(2,2)+ADP(3,3)
-      G2=SQRT(G2SQ)
+c	        G invariants
+              G1SQ=P(1,1)+P(2,2)+P(3,3)
+              G1=SQRT(G1SQ)
+              G2SQ=ADP(1,1)+ADP(2,2)+ADP(3,3)
+              G2=SQRT(G2SQ)
 c
-c	initialize iteration
-      H1=G2/G1SQ
-      H2=G3*G1/G2SQ
-      X=1.0
-      Y=1.0
+c	        initialize iteration
+              H1=G2/G1SQ
+              H2=G3*G1/G2SQ
+              X=1.0d+0
+              Y=1.0d+0
 c
-c	iteration loop
-      DO WHILE (ABS(DX/X).GT.EPS.OR.ABS(DY/Y).GT.EPS)
-      DEN=2.0*(X*Y-H1*H2)
-      RES1=1.0-X*X+2.0*H1*Y
-      RES2=1.0-Y*Y+2.0*H2*X
-      DX=(Y*RES1+H1*RES2)/DEN
-      DY=(H2*RES1+X*RES2)/DEN
-      X=X+DX
-      Y=Y+DY
-      ENDDO
+c	        iteration loop
+              DO WHILE (ABS(DX/X).GT.EPS.OR.ABS(DY/Y).GT.EPS)
+                  DEN=2.0d+0*(X*Y-H1*H2)
+                  RES1=1.0d+0 - X*X + 2.0d+0*H1*Y
+                  RES2=1.0d+0 - Y*Y + 2.0d+0*H2*X
+                  DX=(Y*RES1+H1*RES2)/DEN
+                  DY=(H2*RES1+X*RES2)/DEN
+                  X=X+DX
+                  Y=Y+DY
+              ENDDO
 c
-c	BETA invariants
-      BETA1=X*G1
-      BETA2=Y*G2
+c	        BETA invariants
+              BETA1=X*G1
+              BETA2=Y*G2
 c
-c	invert ( trans(G) * G + BETA2 * identity )
-      P(1,1)=P(1,1)+BETA2
-      P(2,2)=P(2,2)+BETA2
-      P(3,3)=P(3,3)+BETA2
-      PBI(1,1)=P(2,2)*P(3,3)-P(2,3)*P(3,2)
-      PBI(1,2)=P(1,3)*P(3,2)-P(1,2)*P(3,3)
-      PBI(1,3)=P(1,2)*P(2,3)-P(1,3)*P(2,2)
-      PBI(2,1)=P(2,3)*P(3,1)-P(2,1)*P(3,3)
-      PBI(2,2)=P(1,1)*P(3,3)-P(1,3)*P(3,1)
-      PBI(2,3)=P(1,3)*P(2,1)-P(1,1)*P(2,3)
-      PBI(3,1)=P(2,1)*P(3,2)-P(2,2)*P(3,1)
-      PBI(3,2)=P(1,2)*P(3,1)-P(1,1)*P(3,2)
-      PBI(3,3)=P(1,1)*P(2,2)-P(1,2)*P(2,1)
-      DETPBI=P(1,1)*PBI(1,1)+P(2,1)*PBI(1,2)+P(3,1)*PBI(1,3)
+c	        invert ( trans(G) * G + BETA2 * identity )
+              P(1,1)=P(1,1)+BETA2
+              P(2,2)=P(2,2)+BETA2
+              P(3,3)=P(3,3)+BETA2
+              PBI(1,1)=P(2,2)*P(3,3)-P(2,3)*P(3,2)
+              PBI(1,2)=P(1,3)*P(3,2)-P(1,2)*P(3,3)
+              PBI(1,3)=P(1,2)*P(2,3)-P(1,3)*P(2,2)
+              PBI(2,1)=P(2,3)*P(3,1)-P(2,1)*P(3,3)
+              PBI(2,2)=P(1,1)*P(3,3)-P(1,3)*P(3,1)
+              PBI(2,3)=P(1,3)*P(2,1)-P(1,1)*P(2,3)
+              PBI(3,1)=P(2,1)*P(3,2)-P(2,2)*P(3,1)
+              PBI(3,2)=P(1,2)*P(3,1)-P(1,1)*P(3,2)
+              PBI(3,3)=P(1,1)*P(2,2)-P(1,2)*P(2,1)
+              DETPBI=P(1,1)*PBI(1,1)+P(2,1)*PBI(1,2)+P(3,1)*PBI(1,3)
 c
-c	R = (cofac(G)+BETA1*G) * inv(trans(G)*G+BETA2*identity)
-      DO I=1,3
-      R(I,1)=((COG(I,1)+BETA1*G(I,1))*PBI(1,1)
-     1       +(COG(I,2)+BETA1*G(I,2))*PBI(2,1)
-     2       +(COG(I,3)+BETA1*G(I,3))*PBI(3,1))/DETPBI
-      R(I,2)=((COG(I,1)+BETA1*G(I,1))*PBI(1,2)
-     1       +(COG(I,2)+BETA1*G(I,2))*PBI(2,2)
-     2       +(COG(I,3)+BETA1*G(I,3))*PBI(3,2))/DETPBI
-      R(I,3)=((COG(I,1)+BETA1*G(I,1))*PBI(1,3)
-     1       +(COG(I,2)+BETA1*G(I,2))*PBI(2,3)
-     2       +(COG(I,3)+BETA1*G(I,3))*PBI(3,3))/DETPBI
-      ENDDO
+c	        R = (cofac(G)+BETA1*G) * inv(trans(G)*G+BETA2*identity)
+              DO I=1,3
+                  R(I,1)=((COG(I,1)+BETA1*G(I,1))*PBI(1,1)
+     &       +(COG(I,2)+BETA1*G(I,2))*PBI(2,1)
+     &       +(COG(I,3)+BETA1*G(I,3))*PBI(3,1))/DETPBI
+                  R(I,2)=((COG(I,1)+BETA1*G(I,1))*PBI(1,2)
+     &       +(COG(I,2)+BETA1*G(I,2))*PBI(2,2)
+     &       +(COG(I,3)+BETA1*G(I,3))*PBI(3,2))/DETPBI
+                  R(I,3)=((COG(I,1)+BETA1*G(I,1))*PBI(1,3)
+     &       +(COG(I,2)+BETA1*G(I,2))*PBI(2,3)
+     &       +(COG(I,3)+BETA1*G(I,3))*PBI(3,3))/DETPBI
+              ENDDO
 c
-c	S = trans(R) * G
-      DO I=1,3
-      S(I,1)=R(1,I)*G(1,1)+R(2,I)*G(2,1)+R(3,I)*G(3,1)
-      S(I,2)=R(1,I)*G(1,2)+R(2,I)*G(2,2)+R(3,I)*G(3,2)
-      S(I,3)=R(1,I)*G(1,3)+R(2,I)*G(2,3)+R(3,I)*G(3,3)
-      ENDDO
+c	        S = trans(R) * G
+              DO I=1,3
+                  S(I,1)=R(1,I)*G(1,1)+R(2,I)*G(2,1)+R(3,I)*G(3,1)
+                  S(I,2)=R(1,I)*G(1,2)+R(2,I)*G(2,2)+R(3,I)*G(3,2)
+                  S(I,3)=R(1,I)*G(1,3)+R(2,I)*G(2,3)+R(3,I)*G(3,3)
+              ENDDO
+              
+          else
+              
+              S = I3
+              R = G
+              
+          endif
+          
+      else
+          
+          S = I3
+          R = I3
+          
+      endif
+      
+              
 c
 c	done
       RETURN
@@ -1002,7 +1002,7 @@ c	OUTPUT: Lower tri., Upper tri., determinant --- L(n,n), U(n,n), det
 	real(8) factor(n,n), det
 c
 	U=A
-	factor=0.0
+	factor=0.0d+0
 c	Triangularization
 	do k=1,n-1
 		do i=k+1,n
@@ -1015,7 +1015,7 @@ c	Triangularization
 c	Lower triangular matrix
 	L=factor
 	do i=1,n
-		L(i,i)=1.0
+		L(i,i)=1.0d+0
 	enddo
 c	Multiplication of the elements at the diagonal is the determinant
 	det=1;
@@ -1024,62 +1024,7 @@ c	Multiplication of the elements at the diagonal is the determinant
 	enddo
 	return
 	end subroutine LUdecomp
-c	
-!c	This subroutine inverts a nxn matrix
-!c	INPUT:	Matrix, size of the matrix		---	A(n,n),n
-!c	OUTPUT:	Invereted matrix, determinant	---	invA(n,n),det
-!	subroutine invertnxn(A,n,invA,det)
-!	implicit none
-!	integer n,i,j,m
-!	real(8) A(n,n),invA(n,n),det,sum
-!	real(8) L(n,n),U(n,n),B(n,n),C(n,n),Ct(n,n),Lt(n,n)
-!c	First decompose into lower and upper triangles	
-!	call LUdecomp(A,n,L,U,det)
-!c	If the determinant is greater than zero
-!	if (det.gt.1.0d-10) then
-!c		Inversion algorithm (For the UPPER triangular matrix)
-!		do i=1,n
-!			do j=1,n
-!				if (i.gt.j) then
-!					B(i,j)=0.0
-!				elseif (i==j) then
-!					B(i,j)=1/U(i,j)			
-!				else
-!					sum=0.0
-!					do m=1,j-1
-!						sum=sum-(B(i,m)*U(m,j))
-!					enddo
-!					B(i,j)=sum/U(j,j)
-!				endif
-!			enddo
-!		enddo
-!c		First transpose (For the LOWER triangular matrix)
-!		Lt=transpose(L)
-!		do i=1,n
-!			do j=1,n
-!				if (i.gt.j) then
-!					Ct(i,j)=0
-!				elseif (i==j) then
-!					Ct(i,j)=1/Lt(i,j)			
-!				else
-!					sum=0.0
-!					do m=1,j-1
-!						sum=sum-(Ct(i,m)*Lt(m,j))
-!					enddo
-!					Ct(i,j)=sum/Lt(j,j)
-!				endif
-!			enddo
-!		enddo
-!c		Transpose the result back finally
-!		C=transpose(Ct)
-!c		Calculate the overall inverse
-!		invA=matmul(B,C)
-!	else
-!		invA=0.0
-!      endif
-!      
-!	return
-!	end subroutine invertnxn
+c
 c
       subroutine invertnxn(a,c,n)
       !============================================================
@@ -1105,9 +1050,9 @@ c
 
       ! step 0: initialization for matrices L and U and b
       ! Fortran 90/95 aloows such operations on matrices
-      L=0.0
-      U=0.0
-      b=0.0
+      L=0.0d+0
+      U=0.0d+0
+      b=0.0d+0
 
       ! step 1: forward elimination
       do k=1, n-1
@@ -1124,7 +1069,7 @@ c
       ! L matrix is a matrix of the elimination coefficient
       ! + the diagonal elements are 1.0
       do i=1,n
-      L(i,i) = 1.0
+      L(i,i) = 1.0d+0
       end do
       ! U matrix is the upper triangular part of A
       do j=1,n
@@ -1135,7 +1080,7 @@ c
 
       ! Step 3: compute columns of the inverse matrix C
       do k=1,n
-          b(k)=1.0
+          b(k)=1.0d+0
           d(1) = b(1)
           ! Step 3a: Solve Ld=b using the forward substitution
           do i=2,n
@@ -1157,7 +1102,7 @@ c
           do i=1,n
               c(i,k) = x(i)
           end do
-          b(k)=0.0
+          b(k)=0.0d+0
       end do
       return
       end subroutine invertnxn
