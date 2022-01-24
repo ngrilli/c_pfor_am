@@ -3,6 +3,9 @@
 # that must be changed to point to this folder
 # would be better to read the path from inputs.dat in the future
 
+# coupling with phase field damage model
+# damage is constant here
+
 [GlobalParams]
   displacements = 'disp_x disp_y disp_z'
 []
@@ -11,22 +14,60 @@
   [gen]
     type = GeneratedMeshGenerator
     dim = 3
-    xmin = -0.5
-    xmax = 0.5
-    ymin = -0.5
-    ymax = 0.5
-    zmin = -0.5
-    zmax = 0.5
-	nx = 1
-	ny = 1
-	nz = 1
+    xmin = 0.0
+    xmax = 2.0
+    ymin = 0.0
+    ymax = 2.0
+    zmin = 0.0
+    zmax = 2.0
+	nx = 2
+	ny = 2
+	nz = 2
   []
+  [origin_modifier]
+    type = BoundingBoxNodeSetGenerator
+    input = gen
+    new_boundary = origin
+    top_right = '0.01 0.01 0.01'
+    bottom_left = '-0.01 -0.01 -0.01'
+  []  
+  [xp_point_modifier]
+    type = BoundingBoxNodeSetGenerator
+    input = origin_modifier
+    new_boundary = xp_point
+    top_right = '2.01 0.01 0.01'
+    bottom_left = '1.99 -0.01 -0.01'
+  []  
+  [zp_point_modifier]
+    type = BoundingBoxNodeSetGenerator
+    input = xp_point_modifier
+    new_boundary = zp_point
+    top_right = '0.01 0.01 1.01'
+    bottom_left = '-0.01 -0.01 0.99'
+  []  
+[]
+
+# add damage variable
+# it is constant here
+[Variables]
+  [./c]
+    order = FIRST
+    family = LAGRANGE
+	[./InitialCondition]
+      type = ConstantIC
+      value = '0.5'
+    [../]
+  [../]
 []
 
 [Functions]
   [top_pull]
     type = ParsedFunction
     value = 't/1000'
+  []
+  [lateral_pressure]
+    type = ParsedFunction
+	value = '2.0'
   []
 []
 
@@ -35,6 +76,14 @@
     add_variables = true
     strain = FINITE
   []
+[]
+
+# constant damage
+[Kernels]
+  [./dcdt]
+    type = TimeDerivative
+    variable = c
+  [../]
 []
 
 [AuxVariables]
@@ -83,10 +132,17 @@
     order = CONSTANT
     family = MONOMIAL
   [../]
+  
+  # this state variable is a constant monomial
+  # copy of the damage variable
+  [./statev_1]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
 
 []
 
-[AuxKernels]
+[AuxKernels] 
 
   [./stress_xx]
     type = RankTwoAux
@@ -168,6 +224,16 @@
     index_i = 2
     execute_on = timestep_end
   [../]
+  
+  # this state variable in a constant mononial
+  # copy of the damage variable
+  [./statev_1]
+    type = MaterialStdVectorAux
+    variable = statev_1
+    property = state_var
+    index = 0
+    execute_on = timestep_end
+  [../]
 
 []
 
@@ -194,8 +260,18 @@
   [z_bot]
     type = DirichletBC
     variable = disp_z
-    boundary = front
+    boundary = back
     value = 0.0
+  []
+  [Pressure]
+    [bc_pressure_front]
+      boundary = front
+      function = lateral_pressure
+    []
+    [bc_pressure_right]
+      boundary = right
+      function = lateral_pressure
+    []
   []
 []
 
@@ -203,24 +279,15 @@
 # because fortran modules are adopted
 # modules need to be compiled independently
 # with gfortran before make
-# procedure is the following on first installation:
-# convert BRISTOL.for into BRISTOL.f
-# make sure all previous .mod, .o, .plugin files
-# are removed, including the .mod files in the c_pfor_am folder
+# command is for instance:
 # gfortran -c -free calculations.f
-# on each module, note BRISTOL.f is not a module
-# make
-# after code modification,
-# remove .mod, .o, .plugin of the modified code
-# remove BRISTOL.plugin
-# remove .mod files in the c_pfor_am folder
-# recompile modified module and make
 [Materials]
   [umat]
-    type = AbaqusUMATStress
+    type = UMATStressDamage
     constant_properties = '0'
     plugin = '../../plugins/Bristol_CP/BRISTOL'
     num_state_vars = 12
+	c = c
   []
 []
 
@@ -258,16 +325,18 @@
   solve_type = 'PJFNK'
   
   petsc_options = '-snes_ksp_ew'
-  petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart'
-  petsc_options_value = 'hypre    boomeramg          101'
+  petsc_options_iname = '-pc_type -pc_factor_mat_solver_package'
+  petsc_options_value = 'lu superlu_dist'
+  
   line_search = 'none'
 
-  nl_max_its = 50
+  nl_max_its = 100
+  l_max_its = 10
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   
   start_time = 0.0
-  end_time = 0.02 # run until 3.0 to see the elasto-plastic stress strain curve
+  end_time = 0.01 # run until 18.0 to see the elasto-plastic stress strain curve
   
   # if the number of non-linear iterations is in the interval
   # [optimal_iterations-iteration_window ; optimal_iterations+iteration_window]
@@ -275,10 +344,10 @@
   [TimeStepper]
     type = IterationAdaptiveDT
     optimal_iterations = 25
-    iteration_window = 20
-    growth_factor = 2.0
-	reject_large_step = True
-    cutback_factor = 1.0
+    iteration_window = 15
+    growth_factor = 1.0001
+  	reject_large_step = True
+    cutback_factor = 0.5
     timestep_limiting_postprocessor = matl_ts_min
     dt = 0.01
   []
@@ -294,5 +363,6 @@
 
 [Outputs]
   exodus = true
+  interval = 1
 []
 

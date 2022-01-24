@@ -58,12 +58,10 @@ UMATStressDamage::UMATStressDamage(const InputParameters & parameters)
   _aqDPRED.resize(_number_external_fields + _number_external_properties);
 }
 
-
 // initQpStatefulProperties needs to be checked
 // because moose must be able to initialize
 // damage variable without the material object affecting
 // the IC object
-
 
 void
 UMATStressDamage::computeQpStress()
@@ -71,6 +69,10 @@ UMATStressDamage::computeQpStress()
   const Real * myDFGRD0 = &(_Fbar_old[_qp](0, 0));
   const Real * myDFGRD1 = &(_Fbar[_qp](0, 0));
   const Real * myDROT = &(_rotation_increment[_qp](0, 0));
+  
+  // Large number to generate random large stress
+  // when the crystal plasticity return mapping fails
+  Real rndm_scale_var; 
 
   // copy because UMAT does not guarantee constness
   for (unsigned int i = 0; i < 9; ++i)
@@ -85,9 +87,10 @@ UMATStressDamage::computeQpStress()
     _aqSTATEV[i] = _state_var_old[_qp][i];
 
   // Pass through updated stress, total strain, and strain increment arrays
+  // The order of the strain components is adapted to the one in Abaqus
   static const std::array<Real, 6> strain_factor{{1, 1, 1, 2, 2, 2}};
   static const std::array<std::pair<unsigned int, unsigned int>, 6> component{
-      {{0, 0}, {1, 1}, {2, 2}, {1, 2}, {0, 2}, {0, 1}}};
+      {{0, 0}, {1, 1}, {2, 2}, {0, 1}, {0, 2}, {1, 2}}};
 
   for (int i = 0; i < _aqNTENS; ++i)
   {
@@ -107,7 +110,9 @@ UMATStressDamage::computeQpStress()
     _aqDDSDDE[i] = 0.0;
 
   // Set PNEWDT initially to a large value
-  _aqPNEWDT = std::numeric_limits<Real>::max();
+  //_aqPNEWDT = std::numeric_limits<Real>::max();
+
+  _aqPNEWDT = 1.0;
 
   // Temperature
   _aqTEMP = _temperature_old[_qp];
@@ -144,7 +149,8 @@ UMATStressDamage::computeQpStress()
   _aqKINC = _t_step;
   _aqKSTEP = 1;
   
-  // damage needs to be passed to the state variable here
+  // damage phase field is passed to STATEV(1) 
+  _aqSTATEV[0] = _c[_qp];
 
   // Connection to extern statement
   _umat(_aqSTRESS.data(),
@@ -196,15 +202,17 @@ UMATStressDamage::computeQpStress()
   // step MOOSE time stepper will choose the most limiting of all material time step increments
   // provided
   _material_timestep[_qp] = _aqPNEWDT * _dt;
-
+	  
   // Get new stress tensor - UMAT should update stress
   _stress[_qp] = RankTwoTensor(
-      _aqSTRESS[0], _aqSTRESS[1], _aqSTRESS[2], _aqSTRESS[3], _aqSTRESS[4], _aqSTRESS[5]);
+      _aqSTRESS[0], _aqSTRESS[1], _aqSTRESS[2], _aqSTRESS[5], _aqSTRESS[4], _aqSTRESS[3]);
 
   // Rotate the stress state to the current configuration
   _stress[_qp].rotate(_rotation_increment[_qp]);
-
+	  
   // use DDSDDE as Jacobian mult
+  // The order of these components must be checked
+  // to see if it matches Abaqus standards
   _jacobian_mult[_qp].fillSymmetric21FromInputVector(std::array<Real, 21>{{
       _aqDDSDDE[0],  // C1111
       _aqDDSDDE[1],  // C1122
@@ -228,4 +236,5 @@ UMATStressDamage::computeQpStress()
       _aqDDSDDE[29], // C1312
       _aqDDSDDE[35]  // C1212
   }});
+
 }

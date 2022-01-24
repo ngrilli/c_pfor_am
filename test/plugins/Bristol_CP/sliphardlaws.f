@@ -52,7 +52,7 @@ c
           ss_1 = sliphard_param(3)
           n_1 = sliphard_param(4)
 c          
-          hb_1 = h0_1*((1.0d+0-(tauc/ss_1))**n_1)
+          hb_1 = h0_1*(dabs(1.0d+0-(tauc/ss_1)))**n_1
           
 c         self-hardening          
 		sstatedot(1) = hb_1*dabs(gdot)

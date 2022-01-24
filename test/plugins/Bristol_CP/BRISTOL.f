@@ -15,6 +15,11 @@ c
       include "slipratelaws.f"
       include "sliphardlaws.f"      
       include "calculations.f"
+	  
+c     Nico modifications begin	  
+	  include "phasefieldfracture.f"
+c     Nico modifications finish	  
+	  
 c
 c      
 c      

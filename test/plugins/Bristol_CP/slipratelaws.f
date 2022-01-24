@@ -45,9 +45,21 @@ c          write(6,*) sstate
     
           gdot = gdot0_1 * ((dabs(tau)/tauc)**(1.0d+0/m_1)) 
      &*dsign(1.0d+0,tau)
+	 
+      if (dabs(gdot) > 0.001) then
+	  
+      gdot = 0.001 * dsign(1.0d+0,tau)
+		
+      dgdot_dtau = (gdot0_1 / m_1) / tauc
+		
+      else
 
-          dgdot_dtau = gdot0_1/m_1 * ((dabs(tau)/tauc)
+      dgdot_dtau = gdot0_1/m_1 * ((dabs(tau)/tauc)
      &**((1.0d+0/m_1) - 1.0d+0)) / tauc
+	  
+      end if
+
+
           
 
 

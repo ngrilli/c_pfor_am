@@ -218,14 +218,24 @@
 # because fortran modules are adopted
 # modules need to be compiled independently
 # with gfortran before make
-# command is for instance:
+# procedure is the following on first installation:
+# convert BRISTOL.for into BRISTOL.f
+# make sure all previous .mod, .o, .plugin files
+# are removed, including the .mod files in the c_pfor_am folder
 # gfortran -c -free calculations.f
+# on each module, note BRISTOL.f is not a module
+# make
+# after code modification,
+# remove .mod, .o, .plugin of the modified code
+# remove BRISTOL.plugin
+# remove .mod files in the c_pfor_am folder
+# recompile modified module and make
 [Materials]
   [umat]
     type = AbaqusUMATStress
     constant_properties = '0'
     plugin = '../../plugins/Bristol_CP/BRISTOL'
-    num_state_vars = 1
+    num_state_vars = 12
   []
 []
 
@@ -261,10 +271,6 @@
 [Executioner]
   type = Transient
   solve_type = 'PJFNK'
-
-  #petsc_options = '-snes_ksp_ew'
-  #petsc_options_iname = '-ksp_gmres_restart'
-  #petsc_options_value = '101'
   
   petsc_options = '-snes_ksp_ew'
   petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart'
@@ -276,7 +282,7 @@
   nl_abs_tol = 1e-8
   
   start_time = 0.0
-  end_time = 0.2 # run until 3.0 to see the elasto-plastic stress strain curve
+  end_time = 0.02 # run until 3.0 to see the elasto-plastic stress strain curve
   
   # if the number of non-linear iterations is in the interval
   # [optimal_iterations-iteration_window ; optimal_iterations+iteration_window]
@@ -294,8 +300,6 @@
   
 []
 
-# Finite difference preconditioning seems to have problems with the UMAT
-# better to use Single Matrix Precision
 [Preconditioning]
   [smp]
     type = SMP
