@@ -9,11 +9,6 @@
 
 #include "FiniteStrainUObasedCP.h"
 
-// #include "CrystalPlasticitySlipRate.h"
-// #include "CrystalPlasticitySlipResistance.h"
-// #include "CrystalPlasticityStateVariable.h"
-// #include "CrystalPlasticityStateVarRateComponent.h"
-
 /**
  * FiniteStrainUObasedCPDamage is the coupling between
  * crystal plasticity and damage

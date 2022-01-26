@@ -1,6 +1,6 @@
 // Nicolò Grilli
 // University of Bristol
-// 19 Gennaio 2022
+// 26 Gennaio 2022
 
 #include "UMATStressDamage.h"
 #include "Factory.h"
@@ -8,6 +8,9 @@
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
 #include "libmesh/int_range.h"
+#include "petscblaslapack.h"
+#include "MooseException.h"
+#include "MathUtils.h"
 #include <string.h>
 #include <algorithm>
 
@@ -22,6 +25,13 @@ UMATStressDamage::validParams()
   params.addClassDescription("Coupling material to use Abaqus UMAT models in MOOSE "
                              "and coupling with phase field damage model");
   params.addRequiredCoupledVar("c", "Order parameter for damage");
+  params.addParam<bool>(
+      "use_current_history_variable", false, "Use the current value of the history variable.");
+  params.addParam<MaterialPropertyName>(
+      "E_name", "elastic_energy", "Name of material property for elastic energy");
+  params.addParam<MaterialPropertyName>(
+      "D_name", "degradation", "Name of material property for energetic degradation function.");
+  params.addParam<Real>("bulk_modulus_ref",0.0,"reference bulk modulus for vol/non-vol decomposition");
   return params;
 }
 
@@ -31,7 +41,23 @@ UMATStressDamage::validParams()
 
 UMATStressDamage::UMATStressDamage(const InputParameters & parameters)
   : AbaqusUMATStress(parameters),
-    _c(coupledValue("c"))
+    _c(coupledValue("c")),
+    _use_current_hist(getParam<bool>("use_current_history_variable")),
+    _H(declareProperty<Real>("hist")), // History variable to avoid damage decrease 
+    _H_old(getMaterialPropertyOld<Real>("hist")),
+    _E(declareProperty<Real>(getParam<MaterialPropertyName>("E_name"))),
+    _dEdc(declarePropertyDerivative<Real>(getParam<MaterialPropertyName>("E_name"),
+                                          getVar("c", 0)->name())),
+    _d2Ed2c(declarePropertyDerivative<Real>(
+        getParam<MaterialPropertyName>("E_name"), getVar("c", 0)->name(), getVar("c", 0)->name())),
+    _dstress_dc(
+        declarePropertyDerivative<RankTwoTensor>(_base_name + "stress", getVar("c", 0)->name())), 
+    _d2Fdcdstrain(declareProperty<RankTwoTensor>("d2Fdcdstrain")),		
+	_D(getMaterialProperty<Real>("D_name")),
+    _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
+    _d2Dd2c(getMaterialPropertyDerivative<Real>(
+        "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
+    _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
 {
   // get material properties
   for (std::size_t i = 0; i < _number_external_properties; ++i)
@@ -69,10 +95,8 @@ UMATStressDamage::computeQpStress()
   const Real * myDFGRD0 = &(_Fbar_old[_qp](0, 0));
   const Real * myDFGRD1 = &(_Fbar[_qp](0, 0));
   const Real * myDROT = &(_rotation_increment[_qp](0, 0));
-  
-  // Large number to generate random large stress
-  // when the crystal plasticity return mapping fails
-  Real rndm_scale_var; 
+
+  Real F_pos, F_neg; // tensile and compressive part of the elastic strain energy
 
   // copy because UMAT does not guarantee constness
   for (unsigned int i = 0; i < 9; ++i)
@@ -195,8 +219,13 @@ UMATStressDamage::computeQpStress()
   for (int i = 0; i < _aqNSTATV; ++i)
     _state_var[_qp][i] = _aqSTATEV[i];
 
-  // here you need to define all the quantities
-  // necessary for the phase field model
+  // all the quantities necessary for
+  // the phase field damage model are defined
+  assignFreeEnergy(F_pos, F_neg);
+  
+  // Compute history variables necessary for
+  // the phase field damage model
+  computeHistoryVariable(F_pos, F_neg);
 
   // Here, we apply UMAT convention: Always multiply _dt by PNEWDT to determine the material time
   // step MOOSE time stepper will choose the most limiting of all material time step increments
@@ -213,6 +242,7 @@ UMATStressDamage::computeQpStress()
   // use DDSDDE as Jacobian mult
   // The order of these components must be checked
   // to see if it matches Abaqus standards
+  // currently, it is probably wrong
   _jacobian_mult[_qp].fillSymmetric21FromInputVector(std::array<Real, 21>{{
       _aqDDSDDE[0],  // C1111
       _aqDDSDDE[1],  // C1122
@@ -236,5 +266,62 @@ UMATStressDamage::computeQpStress()
       _aqDDSDDE[29], // C1312
       _aqDDSDDE[35]  // C1212
   }});
+
+}
+
+// Free energy components and their derivatives
+// calculated by the UMAT
+// are assigned to the corresponding MaterialProperty
+void
+UMATStressDamage::assignFreeEnergy(Real & F_pos, Real & F_neg)
+{
+  // Positive part of the second Piola-Kirchhoff stress
+  RankTwoTensor pk2_pos;	
+	
+  // Assign positive and negative parts of the free energy
+  // Equations 13 and 14 in Grilli, Koslowski, 2019
+  F_pos = _aqSTATEV[1];
+  F_neg = _aqSTATEV[2];
+  
+  // Assign positive part of the second Piola-Kirchhoff stress
+  // it follows Abaqus components order convention for 6-vectors
+  // Therefore fourth and sixth components must be swapped 
+  pk2_pos = RankTwoTensor(
+      _aqSTATEV[3], _aqSTATEV[4], _aqSTATEV[5], _aqSTATEV[8], _aqSTATEV[7], _aqSTATEV[6]);
+  
+  // Used in StressDivergencePFFracTensors off-diagonal Jacobian
+  _dstress_dc[_qp] = pk2_pos * _dDdc[_qp];
+  
+  // 2nd derivative wrt c and strain = 0.0 if we used the previous step's history variable
+  if (_use_current_hist)
+    _d2Fdcdstrain[_qp] = pk2_pos * _dDdc[_qp];
+  
+}
+
+// compute history variable and assign to _E
+// which is used by the fracture model for damage growth
+// Damage grows only because of the positive part of the elastic energy F_pos
+void
+UMATStressDamage::computeHistoryVariable(Real & F_pos, Real & F_neg)
+{
+  // Assign history variable
+  Real hist_variable = _H_old[_qp];
+  
+  // _use_snes_vi_solver option not implemented
+
+  if (F_pos > _H_old[_qp])
+    _H[_qp] = F_pos;
+  else
+    _H[_qp] = _H_old[_qp];
+
+  if (_use_current_hist)
+    hist_variable = _H[_qp];
+
+  // _barrier not implemented
+
+  // Elastic free energy density and derivatives
+  _E[_qp] = hist_variable * _D[_qp] + F_neg;
+  _dEdc[_qp] = hist_variable * _dDdc[_qp];
+  _d2Ed2c[_qp] = hist_variable * _d2Dd2c[_qp];
 
 }

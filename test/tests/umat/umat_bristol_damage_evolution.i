@@ -1,10 +1,6 @@
 # Testing the UMAT Interface for crystal plasticity using finite strain deformation.
-# The Bristol_CP code has a path inside the fortran code BRISTOL.f
-# that must be changed to point to this folder
-# would be better to read the path from inputs.dat in the future
-
 # coupling with phase field damage model
-# damage is constant here
+# damage evolution is implemented
 
 [GlobalParams]
   displacements = 'disp_x disp_y disp_z'
@@ -15,59 +11,21 @@
     type = GeneratedMeshGenerator
     dim = 3
     xmin = 0.0
-    xmax = 2.0
+    xmax = 1.0
     ymin = 0.0
-    ymax = 2.0
+    ymax = 1.0
     zmin = 0.0
-    zmax = 2.0
-	nx = 2
-	ny = 2
-	nz = 2
+    zmax = 1.0
+	nx = 1
+	ny = 1
+	nz = 1
   []
-  [origin_modifier]
-    type = BoundingBoxNodeSetGenerator
-    input = gen
-    new_boundary = origin
-    top_right = '0.01 0.01 0.01'
-    bottom_left = '-0.01 -0.01 -0.01'
-  []  
-  [xp_point_modifier]
-    type = BoundingBoxNodeSetGenerator
-    input = origin_modifier
-    new_boundary = xp_point
-    top_right = '2.01 0.01 0.01'
-    bottom_left = '1.99 -0.01 -0.01'
-  []  
-  [zp_point_modifier]
-    type = BoundingBoxNodeSetGenerator
-    input = xp_point_modifier
-    new_boundary = zp_point
-    top_right = '0.01 0.01 1.01'
-    bottom_left = '-0.01 -0.01 0.99'
-  []  
-[]
-
-# add damage variable
-# it is constant here
-[Variables]
-  [./c]
-    order = FIRST
-    family = LAGRANGE
-	[./InitialCondition]
-      type = ConstantIC
-      value = '0.5'
-    [../]
-  [../]
 []
 
 [Functions]
   [top_pull]
     type = ParsedFunction
     value = 't/1000'
-  []
-  [lateral_pressure]
-    type = ParsedFunction
-	value = '2.0'
   []
 []
 
@@ -78,11 +36,41 @@
   []
 []
 
-# constant damage
+[Modules/PhaseField/Nonconserved/c]
+  free_energy = F
+  kappa = kappa_op
+  mobility = L
+[] 
+
+# off diagonal Jacobian kernels
 [Kernels]
-  [./dcdt]
-    type = TimeDerivative
+  [./solid_x]
+    type = PhaseFieldFractureMechanicsOffDiag
+    variable = disp_x
+    component = 0
+    c = c
+    use_displaced_mesh = true
+  [../]
+  [./solid_y]
+    type = PhaseFieldFractureMechanicsOffDiag
+    variable = disp_y
+    component = 1
+    c = c
+    use_displaced_mesh = true
+  [../]
+  [./solid_z]
+    type = PhaseFieldFractureMechanicsOffDiag
+    variable = disp_z
+    component = 2
+    c = c
+    use_displaced_mesh = true
+  [../]
+  [./off_disp]
+    type = AllenCahnElasticEnergyOffDiag
     variable = c
+    displacements = 'disp_x disp_y disp_z'
+    mob_name = L
+    use_displaced_mesh = true
   [../]
 []
 
@@ -135,7 +123,46 @@
   
   # this state variable is a constant monomial
   # copy of the damage variable
-  [./statev_1]
+  [./state_damage]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  
+  # positive part of the free energy
+  [./Fpos]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  
+  # positive part of the free energy
+  [./Fneg]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  
+  # components of the tensile part
+  # of the second Piola-Kirchhoff stress
+  [./pk2_pos_xx]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  [./pk2_pos_yy]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  [./pk2_pos_zz]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  [./pk2_pos_xy]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  [./pk2_pos_xz]
+    order = CONSTANT
+    family = MONOMIAL  
+  [../]
+  [./pk2_pos_yz]
     order = CONSTANT
     family = MONOMIAL  
   [../]
@@ -227,13 +254,78 @@
   
   # this state variable in a constant mononial
   # copy of the damage variable
-  [./statev_1]
+  [./state_damage]
     type = MaterialStdVectorAux
-    variable = statev_1
+    variable = state_damage
     property = state_var
     index = 0
     execute_on = timestep_end
   [../]
+  
+  [./Fpos]
+    type = MaterialStdVectorAux
+    variable = Fpos
+    property = state_var
+    index = 1
+    execute_on = timestep_end  
+  [../]
+  
+  [./Fneg]
+    type = MaterialStdVectorAux
+    variable = Fneg
+    property = state_var
+    index = 2
+    execute_on = timestep_end  
+  [../]
+  
+  [./pk2_pos_xx]
+    type = MaterialStdVectorAux
+    variable = pk2_pos_xx
+    property = state_var
+    index = 3
+    execute_on = timestep_end    
+  [../]
+  
+  [./pk2_pos_yy]
+    type = MaterialStdVectorAux
+    variable = pk2_pos_yy
+    property = state_var
+    index = 4
+    execute_on = timestep_end    
+  [../]
+  
+  [./pk2_pos_zz]
+    type = MaterialStdVectorAux
+    variable = pk2_pos_zz
+    property = state_var
+    index = 5
+    execute_on = timestep_end    
+  [../]
+  
+  [./pk2_pos_xy]
+    type = MaterialStdVectorAux
+    variable = pk2_pos_xy
+    property = state_var
+    index = 6
+    execute_on = timestep_end    
+  [../]
+  
+  [./pk2_pos_xz]
+    type = MaterialStdVectorAux
+    variable = pk2_pos_xz
+    property = state_var
+    index = 7
+    execute_on = timestep_end    
+  [../]
+  
+  [./pk2_pos_yz]
+    type = MaterialStdVectorAux
+    variable = pk2_pos_yz
+    property = state_var
+    index = 8
+    execute_on = timestep_end    
+  [../]
+
 
 []
 
@@ -263,33 +355,61 @@
     boundary = back
     value = 0.0
   []
-  [Pressure]
-    [bc_pressure_front]
-      boundary = front
-      function = lateral_pressure
-    []
-    [bc_pressure_right]
-      boundary = right
-      function = lateral_pressure
-    []
-  []
 []
 
-# UMAT interface, there are no STATEV used
-# because fortran modules are adopted
-# modules need to be compiled independently
-# with gfortran before make
-# command is for instance:
-# gfortran -c -free calculations.f
 [Materials]
   [umat]
     type = UMATStressDamage
     constant_properties = '0'
     plugin = '../../plugins/Bristol_CP/BRISTOL'
-    num_state_vars = 12
+    num_state_vars = 9
 	c = c
 	use_one_based_indexing = true
+    E_name = 'elastic_energy'
+    D_name = 'degradation'
+    use_current_history_variable = true
   []
+  [./degradation]
+    type = DerivativeParsedMaterial
+    f_name = degradation
+    args = 'c'
+    function = '(1.0-c)^2*(1.0 - eta) + eta'
+    constant_names       = 'eta'
+    constant_expressions = '1.0e-6'
+    derivative_order = 2
+  [../]
+  [./pfbulkmat]
+    type = GenericConstantMaterial
+    prop_names = 'gc_prop l visco'
+    prop_values = '2.0 0.5 1e-6'
+  [../]
+  [./define_mobility]
+    type = ParsedMaterial
+    material_property_names = 'gc_prop visco'
+    f_name = L
+    function = '1.0/(gc_prop * visco)'
+  [../]
+  [./define_kappa]
+    type = ParsedMaterial
+    material_property_names = 'gc_prop l'
+    f_name = kappa_op
+    function = 'gc_prop * l'
+  [../]
+  [./local_fracture_energy]
+    type = DerivativeParsedMaterial
+    f_name = local_fracture_energy
+    args = 'c'
+    material_property_names = 'gc_prop l'
+    function = 'c^2 * gc_prop / 2 / l'
+    derivative_order = 2
+  [../]
+  [./fracture_driving_energy]
+    type = DerivativeSumMaterial
+    args = c
+    sum_materials = 'elastic_energy local_fracture_energy'
+    derivative_order = 2
+    f_name = F
+  [../]
 []
 
 [UserObjects]

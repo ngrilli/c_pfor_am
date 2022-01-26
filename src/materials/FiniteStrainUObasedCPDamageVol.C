@@ -9,10 +9,6 @@
 
 #include "petscblaslapack.h"
 #include "MooseException.h"
-// #include "CrystalPlasticitySlipRate.h"
-// #include "CrystalPlasticitySlipResistance.h"
-// #include "CrystalPlasticityStateVariable.h"
-// #include "CrystalPlasticityStateVarRateComponent.h"
 #include "MathUtils.h"
 
 registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamageVol);

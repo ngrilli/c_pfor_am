@@ -3,6 +3,7 @@ c Edward Horton
 c Eralp Demir
 c Hugh Dorward
 c Michael Salvini
+c Nicolò Grilli
 c
 c Aug. 12th, 2021 - 1st working version
 c
@@ -204,12 +205,12 @@ c     Nico modification start
 c     Get information for moose
 c     phase field damage model
 c     through state variables
-c     12 state variables must be declared
+c     9 state variables must be declared
 c     for the phase field damage model
 
       if (phasefielddamageflag == 1) then
 	  
-      call moose_interface_input(NOEL+1,NPT+1,STATEV,NSTATV)
+      call moose_interface_input(NOEL,NPT,STATEV,NSTATV)
 	  
 	  end if
 
@@ -217,7 +218,7 @@ c     Nico modification finish
 c
 c
 c     Perform all the calculations     
-      call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL+1,NPT+1,
+      call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL,NPT,
      &            STRESS,DDSDDE,PNEWDT,COORDS)
 
 c     Nico modification start
@@ -226,7 +227,7 @@ c      phase field damage model
 
       if (phasefielddamageflag == 1) then
 	  
-      call moose_interface_output(NOEL+1,NPT+1,STATEV,NSTATV)
+      call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
 	  
 	  end if
 

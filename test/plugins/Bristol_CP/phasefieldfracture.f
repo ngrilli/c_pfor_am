@@ -1,6 +1,6 @@
       ! Nicolò Grilli
       ! University of Bristol
-      ! 19 Gennaio 2022
+      ! 26 Gennaio 2022
 
       ! Phase field fracture model
 	  
@@ -147,17 +147,21 @@
       ! 2 and 3 are components of the Helmholtz free energy
 	  ! by convention
       STATEV(2) = global_F_pos(elem,ip)
-      STATEV(3) = global_F_pos(elem,ip)
+      STATEV(3) = global_F_neg(elem,ip)
 
-      ! 4 to 12 are the components of the positive
+      ! 4 to 9 are the components of the positive
 	  ! part of the second Piola-Kirchhoff stress
+	  ! which is a symmetric matrix
 	  ! moose needs this for _dstress_dc
+	  ! it follows Abaqus components order convention
+	  ! for 6-vectors
       do i = 1,3
-        do j = 1,3
-          STATEV(3+3*(i-1)+j) = global_pk2_pos(elem,ip,i,j)
-        end do
-      end do	  
-	  
+        STATEV(3+i) = global_pk2_pos(elem,ip,i,i)
+      end do
+      STATEV(7) = global_pk2_pos(elem,ip,1,2)
+      STATEV(8) = global_pk2_pos(elem,ip,1,3)
+      STATEV(9) = global_pk2_pos(elem,ip,2,3)	  
+
 	  return
       end subroutine moose_interface_output
 
