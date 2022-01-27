@@ -59,6 +59,13 @@ UMATStressDamage::UMATStressDamage(const InputParameters & parameters)
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
     _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
 {
+  if (!_use_one_based_indexing)
+    mooseDeprecated(
+        "AbaqusUMATStress has transitioned to 1-based indexing in the element (NOEL) and "
+        "integration point (NPT) numbers to ensure maximum compatibility with legacy UMAT files. "
+        "Please ensure that any new UMAT plugins using these quantities are using the correct "
+        "indexing. 0-based indexing will be deprecated soon.");	
+	
   // get material properties
   for (std::size_t i = 0; i < _number_external_properties; ++i)
   {
@@ -134,9 +141,7 @@ UMATStressDamage::computeQpStress()
     _aqDDSDDE[i] = 0.0;
 
   // Set PNEWDT initially to a large value
-  //_aqPNEWDT = std::numeric_limits<Real>::max();
-
-  _aqPNEWDT = 1.0;
+  _aqPNEWDT = std::numeric_limits<Real>::max();
 
   // Temperature
   _aqTEMP = _temperature_old[_qp];
@@ -172,6 +177,9 @@ UMATStressDamage::computeQpStress()
   // Increment number
   _aqKINC = _t_step;
   _aqKSTEP = 1;
+  
+  // integration point number
+  _aqNPT = _qp + (_use_one_based_indexing ? 1 : 0);
   
   // damage phase field is passed to STATEV(1) 
   _aqSTATEV[0] = _c[_qp];
@@ -209,7 +217,7 @@ UMATStressDamage::computeQpStress()
         _aqDFGRD0.data(),
         _aqDFGRD1.data(),
         &_aqNOEL,
-        &_qp,
+        &_aqNPT,
         &_aqLAYER,
         &_aqKSPT,
         &_aqKSTEP,

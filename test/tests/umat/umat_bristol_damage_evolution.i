@@ -166,7 +166,27 @@
     order = CONSTANT
     family = MONOMIAL  
   [../]
+  
+  [./bounds_dummy]
+  [../]
 
+[]
+
+# bounds used to impose that damage can only grow
+[Bounds]
+  [./irreversibility]
+    type = VariableOldValueBoundsAux
+    variable = bounds_dummy
+    bounded_variable = c
+    bound_type = lower
+  [../]
+  [./upper]
+    type = ConstantBoundsAux
+    variable = bounds_dummy
+    bounded_variable = c
+    bound_type = upper
+    bound_value = 1.0
+  [../]
 []
 
 [AuxKernels] 
@@ -375,13 +395,13 @@
     args = 'c'
     function = '(1.0-c)^2*(1.0 - eta) + eta'
     constant_names       = 'eta'
-    constant_expressions = '1.0e-6'
+    constant_expressions = '1.0e-5'
     derivative_order = 2
   [../]
   [./pfbulkmat]
     type = GenericConstantMaterial
     prop_names = 'gc_prop l visco'
-    prop_values = '2.0 0.5 1e-6'
+    prop_values = '2.0 4.0 5e-6'
   [../]
   [./define_mobility]
     type = ParsedMaterial
@@ -445,19 +465,18 @@
   type = Transient
   solve_type = 'PJFNK'
   
-  petsc_options = '-snes_ksp_ew'
-  petsc_options_iname = '-pc_type -pc_factor_mat_solver_package'
-  petsc_options_value = 'lu superlu_dist'
+  petsc_options_iname = '-pc_type -pc_factor_mat_solver_package -snes_type'
+  petsc_options_value = 'lu       superlu_dist                  vinewtonrsls'
   
   line_search = 'none'
 
-  nl_max_its = 100
-  l_max_its = 10
+  nl_max_its = 20
+  l_max_its = 20
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   
   start_time = 0.0
-  end_time = 0.01 # run until 18.0 to see the elasto-plastic stress strain curve
+  end_time = 0.001 # run until 10.0 to see the elasto-plastic-damage stress strain curve
   
   # if the number of non-linear iterations is in the interval
   # [optimal_iterations-iteration_window ; optimal_iterations+iteration_window]
@@ -466,11 +485,11 @@
     type = IterationAdaptiveDT
     optimal_iterations = 25
     iteration_window = 15
-    growth_factor = 1.0001
+    growth_factor = 1.01
   	reject_large_step = True
     cutback_factor = 0.5
     timestep_limiting_postprocessor = matl_ts_min
-    dt = 0.01
+    dt = 0.001
   []
   
 []

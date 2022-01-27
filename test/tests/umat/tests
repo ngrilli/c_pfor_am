@@ -16,4 +16,10 @@
     input = 'umat_bristol_damage.i'
     exodiff = 'umat_bristol_damage_out.e'  
   [../]
+  
+  [./umat_bristol_damage_evolution]
+    type = 'Exodiff'
+	input = 'umat_bristol_damage_evolution.i'
+	exodiff = 'umat_bristol_damage_evolution_out.e'
+  [../]
 []

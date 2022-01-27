@@ -81,16 +81,13 @@
       pk2_neg_vec = 0.0
 	  pk2_pos_vec = S_vec
 	  
-	  ! 
       call convert6to3x3(pk2_pos_vec,pk2_pos_mat)
 	  
 	  ! calculate degraded stress
       pk2_vec_new = D * pk2_pos_vec + pk2_neg_vec
 	  
-	  ! calculate degraded elastic energy
-      ! this is temporary
-	  ! now I am degrading all the elastic energy
-      F_pos = 0.5 * dot_product(pk2_vec_new,ee_vec)
+	  ! calculate undamaged elastic energy
+      F_pos = 0.5 * dot_product(pk2_pos_vec,ee_vec)
 
       ! this is temporary
 	  ! now I am degrading all the elastic energy
