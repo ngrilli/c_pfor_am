@@ -14,6 +14,6 @@ git clone https://github.com/ngrilli/c_pfor_am
 
 cd c_pfor_am
 
-make BRISTOL_CP
+make Bristol_CP
 
 make
