@@ -3,5 +3,6 @@
     type = 'Exodiff'
     input = 'DummyVarRestart.i'
     exodiff = 'DummyVarRestart_out.e'
+    heavy = true
   [../]
 []

@@ -1,9 +1,20 @@
 ###############################################################################
 ################### MOOSE Application Standard Makefile #######################
 ###############################################################################
+
+###############################################################################
+#
+# bash commands to be executed before compiling 
+#
+###############################################################################
+
+#
+###############################################################################
 #
 # Optional Environment variables
 # MOOSE_DIR        - Root directory of the MOOSE project
+#
+#
 #
 ###############################################################################
 # Use the MOOSE submodule if it exists and MOOSE_DIR is not set
@@ -57,3 +68,20 @@ include            $(FRAMEWORK_DIR)/app.mk
 ###############################################################################
 # Additional special case targets should be added here
 
+Bristol_CP:
+	$(RM) *.mod ; \
+	cd test/plugins/Bristol_CP ; \
+	$(RM) *.mod ; \
+	$(RM) *.o ; \
+	$(RM) *.plugin ; \
+	gfortran -c -free globalvars.f ; \
+	gfortran -c -free globalsubs.f ; \
+	gfortran -c -free sliphardlaws.f ; \
+	gfortran -c -free slipratelaws.f ; \
+	gfortran -c -free straingradientplasticity.f ; \
+	gfortran -c -free lengthscale.f ; \
+	gfortran -c -free gndslipgrad.f ; \
+	gfortran -c -free initialization.f ; \
+	gfortran -c -free phasefieldfracture.f ; \
+	gfortran -c -free calculations.f ; \
+	cd ../../../
