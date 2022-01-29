@@ -9,7 +9,11 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
 To install after MOOSE installation:
 
 cd ~/projects
+
 git clone https://github.com/ngrilli/c_pfor_am
+
 cd c_pfor_am
+
 make BRISTOL_CP
+
 make

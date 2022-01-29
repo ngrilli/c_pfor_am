@@ -892,7 +892,7 @@ c         If P is identity
           do j=1,3
               do k=1,3
                   if (dabs(P(j,k)-I3(j,k)).lt.smallnum) then
-                      flag2 = 1
+                      flag2 = 1d+0
                   endif
               enddo
           enddo
@@ -1018,7 +1018,7 @@ c	Lower triangular matrix
 		L(i,i)=1.0d+0
 	enddo
 c	Multiplication of the elements at the diagonal is the determinant
-	det=1;
+	det=1.0d+0
 	do k=1,n
 		det=det*L(k,k)*U(k,k)
 	enddo

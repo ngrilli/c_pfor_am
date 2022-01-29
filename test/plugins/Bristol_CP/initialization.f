@@ -3,6 +3,7 @@ c Edward Horton
 c Eralp Demir
 c Hugh Dorward
 c Michael Salvini
+c Nicolò Grilli
 c
 c Aug. 12th, 2021 - 1st working version
 c        
@@ -225,9 +226,11 @@ c	This subroutine normalizes the slip vectors and forms the line directions: l =
 c	USES: n_slip(12,3), b_slip(12,3), eijk(3,3,3)
 c	OUTPUTS: l_slip(12,3), Schmid(12,3,3), SchxSch(12,3,3,3,3)
 	subroutine initialize_vectors
+	
       use globalvars, only: n_slip, b_slip, l_slip,
      & Schmid, Climb, SchmidT,
      & SchxSch, Schmid_vec, Climb_vec, eijk, numslip, mattyp
+	 
 	implicit none
 	integer i,j,k,l,m
 c
@@ -484,7 +487,7 @@ c     Schmid tensors
 		    do k=1,3
 			    do l=1,3
 				    do m=1,3
-      SchxSch(i,j,k,l,m)=Schmid(i,j,k)*Schmid(i,l,m)
+					    SchxSch(i,j,k,l,m)=Schmid(i,j,k)*Schmid(i,l,m)
 				    enddo
 			    enddo
 		    enddo
@@ -515,13 +518,16 @@ c	USES: sliphard_law, sliphard_param, intmat,numslip
 c	OUTPUTS: intmat
 	subroutine initialize_hardeningmatrix
 	use globalvars, only: interno, slipint_param, intmat, numslip,
-     &mattyp
+     &mattyp, intmat1, intmat2
 	implicit none
       integer i, j, k
       real(8) g0, g1, g2, g3, g4, g5, g6
+c Model with 6 interaction hardening matrix coefficients	
+      real(8) a, b, ai, bi, omega1, omega2, omegai1, omegai2      
       
       allocate (intmat(numslip,numslip))
-
+      allocate (intmat1(numslip,numslip))	
+      allocate (intmat2(numslip,numslip))
       
 c     No latent hardeing (Identity matrix)
       if (interno.eq.0) then
@@ -531,6 +537,11 @@ c     No latent hardeing (Identity matrix)
               intmat(i,i) = 1.
           enddo
       
+          write(6,*) 'intmat'
+          do i=1,numslip 
+              write(6,*) (intmat(i,j),j=1,numslip)
+          enddo
+          
 c     Latent hardening      
       elseif (interno.eq.1) then
           
@@ -543,6 +554,11 @@ c     Latent hardening
                   enddo
               enddo
          enddo
+         
+          write(6,*) 'intmat'
+          do i=1,numslip 
+              write(6,*) (intmat(i,j),j=1,numslip)
+          enddo         
          
 c     Interaction matrix
       elseif (interno.eq.2) then
@@ -559,7 +575,7 @@ c     Interaction matrix
           
 c         REF.:          
 c         FCC - structure
-          if (mattyp.eq.1) then
+          if (mattyp.eq.1d+0) then
               
 
               
@@ -578,31 +594,41 @@ c         FCC - structure
 	        intmat(11,:) = (/g3,g2,g3,g3,g4,g5,g5,g4,g3,g1,g0,g1/)
 	        intmat(12,:) = (/g5,g3,g4,g3,g5,g4,g3,g3,g2,g1,g1,g0/)
 
+              write(6,*) 'intmat'
+              do i=1,numslip 
+                  write(6,*) (intmat(i,j),j=1,numslip)
+              enddo
+              
 
 c         BCC - structure
-          elseif (mattyp.eq.2) then
+          elseif (mattyp.eq.2d+0) then
           
 c             REF.:               
 c             Slip system set: 1-12
-              if (numslip.eq.12) then
+              if (numslip.eq.12d+0) then
 
-      intmat(1,:) = (/g0,g1,g1,g2,g2,g2,g3,g3,g3,g3,g3,g3/)
-      intmat(2,:) = (/g1,g0,g1,g3,g3,g3,g2,g2,g2,g3,g3,g3/)
-      intmat(3,:) = (/g1,g1,g0,g3,g3,g3,g3,g3,g3,g2,g2,g2/)
-      intmat(4,:) = (/g2,g2,g2,g0,g1,g1,g3,g3,g3,g3,g3,g3/)
-      intmat(5,:) = (/g3,g3,g3,g1,g0,g1,g3,g3,g3,g2,g2,g2/)
-      intmat(6,:) = (/g3,g3,g3,g1,g1,g0,g2,g2,g2,g3,g3,g3/)
-      intmat(7,:) = (/g4,g4,g4,g4,g4,g4,g0,g1,g1,g5,g5,g5/)
-      intmat(8,:) = (/g2,g2,g2,g3,g3,g3,g1,g0,g1,g3,g3,g3/)
-      intmat(9,:) = (/g3,g3,g3,g2,g2,g2,g1,g1,g0,g3,g3,g3/)
-      intmat(10,:) = (/g4,g4,g4,g4,g4,g4,g5,g5,g5,g0,g1,g1/)
-      intmat(11,:) = (/g3,g3,g3,g2,g2,g2,g3,g3,g3,g1,g0,g1/)
-      intmat(12,:) = (/g2,g2,g2,g3,g3,g3,g3,g3,g3,g1,g1,g0/)
+                intmat(1,:) = (/g0,g1,g1,g2,g2,g2,g3,g3,g3,g3,g3,g3/)
+	            intmat(2,:) = (/g1,g0,g1,g3,g3,g3,g2,g2,g2,g3,g3,g3/)
+	            intmat(3,:) = (/g1,g1,g0,g3,g3,g3,g3,g3,g3,g2,g2,g2/)
+	            intmat(4,:) = (/g2,g2,g2,g0,g1,g1,g3,g3,g3,g3,g3,g3/)
+	            intmat(5,:) = (/g3,g3,g3,g1,g0,g1,g3,g3,g3,g2,g2,g2/)
+	            intmat(6,:) = (/g3,g3,g3,g1,g1,g0,g2,g2,g2,g3,g3,g3/)
+	            intmat(7,:) = (/g4,g4,g4,g4,g4,g4,g0,g1,g1,g5,g5,g5/)
+	            intmat(8,:) = (/g2,g2,g2,g3,g3,g3,g1,g0,g1,g3,g3,g3/)
+	            intmat(9,:) = (/g3,g3,g3,g2,g2,g2,g1,g1,g0,g3,g3,g3/)
+	            intmat(10,:) = (/g4,g4,g4,g4,g4,g4,g5,g5,g5,g0,g1,g1/)
+	            intmat(11,:) = (/g3,g3,g3,g2,g2,g2,g3,g3,g3,g1,g0,g1/)
+	            intmat(12,:) = (/g2,g2,g2,g3,g3,g3,g3,g3,g3,g1,g1,g0/)
 
+                  write(6,*) 'intmat'
+                  do i=1,numslip 
+                      write(6,*) (intmat(i,j),j=1,numslip)
+                  enddo
+                  
                   
 c             REF.: Strainer et al., JMPS 50 (2002) 1511-1545
 c             Slip system set: 1-24
-              elseif (numslip.eq.24) then
+              elseif (numslip.eq.24d+0) then
 c     
                   intmat(1,:)=(/ g0, g1, g1, g2, g2, g2, g3, g3, g3, g3,
      & g3, g3, g1, g1, g1, g2, g2, g2, g3, g3, g3, g3, g3, g3 /)
@@ -676,6 +702,11 @@ c
                   intmat(24,:)=(/ g5,	g5,	g5,	g4,	g4,	g4,	g4,	g4,	g4,	g1
      & ,g1, g1, g5, g5, g5, g4, g4, g4, g4, g4, g4, g1, g1, g0 /)
                   
+ 
+                  write(6,*) 'intmat'
+                  do i=1,numslip 
+                      write(6,*) (intmat(i,j),j=1,numslip)
+                  enddo
                   
               endif
               
@@ -690,7 +721,7 @@ c
           
 c     Interaction matrix - Code Aster
 
-      elseif (interno.eq.3) then
+      elseif (interno.eq.3d+0) then
          
           
           g0 = slipint_param(1)
@@ -704,13 +735,13 @@ c     Interaction matrix - Code Aster
 c         REF.:          
 c         FCC - structure
 c         Only defined for FCC tpye of materials
-          if (mattyp.eq.1) then
+          if (mattyp.eq.1d+0) then
               
 
               
               
                
-              intmat(1,:) = (/g0,g1,g2,g2,g3,g4,g5,g6,g5,g6,g4,g3/)
+            intmat(1,:) = (/g0,g1,g2,g2,g3,g4,g5,g6,g5,g6,g4,g3/)
 	        intmat(2,:) = (/g1,g0,g2,g2,g6,g5,g4,g3,g4,g3,g5,g6/)
 	        intmat(3,:) = (/g2,g2,g0,g1,g5,g6,g3,g4,g6,g5,g3,g4/)
 	        intmat(4,:) = (/g2,g2,g1,g0,g4,g3,g6,g5,g3,g4,g6,g5/)
@@ -724,18 +755,106 @@ c         Only defined for FCC tpye of materials
 	        intmat(12,:) = (/g3,g4,g6,g5,g3,g4,g6,g5,g2,g2,g1,g0/)     
           
           
+              write(6,*) 'intmat'
+              do i=1,numslip 
+                  write(6,*) (intmat(i,j),j=1,numslip)
+              enddo
+              
           
           endif
           
           
+c Irradiation defects interaction matrix   	
+      elseif (interno.eq.4d+0) then	
+          	
+          omega1 = slipint_param(1)	
+          omega2 = slipint_param(2)	
+          omegai1 = slipint_param(3)	
+          omegai2 = slipint_param(4)	
+          	
+          a = omega1	
+          b = 1.0d+0 + (omega1 - omega2)	
+          ai = omegai1	
+          bi = 1.0d+0 + (omegai1 - omegai2)	
+          	
+c         FCC - structure	
+c         Only defined for FCC tpye of materials	
+          if (mattyp.eq.1d+0) then	
+              	
+c              do i = 1, numslip	
+c                  do j = 1, numslip	
+c                      if (i == j) then	
+c                          intmat1(i,j) = omega1	
+c                      else	
+c                          intmat1(i,j) = omega2	
+c                      endif	
+c                  enddo	
+c              enddo	
+              	
+c              do i = 1, numslip	
+c                  do j = 1, numslip	
+c                      if (i == j) then	
+c                          intmat2(i,j) = omegai1	
+c                      else	
+c                          intmat2(i,j) = omegai2	
+c                      endif	
+c                  enddo	
+c              enddo	
+                  	
+              	
+            intmat1(1,:) = (/a,b,b,b,b,b,b,b,b,b,b,b/)	
+	        intmat1(2,:) = (/b,a,b,b,b,b,b,b,b,b,b,b/)	
+	        intmat1(3,:) = (/b,b,a,b,b,b,b,b,b,b,b,b/)	
+	        intmat1(4,:) = (/b,b,b,a,b,b,b,b,b,b,b,b/)	
+	        intmat1(5,:) = (/b,b,b,b,a,b,b,b,b,b,b,b/)	
+	        intmat1(6,:) = (/b,b,b,b,b,a,b,b,b,b,b,b/)	
+	        intmat1(7,:) = (/b,b,b,b,b,b,a,b,b,b,b,b/)	
+	        intmat1(8,:) = (/b,b,b,b,b,b,b,a,b,b,b,b/)	
+	        intmat1(9,:) = (/b,b,b,b,b,b,b,b,a,b,b,b/)	
+	        intmat1(10,:) = (/b,b,b,b,b,b,b,b,b,a,b,b/)	
+	        intmat1(11,:) = (/b,b,b,b,b,b,b,b,b,b,a,b/)	
+	        intmat1(12,:) = (/b,b,b,b,b,b,b,b,b,b,b,a/) 	
+              	
+            intmat2(1,:) = (/ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmat2(2,:) = (/bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmat2(3,:) = (/bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmat2(4,:) = (/bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmat2(5,:) = (/bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmat2(6,:) = (/bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi/)	
+	        intmat2(7,:) = (/bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi/)	
+	        intmat2(8,:) = (/bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi/)	
+	        intmat2(9,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi/)	
+	        intmat2(10,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi/)	
+	        intmat2(11,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi/)	
+	        intmat2(12,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai/)	
+       
+              write(6,*) 'intmat1'     
+              do i=1,numslip 	
+                  write(6,*) (intmat1(i,j),j=1,numslip)
+              enddo	
+      	
+       
+              write(6,*) 'intmat2'      
+              do i=1,numslip 	
+                  write(6,*) (intmat2(i,j),j=1,numslip)	
+              enddo   	
+              	
+          	
+          	
+          end if	
+      end if    
           
           
-      endif
+          
+          
+          
+          
+          
+          
+          
+
       
-       write(6,*) 'intmat'
-      do i=1,numslip 
-          write(6,*) (intmat(i,j),j=1,numslip)
-      enddo
+
       
           
 	return
@@ -833,9 +952,9 @@ c         4th order elasticity
 
           
 c         Shear corrections after conversion
-          elas66(4,4) = 2.0 * elas66(4,4)
-          elas66(5,5) = 2.0 * elas66(5,5)
-          elas66(6,6) = 2.0 * elas66(6,6)          
+          elas66(4,4) = 2.0d+0 * elas66(4,4)
+          elas66(5,5) = 2.0d+0 * elas66(5,5)
+          elas66(6,6) = 2.0d+0 * elas66(6,6)          
           
       
           write(6,*) 'SC elasticity'
@@ -853,7 +972,7 @@ c          nu = C11/2./G - 1.
           nu = 0.3d+0
  
 c         Homogenized Youngs modulus
-          E = 2.0d+0*G*(1.0d+0+nu)          
+          E = 2.0d+0 * G * (1.0d+0 + nu)          
           
           
           
@@ -863,7 +982,7 @@ c         Homogenized Youngs modulus
           
           
           
-          con = E/(1.0d+0 + nu)/(1.0d+0 - 2.0d+0 * nu)
+          con = E / (1.0d+0 + nu) / (1.0d+0 - 2.0d+0 * nu)
       
       
       
@@ -936,9 +1055,9 @@ c         4th order elasticity
 
  
 c         Shear corrections after conversion
-          elas66(4,4) = 2.0 * elas66(4,4)
-          elas66(5,5) = 2.0 * elas66(5,5)
-          elas66(6,6) = 2.0 * elas66(6,6)
+          elas66(4,4) = 2.0d+0 * elas66(4,4)
+          elas66(5,5) = 2.0d+0 * elas66(5,5)
+          elas66(6,6) = 2.0d+0 * elas66(6,6)
           
           
           write(6,*) 'SC elasticity'
@@ -953,16 +1072,16 @@ c	    Shear modulus
 	    G=C44
           
 c         Poisson's ratio
-          nu = C11/2./G - 1.
+          nu = C11 / 2.d+0 / G - 1.0d+0
           
           
           
  
 c         Homogenized Youngs modulus
-          E = 2.*G*(1.+nu)   
+          E = 2.0d+0 * G * (1.0d+0 + nu)   
 
           
-          con = E/(1.0+nu)/(1.0-2.0*nu)
+          con = E / (1.0d+0 + nu)/(1.0d+0 - 2.0d+0 * nu)
       
       
       
@@ -1091,8 +1210,7 @@ c
 c	This subroutine is written to initialize crystal orientations
 c	USES: Euler(:,:), ngrain
 	subroutine read_inputs(str)
-	use globalvars, only: numel, numip, mattyp, 
-     &elas_param, numslip,
+	use globalvars, only: numel, numip, mattyp, elas_param, numslip,
      &modelno, interno, sliprate_param, dSratio_cr, dgamma_s,
      &sliphard_param, slipint_param, innoitmax, ounoitmax, thermo,
      &innertol, outertol, njaco, mtdjaco, deps, temp0, tempdep, nnpe,
@@ -1100,11 +1218,9 @@ c	USES: Euler(:,:), ngrain
      &GSeffect, grainsize_param, grainID, tstep_forw, tstep_back,
      &numgrain, nodeout, grainori, output_vars, resdef, tres
 	 
-c     Nico modifications begin
-      use globalvars, only: phasefielddamageflag
-c     Nico modifications finish
+      use globalvars, only: phasefielddamageflag	 
 	 
-      implicit none	
+	implicit none	
       integer i, j, dummy, iele, ind
       real(8) dum, dum1, dum2, dum3, phi1, PHI, phi2
       character(len=:), allocatable   :: str
@@ -1193,15 +1309,14 @@ c     0: NO / 1: YES
       
 c     initial temperature [K]
       read(100,*) temp0
-      write(6,*) 'temp0: ', temp0   
+      write(6,*) 'temp0: ', temp0 
 
-c     Nico modifications begin
 c     phase field damage model flag
 c     0: NO / 1: YES
       read(100,*) dum 
-      phasefielddamageflag = int(dum)	  
-c     Nico modifications finish
-
+      phasefielddamageflag = int(dum)
+      write(6,*) 'phasefielddamageflag: ', phasefielddamageflag 	  
+      
 c     material type
       read(100,*) dum
       mattyp = int(dum)
@@ -1215,14 +1330,15 @@ c     material type
       
 
 c     Sizing of elasticity parameters
+c     FCC
       if (mattyp.eq.1d+0) then
           
            allocate (elas_param(3))
-           
+c     BCC           
       elseif (mattyp.eq.2d+0) then
           
            allocate (elas_param(3))   
-           
+c     HCP           
       elseif (mattyp.eq.3d+0) then
           
            allocate (elas_param(5))
@@ -1295,8 +1411,10 @@ c     model = 4 (Hugh and Eralp's slip gradient model)
 c     model = 5 (slip or creep with backstress)                       
       elseif (modelno.eq.5d+0) then
           allocate (sliprate_param(2))       
-          
-
+          	
+c     model = 6 Irradiation hardening addition to model 4                       	
+      elseif (modelno.eq.6d+0) then	
+          allocate (sliprate_param(3))
           
       endif    
    
@@ -1361,6 +1479,21 @@ c         Number of state variables
           numstvar = 2d+0
           
           allocate (sliphard_param(10)) 
+          	
+c     Irradiation hardening addition to Slip gradient model          	
+      elseif (modelno.eq.6d+0) then	
+          	
+c 1 - SSD density	
+c 2 - GND edge dislocation density	
+c 3 - GND screw dislocation density	
+c 4 - backstress	
+c 5 - frank partial dislocation loop density	
+          numstvar = 5d+0	
+          	
+          allocate (sliphard_param(12))	
+          	
+          write(6,*) 'numstvar: ', numstvar                
+          
           
       endif                   
       
@@ -1380,8 +1513,16 @@ c     Interaction matrix - FCC/BCC upto 24 slip systems are available
           
 c     Interaction matrix - (Code Aster) - only defined for FCC material
       elseif (interno.eq.3d+0) then    
-          allocate (slipint_param(7))          
+          allocate (slipint_param(7))
           
+c     Interaction matrix - Irradiation damage	
+      elseif (interno.eq.4d+0) then    	
+          allocate (slipint_param(4))
+          
+c     NO interaction matrix- still allocate this array
+      else
+          allocate (slipint_param(1))
+          slipint_param = 0.0d+0
       endif              
           
           
@@ -1551,6 +1692,18 @@ c         Reference slip rate - gammadot0
 c         Rate sensitivity exponent - m             
           read(100,*) sliprate_param(2)          
           
+
+c     Power Law with irradiation hardening	
+      elseif (modelno.eq.6d+0) then	
+c         Reference slip rate - gammadot0(s) 	
+          read(100,*) sliprate_param(1)	
+          write(6,*) 'sliprate_param(1)', sliprate_param(1)	
+c         Rate sensitivity exponent - m(s)      	
+          read(100,*) sliprate_param(2)	
+          write(6,*) 'sliprate_param(2)', sliprate_param(2)	
+c         statistical coefficient - lambda 	
+          read(100,*) sliprate_param(3)      	
+          write(6,*) 'sliprate_param(3)', sliprate_param(3)          
           
           
       endif
@@ -1668,7 +1821,38 @@ c         Hardening scale factor
 c         Scaling factor for size-depedent strain hardening
           read(100,*) sliphard_param(9)         
 c         i.e. Dream3D output is in micrometers so, the conversion to mm is 1/1000  
-          read(100,*) sliphard_param(10)            
+          read(100,*) sliphard_param(10)    
+          
+          
+c     Irradiation model       	
+      elseif (modelno.eq.6d+0) then	
+c         Initial critical strength (MPa)	
+          read(100,*) sliphard_param(1)  	
+c         Initial SSD density (1/mm^2)	
+          read(100,*) sliphard_param(2)            	
+c         Burgers vector (mm)	
+          read(100,*) sliphard_param(3)	
+c         Geometric factor - alpha for tauc	
+          read(100,*) sliphard_param(4)            	
+c         Mean-free-path hardening - K	
+          read(100,*) sliphard_param(5)	
+c         Capture radii - yc (mm)	
+          read(100,*) sliphard_param(6)	
+c         Effective radius - R for backstress	
+          read(100,*) sliphard_param(7)    	
+c         Size factor - mesh size (micron to mm)          	
+c         i.e. Dream3D output is in micrometers so, the conversion to mm is 1000  	
+          read(100,*) sliphard_param(8)          	
+c         Hardening scale factor          	
+c         Scaling factor for strain hardening	
+          read(100,*) sliphard_param(9)	
+c         Annihilation area for frank loop dislocations - AL	
+          read(100,*) sliphard_param(10)	
+c         Saturation density for frank loop dislocations - rhoSATURATION	
+          read(100,*) sliphard_param(11)	
+c         Initial frank loop dislocation density	
+          read(100,*) sliphard_param(12)           
+          
           
       endif     
           
@@ -1712,9 +1896,23 @@ c         g3
 c         g4
           read(100,*) slipint_param(5)   
 c         g5
-          read(100,*) slipint_param(6)            
+          read(100,*) slipint_param(6)
 c         g6
-          read(100,*) slipint_param(7)                  
+          read(100,*) slipint_param(7)     
+          
+c     interaction matrix coeffcients for irradiation model	
+      elseif (interno.eq.4d+0) then	
+c         interaction hardening coefficients	
+c         omega1 - self hardening coefficient	
+          read(100,*) slipint_param(1)     	
+c         omega2 - latent hardening coefficient	
+          read(100,*) slipint_param(2)               	
+c         omegai1 - irradiation self hardening coefficient	
+          read(100,*) slipint_param(3)    	
+c         omegai2 - irradiation latent hardening coefficient	
+          read(100,*) slipint_param(4)           
+          
+          
       endif      
       
       
@@ -1727,7 +1925,10 @@ c         linear hardening coefficient - "k" [MPa mm^0.5]
           read(100,*) grainsize_param(1)
           
 c         grain boundary mismatch exponent - "C" [-]
-          read(100,*) grainsize_param(2)          
+          read(100,*) grainsize_param(2)
+
+c         i.e. Dream3D output is in micrometers so, the conversion to mm is 1/1000  
+          read(100,*) grainsize_param(3)             
           
           
       endif
@@ -1876,6 +2077,20 @@ c         Reference slip rate
 c         Rate sensitivity exponent for slip            
           write(6,*) 'sliprate_param(2): ',
      &                (sliprate_param(2))          
+
+	
+c Irradiation hardening addition to model 4	
+      elseif (modelno.eq.6d+0) then	
+c         Reference slip rate - gdot0                	
+          write(6,*) 'sliprate_param(1): ',	
+     &                (sliprate_param(1))	
+c         Rate sensitivity exponent for slip - m            	
+          write(6,*) 'sliprate_param(2): ',	
+     &                (sliprate_param(2))	
+c         Statistical coefficient - lambda            	
+          write(6,*) 'sliprate_param(3): ',	
+     &                (sliprate_param(3)) 	
+                    
           
 c         Other slip rate laws are to be added here!  
 
@@ -2009,6 +2224,49 @@ c         Size conversion
           write(6,*) 'sliphard_param(10): ',
      &                sliphard_param(10)          
           
+          	
+c irradiation hardening addition to model 4	
+          	
+      elseif (modelno.eq.6d+0) then	
+c         Initial critical resolved shear strength	
+          write(6,*) 'sliphard_param(1): ',	
+     &                sliphard_param(1)          	
+c         Initial density of statistically stored dislocations	
+          write(6,*) 'sliphard_param(2): ',	
+     &                sliphard_param(2)	
+c         Burgers vector	
+          write(6,*) 'sliphard_param(3): ',	
+     &                sliphard_param(3)          	
+c         Geometric factor for tauc            	
+          write(6,*) 'sliprhard_param(4): ',	
+     &                (sliphard_param(4))        	
+c         Mean-free-path hardening constant             	
+          write(6,*) 'sliphard_param(5): ',	
+     &                sliphard_param(5)	
+c         Capture radii    	
+          write(6,*) 'sliphard_param(6): ',	
+     &                sliphard_param(6)	
+c         Effective radius for backstress            	
+          write(6,*) 'sliphard_param(7): ',	
+     &                (sliphard_param(7))       	
+c         Size factor between the unit of calculations (MPa-mm) and mesh size (i.e. Dream3D; micrometers)	
+          write(6,*) 'sliphard_param(8): ',	
+     &                (sliphard_param(8))                 	
+c         Scaling factor for hardening	
+          write(6,*) 'sliphard_param(9): ',	
+     &                (sliphard_param(9))	
+c         Frank loop dislocation annihilation area	
+          write(6,*) 'sliphard_param(10): ',	
+     &                (sliphard_param(10))                 	
+c         saturation dislocation density for frank loop dislocations	
+          write(6,*) 'sliphard_param(11): ',	
+     &                (sliphard_param(11))       	
+c         Initial frank loop dislocation density	
+          write(6,*) 'sliphard_param(12): ',	
+     &                (sliphard_param(12))          	          
+          
+          
+          
 c         Other slip rate laws are to be added here!  
 
                   
@@ -2085,7 +2343,17 @@ c         latent hardening coefficient
           write(6,*) 'slipint_param(7): ',
      &                slipint_param(7)      
           
-          
+c     Hardening coefficient for irradiation model	
+      elseif (interno.eq.4d+0) then	
+c         self and latent hardening coefficients    	
+          write(6,*) 'slipint_param(1): ',	
+     &                slipint_param(1)    	
+          write(6,*) 'slipint_param(2): ',	
+     &                slipint_param(2)  	
+          write(6,*) 'slipint_param(3): ',	
+     &                slipint_param(3)  	
+          write(6,*) 'slipint_param(4): ',	
+     &                slipint_param(4)             
           
       endif
       
@@ -2101,6 +2369,8 @@ c         linear hardening coefficient - "k" [MPa mm^0.5]
 c         grain boundary mismatch exponent - "c" [-]
           write(6,*) 'grainsize_param(2)', grainsize_param(2)          
           
+c         size correction factor micrometer to mm - "SF" [-]
+          write(6,*) 'grainsize_param(3)', grainsize_param(3)    
           
       endif    
       
@@ -2461,7 +2731,7 @@ c      enddo
       
       
       
-      return 
+	return 
       end subroutine read_grainsize
 
       
@@ -2485,8 +2755,8 @@ c      enddo
 c
 c	This subroutine allocates the variables that have to be stored
 c	INPUTS: Element number; el, integration point number; ip
-      subroutine allocate_arrays
-
+	subroutine allocate_arrays
+	
       use globalvars, only: numel,numip,numslip,
      &numgrain,numstvar,largenum,
      &global_state,global_Fp_t,
@@ -2503,38 +2773,36 @@ c	INPUTS: Element number; el, integration point number; ip
      &global_coords,coords_init,
      &outerreltol,grainmorph
 	 
-c     Nico modification start
       use globalvars, only: global_damage
       use globalvars, only: global_F_pos
       use globalvars, only: global_F_neg
       use globalvars, only: global_pk2_pos
-c     Nico modification finish
-     
-      implicit none
-      integer i
+	 
+	implicit none
+	integer i
 c
 
-      allocate (t_old(numel,numip))
-      t_old=0.0d+0
-      
+	allocate (t_old(numel,numip))
+	t_old=0.0d+0
+
       allocate (inc_old(numel,numip))
-      inc_old=0d+0
-      
+	inc_old=0d+0
+
       allocate(gradIP2IP(numel,numip+1,3,numip))
       gradIP2IP=0.0      
       
-      allocate (global_Fp(numel,numip,3,3))
-      global_Fp=0.0d+0
-      allocate (global_Fe(numel,numip,3,3))
-      global_Fe=0.0d+0
+	allocate (global_Fp(numel,numip,3,3))
+	global_Fp=0.0d+0
+	allocate (global_Fe(numel,numip,3,3))
+	global_Fe=0.0d+0
       allocate (global_Fr0(numel,numip,3,3))
-      global_Fr0=0.0d+0
+	global_Fr0=0.0d+0
       do i=1,3
-        global_Fp(:,:,i,i)=1.0d+0
-        global_Fe(:,:,i,i)=1.0d+0
-        global_Fr0(:,:,i,i)=1.0d+0
+          global_Fp(:,:,i,i)=1.0d+0
+          global_Fe(:,:,i,i)=1.0d+0
+          global_Fr0(:,:,i,i)=1.0d+0
       enddo
-            
+      
       allocate (global_state0(numel,numip,numslip,numstvar))
       allocate (global_state(numel,numip,numslip,numstvar))
       allocate (global_state_t(numel,numip,numslip,numstvar))     
@@ -2582,25 +2850,21 @@ c
 c	      
       allocate(global_gamma(numel,numip,numslip))
       allocate(global_gamma_t(numel,numip,numslip))
-      global_gamma=0.0d+0
+	global_gamma=0.0d+0
       global_gamma_t=0.0d+0
       
 
       allocate(global_gamma_sum(numel,numip))
       allocate(global_gamma_sum_t(numel,numip))
-      global_gamma_sum=0.0d+0
+	global_gamma_sum=0.0d+0
       global_gamma_sum_t=0.0d+0
       
       allocate(global_coords(numel,numip,3))
-      global_coords=0.0d+0
-	  
-c     Nico modification start
-
+	global_coords=0.0d+0
+	
       allocate(global_damage(numel,numip))
-	  ! warning: moose has the right to initialize
-      ! its own variables	  
-	  ! umat cannot impose this to a moose variable
-	  ! need to find a better solution, this is temporary
+	  ! damage variables is initialised by MOOSE
+	  ! this is just a local copy of the MOOSE variable
 	  global_damage = 0.0d+0
 	  
       allocate(global_F_pos(numel,numip))
@@ -2611,24 +2875,20 @@ c     Nico modification start
 	  
       allocate(global_pk2_pos(numel,numip,3,3))
       global_pk2_pos = 0.0d+0
-	  
-	  
-	  
-c     Nico modification finish	  
       
       allocate(coords_init(numel,numip))
-      coords_init=0.0d+0
+	coords_init=0d+0
             
 c     A large number is assigned since 1/X is used in the calculations      
       allocate(grainmorph(numel,numip,numslip))
-      grainmorph=largenum
+	grainmorph=largenum
       
 
 
 
 
-      return
-      end subroutine allocate_arrays
+	return
+	end subroutine allocate_arrays
       
       
       
@@ -2643,13 +2903,13 @@ c
 
 
 
-      if (modelno.eq.1) then
+      if (modelno.eq.1d+0) then
 	    
           global_state0=sliphard_param(1)
           global_state=sliphard_param(1)
           global_state_t=sliphard_param(1)
           
-      elseif (modelno.eq.2) then
+      elseif (modelno.eq.2d+0) then
           
 c         Strain/slip hardening term
           global_state0(:,:,:,1)=sliphard_param(1)
@@ -2661,7 +2921,7 @@ c         Kinematic hardening term
           global_state(:,:,:,2)=0.0d+0
           global_state_t(:,:,:,2)=0.0d+0
           
-       elseif (modelno.eq.3) then
+       elseif (modelno.eq.3d+0) then
           
 c         Strain/slip hardening term
           global_state0(:,:,:,1)=sliphard_param(1)
@@ -2674,7 +2934,7 @@ c         Kinematic hardening term
           global_state_t(:,:,:,2)=0.0d+0         
           
           
-       elseif (modelno.eq.4) then
+       elseif (modelno.eq.4d+0) then
 
 c         All the state variables (GNDe/GNDs/backstress)
           global_state0=0.0d+0
@@ -2687,7 +2947,7 @@ c         Statistically stored initial dislocations (SSD)
           global_state_t(:,:,:,1)=sliphard_param(2)
                     
           
-       elseif (modelno.eq.5) then
+       elseif (modelno.eq.5d+0) then
           
 c         Strain/slip hardening term
           global_state0(:,:,:,1)=sliphard_param(2)
@@ -2699,6 +2959,23 @@ c         Kinematic hardening term
           global_state(:,:,:,2)=0.0d+0
           global_state_t(:,:,:,2)=0.0d+0         
           
+          
+c      Initialize defects for irradiation model
+       elseif (modelno.eq.6d+0) then	
+c         All the state variables (GNDe/GNDs/backstress)	
+          global_state0=0.0d+0	
+          global_state=0.0d+0	
+          global_state_t=0.0d+0	
+          	
+c         Irradiation induced frank dislocation loops	
+          global_state0(:,:,:,5)=sliphard_param(12)	
+          global_state(:,:,:,5)=sliphard_param(12)	
+          global_state_t(:,:,:,5)=sliphard_param(12)	
+          	
+c         Statistically stored initial dislocations (SSD)	
+          global_state0(:,:,:,1)=sliphard_param(2)	
+          global_state(:,:,:,1)=sliphard_param(2)	
+          global_state_t(:,:,:,1)=sliphard_param(2)          
           
       endif
       
@@ -2724,8 +3001,8 @@ c	This initializes the state variables related with the grain size
 !       all information on grain orientations.
       use lengthscale, only: grainsize
       use globalvars, only: grainsize_param, numslip, b_slip, n_slip,
-     & global_state, global_state_t, sliphard_param, global_state0, 
-     & GSeffect, largenum
+     &global_state, global_state_t, sliphard_param, global_state0, 
+     &GSeffect, largenum
 
 
 
@@ -2735,7 +3012,7 @@ c	This initializes the state variables related with the grain size
       
 	integer el_no, ip_no, gr_no, i
       real(8) coords(3)
-      real(8) k, c, kval, L, R, val
+      real(8) k, c, SF, kval, L, R, val
       
 c      real(8) nodex(totalfeat,nodeout), nodey(totalfeat,nodeout),    
 c     &nodez(totalfeat,nodeout), elcent(totalels,3), oriensh(totalfeat,3)
@@ -2750,7 +3027,7 @@ c	common nodex,nodey,nodez,boundgrain,elcent,intotalfeat
 c     Length scale parameters
       k = grainsize_param(1)
       c = grainsize_param(2)
-
+      SF = grainsize_param(3)
       
       
 c      write(6,*) '-------------'
@@ -2775,10 +3052,10 @@ c      write(6,*) 'global_state'
           
 
 c         L-distance (L in ref.)
-          L = ldistance(i)*1.d-3
+          L = ldistance(i)*SF
           
 c         R-distance (X in ref.)
-          R = rdistance(i)*1.d-3          
+          R = rdistance(i)*SF      
           
 c         Strength coefficient
           kval = k * (1.-lm(i))**(c)
@@ -2856,13 +3133,15 @@ c	USES:
 	subroutine initialize_grainshape(str)
 	use globalvars, only : numel, numip, numgrain, numslip, b_slip,
      &n_slip, grainori, grainmorph, sliphard_param, grainID
-      use globalsubs, only: ang2ori, cross
+      use globalsubs, only: ang2ori, cross, normvec
 	implicit none
       character(len=:), allocatable   :: str
       integer ig, is, ie, ip
       real(8) D1(numgrain,3), D2(numgrain,3), D3(numgrain,3)
       real(8) d, dx, dy, dz, d1vec(3), d2vec(3), d3vec(3), ang(3)
-      real(8) R(3,3), SlipDist(numgrain,numslip), d1v(3), d2v(3), d3v(3)
+      real(8) R(3,3), SlipDist(numgrain,numslip)
+	  real(8) d1v(3), d2v(3), d3v(3)
+      real(8) d1len, d2len, d3len
 	
 c     Read the file
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2899,12 +3178,36 @@ c     Calculate projections along slip directions
 c     For each grain
       do ig=1,numgrain
       
-          
+
+c         1st axis
           d1vec = D1(ig,:)
           
+c         Size of the vector          
+          call normvec(d1vec,3,d1len)
+         
+c         Normalize the vector
+          d1vec = d1vec/d1len
+          
+          
+c         2nd axis          
           d2vec = D2(ig,:)
           
-          d2vec = D3(ig,:)
+          
+c         Size of the vector          
+          call normvec(d2vec,3,d2len)
+         
+c         Normalize the vector
+          d2vec = d2vec/d2len
+          
+c         3rd axis          
+          d3vec = D3(ig,:)
+          
+c         Size of the vector          
+          call normvec(d3vec,3,d3len)
+         
+c         Normalize the vector
+          d3vec = d3vec/d3len          
+          
           
 c         Transform from sample to crystal
           ang=grainori(ig,:)
@@ -2930,11 +3233,11 @@ c             Cross product with the slip plane normal
               call cross(d3vec, n_slip(is,:), d3v)
               
 c             Projection  to the slip direction              
-              dx = dot_product(d1v,b_slip(is,:))
+      dx = (1.0d+0 - dabs(dot_product(d1v,b_slip(is,:))))*d1len
               
-              dy = dot_product(d2v,b_slip(is,:))
+      dy = (1.0d+0 - dabs(dot_product(d2v,b_slip(is,:))))*d2len
               
-              dz = dot_product(d3v,b_slip(is,:))
+      dz = (1.0d+0 - dabs(dot_product(d3v,b_slip(is,:))))*d3len
               
               
               d = dsqrt(dx**2.0d+0 + dy**2.0d+0 + dz**2.0d+0)
@@ -2954,12 +3257,12 @@ c             Size factor - conversion to mm
       
 c     Assign the slip distance to the elements
       do ie=1,numel
-        ig = grainID(ie)
-        do ip=1,numip
-          do is=1,numslip
-            grainmorph(ie,ip,is) = SlipDist(ig,is)
+          ig = grainID(ie)
+          do ip=1,numip
+              do is=1,numslip
+                  grainmorph(ie,ip,is) = SlipDist(ig,is)
+              enddo
           enddo
-        enddo
       enddo
       
       
@@ -3102,10 +3405,11 @@ c	USES: I3(3,3),I6(6,6),I9(9,9),eijk(3,3,3)
       use globalsubs, only: convert9to3x3, invert3x3
 	implicit none
 	integer i, iele, iquad
-      real(8) Fe0_vec(9), Fe0(3,3), invFe0(3,3), det, dum1, dum2, R(3,3)
+      real(8) Fe0_vec(9), Fe0(3,3), invFe0(3,3)
+	  real(8) det, dum1, dum2, R(3,3)
       character(len=:), allocatable   :: str
       
-      if (resdef.eq.1) then
+      if (resdef.eq.1d+0) then
           
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           open(900,file=str // '/resdef.dat',action='read',status='old')
@@ -3189,8 +3493,8 @@ c     Initialize mappings at the isoparametric space for the element type under 
 c	This subroutine calculates the interpolation mappings necessary for gnd analysis by slip gradients
 c	USES:       
 	subroutine initialize_gndslipgradel
-      use globalvars, only : numel, numip, numslip, 
-     & nnpe, invNmat, dNmat, 
+      use globalvars, only : numel, numip, 
+     & numslip, nnpe, invNmat, dNmat, 
      & Gmat, global_coords, global_ori, gradIP2IP
       use globalsubs, only: invert3x3
 	implicit none
@@ -3313,13 +3617,13 @@ c          grad = matmul(grad, invNmat)
 
           
 c         Transform the gradient into the crystal reference
-      grad = matmul(ori, grad)
+          grad = matmul(ori, grad)
           
           
 
 
               
-      gradIP2IP(iele,numip+1,:,:) = grad
+          gradIP2IP(iele,numip+1,:,:) = grad
           
 !          do islp=1,numslip
 !          
@@ -3391,6 +3695,16 @@ c     tauc
           outerreltol(1) = outertol * sliphard_param(2)
           
           outerreltol(2) = outertol * sliphard_param(1)
+          
+c     output for irradiation model
+c     rho0==>(1:3), tauc==>(4)	
+      elseif (modelno.eq.6d+0) then	
+          	
+          outerreltol(1:3) = outertol * sliphard_param(2)	
+          	
+          outerreltol(4) = outertol * sliphard_param(1)          
+c Added by Eralp          
+          outerreltol(5) = outertol * sliphard_param(2)
           
       endif
       

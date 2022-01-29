@@ -30,17 +30,19 @@ c     variables for isotropic and kinematic hardening (Code Aster model)
       real(8) tauc0_3, b_3, Q_3, C_3, D_3    
 c     variable used in GND model with slip gradients
       real(8) b_4, yc_4, K_4
-      real(8) rhoSSD, rhotot      
+      real(8) rhoSSD, rhotot, rhoLOOP
 c     variables for Voce hardening law with slip distance     
       real(8) h_5, hD_5, alpha_5, b_5, C_5, yc_5, K_5
       real(8) mKM_5
+c     Irradiation hardening parameters
+      real(8) b_6, yc_6, K_6, AL_6, rhos_6  
 c      
 c      
       sstatedot = 0.0d+0
 c      
 c      
 c     Three parameter hardening law      
-      if (modelno.eq.1) then
+      if (modelno.eq.1d+0) then
 c          
 c
 c
@@ -52,7 +54,7 @@ c
           ss_1 = sliphard_param(3)
           n_1 = sliphard_param(4)
 c          
-          hb_1 = h0_1*(dabs(1.0d+0-(tauc/ss_1)))**n_1
+          hb_1 = h0_1*((1.0d+0-(tauc/ss_1))**n_1)
           
 c         self-hardening          
 		sstatedot(1) = hb_1*dabs(gdot)
@@ -66,7 +68,7 @@ c          write(6,*) 'sstatedot(1)', sstatedot(1)
 c
 c           write(6,*) 'sstate(1)', sstate(1)
 c
-      elseif (modelno.eq.2) then
+      elseif (modelno.eq.2d+0) then
 c          
 c    
 c          
@@ -95,12 +97,11 @@ c         kinematic hardening
           sstatedot(2) = h_2*gdot - hD_2*x*dabs(gdot)
 c
 c
-      elseif (modelno.eq.3) then
+      elseif (modelno.eq.3d+0) then
 c          
 c    
 c          
 c          
-          tauc = sstate(1)
           x = sstate(2)
 c          
           b_3 = sliphard_param(2)
@@ -121,7 +122,7 @@ c         kinematic hardening
           
           
           
-      elseif (modelno.eq.4) then
+      elseif (modelno.eq.4d+0) then
           
     
           
@@ -159,7 +160,7 @@ c         Backstress rate is set to zero for implicit integration (state=4)
                     
           
 c     Three parameter hardening law with slip distance effect (size)
-      elseif (modelno.eq.5) then
+      elseif (modelno.eq.5d+0) then
 c          
 c          
           rhoSSD = sstate(1)
@@ -186,10 +187,9 @@ c         Xdist is nonlocal slip distance, that has a different value for each I
 c
 c          
 c         The RHS term represents the Taylor hardening term: alpha*G*b/L scaled with a constant C          
-          mKM_5 = K_5 * dsqrt(rhoSSD) - 2.0d+0 * yc_5 * rhoSSD
-     & + C_5 * alpha_5 * G * b_5 / sXdist
+      mKM_5 = K_5*dsqrt(rhoSSD) - 2.0d+0*yc_5*rhoSSD + C_5/sXdist
 c          
-c         self-hardening          
+c         self-hardening
 		sstatedot(1) = mKM_5 * dabs(gdot) / b_5
 c          
 c          
@@ -204,7 +204,41 @@ c
 c          write(6,*) 'sstatedot(1)', sstatedot(1)
 c
 c           write(6,*) 'sstate(1)', sstate(1)          
-c          
+c
+      elseif (modelno.eq.6d+0) then	
+c          	
+c         Statistically stored dislocation density	
+          rhoSSD = sstate(1)	
+c         Frank dislocation loop density	
+          rhoLOOP = sstate(5)	
+c          	
+c          	
+c          	
+c         No rates are defined for GND and backstress state variables	
+c          	
+          rhotot = sstate(1) + dabs(sstate(2)) + dabs(sstate(3))	
+c          	
+          b_6 = sliphard_param(3)	
+          K_6 = sliphard_param(5)	
+          yc_6 = sliphard_param(6)	
+c          	
+c Irradiation induced frank dislocation loop annihilation area	
+          AL_6 = sliphard_param(10)	
+c frank loop dislocation saturation density	
+          rhos_6 = sliphard_param(11)	
+c          	
+c        SSD evolution          	
+         sstatedot(1)=dabs(gdot)/b_6*(K_6*dsqrt(rhotot)-
+     & 2.0d+0*yc_6*rhoSSD)
+c        Irradiation induced frank dislocation loop density evolution	
+c
+          sstatedot(5)=AL_6*(rhos_6-rhoLOOP)*rhoLOOP*dabs(gdot)	
+c          	
+c          	
+c         GND evolution is calculated at the end of the former time increment	
+c         GND rate is set to zero for implicit integration (states = 2 & 3)	
+c         Backstress rate is set to zero for implicit integration (state=4)	
+
 c          
       endif
 c      

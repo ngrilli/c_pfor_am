@@ -15,12 +15,12 @@ c
       
       subroutine calculategnds(dt)
       use globalvars, only : numel, numip, numslip, gradIP2IP,
-     & global_state, global_state_t, sliphard_param, global_gammadot_t,
+     & global_state, global_state_t, sliphard_param, global_gamma,
      & b_slip, l_slip
       implicit none
       integer iele, iqpt, islp, iq
-      real(8) dt, b, SF, C, gdot(numip), grad(3,numip), gradgdot(3)
-      real(8) rhodotGNDe, rhodotGNDs 
+      real(8) dt, b, SF, C, gamma(numip), grad(3,numip), gradgamma(3)
+      real(8) rhoGNDe, rhoGNDs 
 
       
 c     Burger's vector
@@ -59,38 +59,36 @@ c             Loop over the slip systems
                   
                   
 c                 Vectorize element slip rates              
-                  gdot=0.0
+                  gamma=0.0
                   do iq=1,numip
                   
-                      gdot(iq) = global_gammadot_t(iele,iq,islp)
+                      gamma(iq) = global_gamma(iele,iq,islp)
               
                   enddo              
               
               
               
 c                 Slip gradient
-                  gradgdot = matmul(grad,gdot)*C/SF/b               
+                  gradgamma = matmul(grad,gamma)*C/SF/b               
                   
                   
           
 c                 Edge dislocation
-                  rhodotGNDe = -dot_product(b_slip(islp,:),gradgdot)
+                  rhoGNDe = -dot_product(b_slip(islp,:),gradgamma)
 
 
 c                 Screw dislocation
-                  rhodotGNDs = dot_product(l_slip(islp,:),gradgdot)
+                  rhoGNDs = dot_product(l_slip(islp,:),gradgamma)
 
               
 c                 Store and update the state variables
 c                 Edge dislocaitons
-                  global_state(iele,iqpt,islp,2)=
-     & global_state_t(iele,iqpt,islp,2) + rhodotGNDe*dt
+                  global_state(iele,iqpt,islp,2)= rhoGNDe
               
                   
 c                 Store and update the state variables
 c                 Screw dislocaitons
-                  global_state(iele,iqpt,islp,3)=
-     & global_state_t(iele,iqpt,islp,3) + rhodotGNDs*dt
+                  global_state(iele,iqpt,islp,3)= rhoGNDs
                   
                   
               enddo       

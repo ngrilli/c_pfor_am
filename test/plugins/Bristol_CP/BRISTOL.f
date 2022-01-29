@@ -16,11 +16,7 @@ c
       include "slipratelaws.f"
       include "sliphardlaws.f"      
       include "calculations.f"
-	  
-c     Nico modifications begin	  
 	  include "phasefieldfracture.f"
-c     Nico modifications finish	  
-	  
 c
 c      
 c      
@@ -120,9 +116,6 @@ c
      4 CELENT,DFGRD0,DFGRD1,NOEL,NPT,LAYER,KSPT,KSTEP,KINC)
 c
       use calculations, only: calcs
-c
-
-c     Nico modification start
 
       use globalvars, only : phasefielddamageflag
       use globalvars, only : global_damage
@@ -130,8 +123,7 @@ c     Nico modification start
       use phasefieldfracture, only : moose_interface_input
       use phasefieldfracture, only : moose_interface_output
 
-c     Nico modification finish
-
+c
 c
 c
       implicit none
@@ -200,8 +192,6 @@ c      defaultNumThreadsInt = omp_get_num_threads()    ! remember number of thre
 c      call omp_set_num_threads(defaultNumThreadsInt)  ! set number of threads for parallel execution set by DAMASK_NUM_THREADS      
 c      
 c
-c
-c     Nico modification start
 c     Get information for moose
 c     phase field damage model
 c     through state variables
@@ -213,15 +203,13 @@ c     for the phase field damage model
       call moose_interface_input(NOEL,NPT,STATEV,NSTATV)
 	  
 	  end if
-
-c     Nico modification finish 
+c 
 c
 c
 c     Perform all the calculations     
       call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL,NPT,
      &            STRESS,DDSDDE,PNEWDT,COORDS)
-
-c     Nico modification start
+	 
 c      Send information for moose
 c      phase field damage model
 
@@ -231,8 +219,12 @@ c      phase field damage model
 	  
 	  end if
 
-c     Nico modification finish
-
+cc     Output state variables to MOOSE
+c      STATEV(1) = global_state(NOEL+1,NPT+1,1,1)	
+c      STATEV(2) = global_state(NOEL+1,NPT+1,1,2)	
+c      STATEV(3) = global_state(NOEL+1,NPT+1,1,3)	
+c      STATEV(4) = global_state(NOEL+1,NPT+1,2,4)      	
+c      STATEV(5) = global_state(NOEL+1,NPT+1,2,5)      
 c      
 c
 c      write(6,*) 'KINC',KINC
@@ -381,61 +373,6 @@ c     on the number of state variables
       endif
 c ---ED HORTON EDIT END ---
 c          
-c
-!
-!      if (output_vars(5) .eq. 1d+0) then
-!
-!          do j=1,numslip
-!              UVAR(varno)= 1./grainmorph(NOEL,NPT,j)
-!              varno=varno + 1d+0
-!          enddo
-!
-!      endif
-!
-!c
-!c     Add the average of the stresses over all of the elements and IPs
-!c     Do this calculation only ONCE!
-!      if (NOEL.eq.1) then
-!          if (NPT.eq.1) then
-!              sigma_av=0.0
-!              do i=1,numel
-!                  do j=1,numip
-!c                      
-!c                     Calculate the Von-Mises stress                      
-!                      call convert6to3x3(global_sigma(i,j,:),sigma33)
-!                      call vonmises_stress(sigma33,evm)
-!                      sigma_av(7) = sigma_av(7) + evm
-!c                      
-!                      do k =1,6
-!                          sigma_av(k)=sigma_av(k) + global_sigma(i,j,k)
-!                      enddo
-!                  enddo
-!              enddo
-!              sigma_av = sigma_av / numel / numip
-!c
-!c
-!c      
-!c
-!c     Print the results to a separate .txt file
-!900           format(I4, 1X, 8(F7.2, 1X), /)
-!              open(1000, file = foldername //
-!     &'/avCauchyStress.txt', action='readwrite', status='old')
-!c      
-!c             read dummy lines      
-!              read(1000,*)
-!              do i=1,KINC-1
-!                  read(1000,*)
-!              enddo
-!c      
-!c      
-!c             Write the following in the same order as:
-!c             increment number, time, average stress components (11-22-33-12-13-23), and average Von-Mises stress      
-!              write(1000,900) KINC, TIME(2), sigma_av(1:7)
-!c      
-!              close(1000)
-!c      
-!          endif
-!      endif
 c
       RETURN
       END

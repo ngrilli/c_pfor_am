@@ -259,7 +259,7 @@ c      testera=minloc(nodey(int(grainb),:),dim=1)
 	checkerloopb: DO i=1,nodeout
 c         THIS LINE IS CONVERTED TO ORIGINAL VERSION          
 c		if(nodex(int(grainb),i) < 0)then
-          if(nodex(int(grainb),i) ==9999999)then 
+          if(nodex(int(grainb),i) .eq. 9999999)then 
 			arraysizeb=i-1
 			exit checkerloopb
 		else
@@ -298,9 +298,9 @@ c		if(nodex(int(grainb),i) < 0)then
         
 	   !find the coordinates of the identified shared boundary nodes
 	   allocate (featureboundsnodes(val-1,3))
-      featureboundsnodes=reshape((/nodex(grainb,grainboundindex), 
-     & nodey(grainb,grainboundindex),                       
-     & nodez(grainb,grainboundindex)/),(/val-1,3/))
+	   featureboundsnodes=reshape((/nodex(grainb,grainboundindex), 
+     1   	 nodey(grainb,grainboundindex),                       
+     2    	nodez(grainb,grainboundindex)/),(/val-1,3/))
 		
 		 
 	   !calculate the vector from the boundary nodes to the current
@@ -539,9 +539,11 @@ c		   rdistance=0.5D0*voxelsize
 				!find the angle between the vectors from the shared boundary to 
 				!boundary nodes in grain b and the vector developed from the voxel
 				!to the shared boundary
+
       lxangle(i,:)= dacos(
      & matmul(lxtotal(i,:,:),slpdirrotate(i,:))/(lxnorm
      & *slpdirrotatenorm(i)))
+
 				minxval0(i,:)=minloc(lxangle(i,:))
 				minxval0act(i,:)=lxangle(i,int(minxval0(i,:)))
 				minxval180(i,:)=minloc(abs(lxangle(i,:)-pi))
@@ -668,9 +670,7 @@ c         Therefore noscaling is used.
      & minxangleact,vectrnorm,slpdirrotatenorm,lxnodesindex,     
      & lxnodes,vecb,veca,vanorm,vbnorm,checkangle,     
      & slpplanrotatenorm,slpdirrotateanorm,slpplanrotateanorm,   
-     & cosphi,cosk)
-		
-		
+     & cosphi,cosk)		  
 	  
 	
 	return
@@ -692,7 +692,7 @@ c         Therefore noscaling is used.
 		  savindex(1)=1
 		  outer: do i=2,size(sortedbgrains)
 			 do j=1,k
-				if (res(j) == sortedbgrains(i)) then
+				if (res(j) .eq. sortedbgrains(i)) then
 				   ! Found a match so start looking again
 				   cycle outer
 				end if

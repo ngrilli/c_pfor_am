@@ -28,6 +28,8 @@ c     model constatns for GND using slip gradients
       real(8) gdot0_4, m_4, alpha_4, b_4, tauc0_4
 c     model constatns for slip/creep with backstress (Power Law)
       real(8) gdot0_5, m_5, alpha_5, b_5, tauc0_5, C_5
+c     Irradiation hardening law constants	
+      real(8) gdot0_6, m_6, alpha_6, b_6, tauc0_6, lambda_6      
       
 c     Slip/Creep  with no kinematic hardening (x = 0), s it has no effect
       if (modelno.eq.1d+0) then
@@ -45,21 +47,9 @@ c          write(6,*) sstate
     
           gdot = gdot0_1 * ((dabs(tau)/tauc)**(1.0d+0/m_1)) 
      &*dsign(1.0d+0,tau)
-	 
-      if (dabs(gdot) > 0.001) then
-	  
-      gdot = 0.001 * dsign(1.0d+0,tau)
-		
-      dgdot_dtau = (gdot0_1 / m_1) / tauc
-		
-      else
 
-      dgdot_dtau = gdot0_1/m_1 * ((dabs(tau)/tauc)
+          dgdot_dtau = gdot0_1/m_1 * ((dabs(tau)/tauc)
      &**((1.0d+0/m_1) - 1.0d+0)) / tauc
-	  
-      end if
-
-
           
 
 
@@ -230,11 +220,51 @@ c         Calculate slip resistance
 
 
 
+c     Irradiation hardening model	
+      elseif (modelno.eq.6d+0) then	
+          	
+c          write(6,*) 'sliprate'	
+c          write(6,*) sstate	
+          	
+c         x is not a state but it will be derived from states	
+c         calculate backstress here!          	
+          	
+          x = sstate(4)
+c         Initial slip rate          	
+          gdot0_6 = sliprate_param(1)
+c         Power law exponent          	
+          m_6 = sliprate_param(2)
+c         Statistical coefficient          
+          lambda_6 = sliprate_param(3)
+          	
+          	
+c         Geometric factor for slip resistance calculation	
+          alpha_6 = sliphard_param(4)	
+          	
+          	
+c         Burgers vector for slip resistance calculation	
+          b_6 = sliphard_param(3)	
+          	
+c         Initial slip resistance	
+          tauc0_6 = sliphard_param(1)	
+          	
+          	
+c         Calculate slip resistance      	
+          tauc = tauc0_6+lambda_6*G*b_6* 	
+     & dsqrt(sstate(1)+sstate(2)+sstate(3)+sstate(5)) 	
+          	
 
 
+          	
+          gdot=gdot0_6*((dabs(tau-x)/tauc)**(1.0d+0/m_6))*	
+     & dsign(1.0d+0,tau-x)	
+c	
+          dgdot_dtau=gdot0_6/m_6*((dabs(tau-x)/tauc)**
+     & ((1.0d+0/m_6)-1.0d+0))/tauc             	
+              	
 
 
-
+ 
 
 
 

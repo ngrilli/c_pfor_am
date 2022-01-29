@@ -3,6 +3,7 @@ c Edward Horton
 c Eralp Demir
 c Hugh Dorward
 c Michael Salvini
+c Nicolò Grilli
 c
 c Aug. 12th, 2021 - 1st working version
 c
@@ -47,7 +48,7 @@ c	Slip resistance at 't'
 	real(8), allocatable, public ::  global_state_t(:,:,:,:)     
 c     2nd Piola-Kirchoff stress at 't' (vectorized)
 	real(8), allocatable, public ::  global_S(:,:,:)
-	real(8), allocatable, public ::  global_S_t(:,:,:)      
+	real(8), allocatable, public ::  global_S_t(:,:,:)  
 c	Global orientation matrix
 	real(8), allocatable, public ::  global_ori(:,:,:,:)
 c	Global total slip per slip system (-) --- output
@@ -55,22 +56,20 @@ c	Global total slip per slip system (-) --- output
       real(8), allocatable, public ::	 global_gamma_t(:,:,:)
 c	Global total overall slip (-) --- output
 	real(8), allocatable, public ::	 global_gamma_sum(:,:)
-      real(8), allocatable, public ::	 global_gamma_sum_t(:,:) 
+      real(8), allocatable, public ::	 global_gamma_sum_t(:,:)
 c	Global total sliprate per slip system (-) --- output
 	real(8), allocatable, public ::	 global_gammadot(:,:,:)
-	real(8), allocatable, public ::	 global_gammadot_t(:,:,:)       
+	real(8), allocatable, public ::	 global_gammadot_t(:,:,:)
 c	Global old jacobian matrix
-	real(8), allocatable, public ::	 global_jacob_t(:,:,:,:)      
+	real(8), allocatable, public ::	 global_jacob_t(:,:,:,:)
 c	Global current jacobian matrix
-	real(8), allocatable, public ::	 global_jacob(:,:,:,:)         
+	real(8), allocatable, public ::	 global_jacob(:,:,:,:) 
 c	Global current stress vector - Cauchy
       real(8), allocatable, public ::	 global_sigma(:,:,:)
-      real(8), allocatable, public ::	 global_sigma_t(:,:,:)  
+      real(8), allocatable, public ::	 global_sigma_t(:,:,:)
 c     Global IP coordinates      
-      real(8), allocatable, public ::	 global_coords(:,:,:)   
-
-
-c     Nico modification start
+      real(8), allocatable, public ::	 global_coords(:,:,:)
+	  
 c     Damage variable
       real(8), allocatable, public :: global_damage(:,:)
 c     tensile part of the Helmholtz free energy
@@ -81,9 +80,7 @@ c	  which is degraded by damage
       real(8), allocatable, public :: global_F_neg(:,:)
 c     tensile part of the second Piola-Kirchoff stress
 c     this is needed for calculating _dstress_dc
-      real(8), allocatable, public :: global_pk2_pos(:,:,:,:)
-c     Nico modification finish
-
+      real(8), allocatable, public :: global_pk2_pos(:,:,:,:)	  
 	  
 c	Constants used everywhere
 c     ______________________________________________________
@@ -98,13 +95,13 @@ c     Number of slip systems
 c	Schmid tensor
 	real(8)	, allocatable, public :: Schmid(:,:,:)
 c	Climb tensor
-	real(8)	, allocatable, public :: Climb(:,:,:)  
+	real(8)	, allocatable, public :: Climb(:,:,:)
 c	Schmid tensor - transpose
-	real(8)	, allocatable, public :: SchmidT(:,:,:)      
+	real(8)	, allocatable, public :: SchmidT(:,:,:)
 c	Vectorized Schmid tensor
 	real(8)	, allocatable, public :: Schmid_vec(:,:)
 c	Vectorized Climb tensor
-	real(8)	, allocatable, public :: Climb_vec(:,:)      
+	real(8)	, allocatable, public :: Climb_vec(:,:)
 c	Dyadic product of Schmid tensor with Schmid tensor
 	real(8)	, allocatable, public :: SchxSch(:,:,:,:,:)
 c	Normalized slip directions
@@ -138,13 +135,10 @@ c	Total amount of time for residual deformation
 c      
 c	Thermally-coupled or mechanical problem
       integer, public :: thermo
-
-c     Nico modification begin
+	  
 c     Flag indicating coupling with fracture is active
       integer, public :: phasefielddamageflag
-c     Nico modification finish
-
-c      
+    
 c	Temperature (K) - initial temperature
       real(8), public :: temp0
 c
@@ -174,10 +168,10 @@ c
 c	Work-conjugate elasticity matrix for isotropic phase
 	real(8), public :: elas66_iso(6,6)
 c      
-c	modelno: 1/2/3/4/5
+c	modelno: 1/2/3/4/5/6
 	integer, public :: modelno
       
-c	interno: 0/1/2
+c	interno: 0/1/2/3/4
 	integer, public :: interno
       
 C	LENGTHSCALE PARAMETERS
@@ -197,12 +191,16 @@ c	Strain hardening parameters (1:param)
 c      
 c	Hardening interaction matrix
 	real(8), allocatable, public :: intmat(:,:)
+c	Irradiated Hardening matrices for gnds and DLs	
+	real(8), allocatable, public :: intmat1(:,:)	
+	real(8), allocatable, public :: intmat2(:,:)        
       
-c	Length scale parameters (1:2)
-      real(8), public :: grainsize_param(2)
+c	Length scale parameters (1:3)
+      real(8), public :: grainsize_param(3)
       integer, allocatable, public :: grainsize_init(:,:)
-c     grainsize(2): "k", linear hardening coefficient
-c     grainsize(3): "c", hardening exponent for grain boundary mismatch
+c     grainsize_param(1): "k", linear hardening coefficient
+c     grainsize_param(2): "c", hardening exponent for grain boundary mismatch
+c     grainsize_param(3): "SF", size conversion factor from mesh units to millimeter units
 c
 c     Global variables related with length scale calculation
 c      real(8), allocatable, public :: oriensh(:,:)
@@ -223,7 +221,7 @@ c     ______________________________________________________
 C     STRAIN GRADIENT PARAMETERS
 c     ______________________________________________________  
           
-c	Strain gradient: 0 (OFF) /1 (curl of Fp) / 2 (slip gradients)
+c	Strain gradient: 0 (OFF) / 1 (slip gradients)
 	integer, public :: GNDeffect     
 
 c     Global initialization flag for IP coordinates
@@ -316,10 +314,10 @@ c     Backward fraction of time
       real(8), public :: tstep_back      
 
 c	Small real number
-      real(8), parameter, public :: smallnum = 1.0d-20
-
+	real(8), parameter, public :: smallnum = 1.0d-20
+      
 c	Large real number
-      real(8), parameter, public :: largenum = 1.0d+20      
+	real(8), parameter, public :: largenum = 1.0d+20      
 c     ______________________________________________________
 c
 c
@@ -540,7 +538,6 @@ c
 c
 c	Symmetry operators for hexagonal materials
 c	Constant for hexagonal materials
-	real(8), parameter ::  hex=0.866025403d+0
 	real(8), public ::  hcpsym(12,3,3)
 c	6-2 symmetry
 	data hcpsym(1,1,:) /1, 0, 0/
