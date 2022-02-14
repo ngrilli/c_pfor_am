@@ -53,7 +53,8 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
     _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
     _d2Dd2c(getMaterialPropertyDerivative<Real>(
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
-    _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
+    _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")), // reference bulk modulus for vol/non-vol decomposition
+    _slip_plane_normals(declareProperty<std::vector<Real>>("slip_plane_normals")) // Slip plane normals
 {
   _err_tol = false;
 
@@ -118,6 +119,84 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
   }
 
   _substep_dt = 0.0;
+}
+
+/**
+ * Solves stress residual equation using NR.
+ * Updates slip system resistances iteratively.
+ * calcFlowDirection is modified to output _slip_plane_normals
+ * to ACInterfaceSlipPlaneFracture for cleavage
+ * along the slip plane
+ */
+void
+FiniteStrainUObasedCPDamageVol::computeQpStress()
+{
+  // number of slip systems
+  Real NSlipSys;
+  
+  // Temporary vector to store slip plane normals
+  // before assigning to the material property
+  std::vector<Real> slip_plane_normals;
+	
+  // Userobject based crystal plasticity does not support face/boundary material property
+  // calculation.
+  if (isBoundaryMaterial())
+    return;
+  // Depth of substepping; Limited to maximum substep iteration
+  unsigned int substep_iter = 1;
+  // Calculated from substep_iter as 2^substep_iter
+  unsigned int num_substep = 1;
+
+  _dfgrd_tmp_old = _deformation_gradient_old[_qp];
+  if (_dfgrd_tmp_old.det() == 0)
+    _dfgrd_tmp_old.addIa(1.0);
+
+  _delta_dfgrd = _deformation_gradient[_qp] - _dfgrd_tmp_old;
+
+  // Saves the old stateful properties that are modified during sub stepping
+  for (unsigned int i = 0; i < _num_uo_state_vars; ++i)
+    _state_vars_old[i] = (*_mat_prop_state_vars_old[i])[_qp];
+
+  // Set the size of _slip_plane_normals
+  // variableSize() gives the number of slip systems
+  //for (unsigned int i = 0; i < _num_uo_slip_rates; ++i) {
+  //  NSlipSys = _uo_slip_rates[i]->variableSize();
+  //}
+  //_slip_plane_normals[_qp].resize(NSlipSys * LIBMESH_DIM);
+  //slip_plane_normals.resize(NSlipSys * LIBMESH_DIM);
+  
+  for (unsigned int i = 0; i < _num_uo_slip_rates; ++i)
+    _uo_slip_rates[i]->calcFlowDirection(_qp, (*_flow_direction[i])[_qp]);
+
+  //_slip_plane_normals[_qp] = slip_plane_normals;
+
+  do
+  {
+    _err_tol = false;
+
+    preSolveQp();
+
+    _substep_dt = _dt / num_substep;
+
+    for (unsigned int istep = 0; istep < num_substep; ++istep)
+    {
+      _dfgrd_tmp = (static_cast<Real>(istep) + 1) / num_substep * _delta_dfgrd + _dfgrd_tmp_old;
+
+      solveQp();
+
+      if (_err_tol)
+      {
+        substep_iter++;
+        num_substep *= 2;
+        break;
+      }
+    }
+
+    if (substep_iter > _max_substep_iter && _err_tol)
+      throw MooseException("FiniteStrainUObasedCP: Constitutive failure.");
+  } while (_err_tol);
+
+  postSolveQp();
 }
 
 void

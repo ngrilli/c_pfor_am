@@ -27,6 +27,14 @@ public:
 
 protected:
   /**
+   * updates the stress at a quadrature point.
+   * calcFlowDirection is modified to output _slip_plane_normals
+   * to ACInterfaceSlipPlaneFracture for cleavage
+   * along the slip plane
+   */
+  virtual void computeQpStress();
+  
+  /**
    * calculate stress residual.
    * Damage is added to the stress calculation
    */
@@ -99,5 +107,9 @@ protected:
   const MaterialProperty<Real> & _d2Dd2c;
   
   const Real _bulk_modulus_ref; // reference bulk modulus for vol/non-vol decomposition
+  
+  // Slip plane normals used to determine cleavage plane by
+  // ACInterfaceSlipPlaneFracture
+  MaterialProperty<std::vector<Real>> & _slip_plane_normals;
 
 };
