@@ -1,16 +1,14 @@
 // Nicolò Grilli
 // University of Bristol
-// Aayush Trivedi
-// Alankar Alankar
-// IIT Bombay
-// 23 Ottobre 2021
+// 15 Febbraio 2022
 
 #pragma once
 
 #include "FiniteStrainUObasedCP.h"
+#include "CrystalPlasticitySlipRateCleavage.h"
 
 /**
- * FiniteStrainUObasedCPDamageVol is the coupling between
+ * FiniteStrainUObasedCPCleavage is the coupling between
  * crystal plasticity and damage
  * Free energy is decomposed into volumetric and non-volumetric parts as in:
  * Nicolo Grilli and Marisol Koslowski
@@ -18,14 +16,21 @@
  * on the dynamic fracture of energetic materials
  * Journal of Applied Physics 126, 155101 (2019)
  */
-class FiniteStrainUObasedCPDamageVol : public FiniteStrainUObasedCP
+class FiniteStrainUObasedCPCleavage : public FiniteStrainUObasedCP
 {
 public:
   static InputParameters validParams();
 
-  FiniteStrainUObasedCPDamageVol(const InputParameters & parameters);
+  FiniteStrainUObasedCPCleavage(const InputParameters & parameters);
 
 protected:
+  /**
+   * updates the stress at a quadrature point.
+   * calcFlowDirection is modified to output _slip_plane_normals
+   * to ACInterfaceSlipPlaneFracture for cleavage
+   * along the slip plane
+   */
+  virtual void computeQpStress();
   
   /**
    * calculate stress residual.
@@ -61,6 +66,13 @@ protected:
    * with damage included
    */
   virtual void elastoPlasticTangentModuli();
+  
+  // User objects that define the slip rate
+  // Note that this changes the type of _uo_slip_rates
+  // with respect to the base class
+  // but it is convenient because the name of this member
+  // does not need to be changed in all methods
+  std::vector<const CrystalPlasticitySlipRateCleavage *> _uo_slip_rates;
 
   /// Variable defining the phase field damage parameter
   const VariableValue & _c;
@@ -100,5 +112,9 @@ protected:
   const MaterialProperty<Real> & _d2Dd2c;
   
   const Real _bulk_modulus_ref; // reference bulk modulus for vol/non-vol decomposition
+  
+  // Slip plane normals used to determine cleavage plane by
+  // ACInterfaceSlipPlaneFracture
+  MaterialProperty<std::vector<Real>> & _slip_plane_normals;
 
 };

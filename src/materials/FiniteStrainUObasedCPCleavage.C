@@ -1,20 +1,17 @@
 // Nicolò Grilli
 // University of Bristol
-// Aayush Trivedi
-// Alankar Alankar
-// IIT Bombay
-// 23 Ottobre 2021
+// 15 Febbraio 2022
 
-#include "FiniteStrainUObasedCPDamageVol.h"
+#include "FiniteStrainUObasedCPCleavage.h"
 
 #include "petscblaslapack.h"
 #include "MooseException.h"
 #include "MathUtils.h"
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamageVol);
+registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPCleavage);
 
 InputParameters
-FiniteStrainUObasedCPDamageVol::validParams()
+FiniteStrainUObasedCPCleavage::validParams()
 {
   InputParameters params = FiniteStrainUObasedCP::validParams();
   params.addClassDescription("UserObject based Crystal Plasticity system with damage. "
@@ -35,7 +32,7 @@ FiniteStrainUObasedCPDamageVol::validParams()
   return params;
 }
 
-FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParameters & parameters)
+FiniteStrainUObasedCPCleavage::FiniteStrainUObasedCPCleavage(const InputParameters & parameters)
   : FiniteStrainUObasedCP(parameters),
     _c(coupledValue("c")),
     _use_current_hist(getParam<bool>("use_current_history_variable")),
@@ -53,7 +50,8 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
     _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
     _d2Dd2c(getMaterialPropertyDerivative<Real>(
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
-    _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
+    _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")), // reference bulk modulus for vol/non-vol decomposition
+    _slip_plane_normals(declareProperty<std::vector<Real>>("slip_plane_normals")) // Slip plane normals
 {
   _err_tol = false;
 
@@ -83,7 +81,7 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
   // assign the user objects
   for (unsigned int i = 0; i < _num_uo_slip_rates; ++i)
   {
-    _uo_slip_rates[i] = &getUserObjectByName<CrystalPlasticitySlipRate>(
+    _uo_slip_rates[i] = &getUserObjectByName<CrystalPlasticitySlipRateCleavage>(
         parameters.get<std::vector<UserObjectName>>("uo_slip_rates")[i]);
     _mat_prop_slip_rates[i] = &declareProperty<std::vector<Real>>(
         parameters.get<std::vector<UserObjectName>>("uo_slip_rates")[i]);
@@ -120,8 +118,86 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
   _substep_dt = 0.0;
 }
 
+/**
+ * Solves stress residual equation using NR.
+ * Updates slip system resistances iteratively.
+ * calcFlowDirection is modified to output _slip_plane_normals
+ * to ACInterfaceSlipPlaneFracture for cleavage
+ * along the slip plane
+ */
 void
-FiniteStrainUObasedCPDamageVol::calcResidual()
+FiniteStrainUObasedCPCleavage::computeQpStress()
+{
+  // number of slip systems
+  Real NSlipSys;
+  
+  // Temporary vector to store slip plane normals
+  // before assigning to the material property
+  std::vector<Real> slip_plane_normals;
+	
+  // Userobject based crystal plasticity does not support face/boundary material property
+  // calculation.
+  if (isBoundaryMaterial())
+    return;
+  // Depth of substepping; Limited to maximum substep iteration
+  unsigned int substep_iter = 1;
+  // Calculated from substep_iter as 2^substep_iter
+  unsigned int num_substep = 1;
+
+  _dfgrd_tmp_old = _deformation_gradient_old[_qp];
+  if (_dfgrd_tmp_old.det() == 0)
+    _dfgrd_tmp_old.addIa(1.0);
+
+  _delta_dfgrd = _deformation_gradient[_qp] - _dfgrd_tmp_old;
+
+  // Saves the old stateful properties that are modified during sub stepping
+  for (unsigned int i = 0; i < _num_uo_state_vars; ++i)
+    _state_vars_old[i] = (*_mat_prop_state_vars_old[i])[_qp];
+
+  // Set the size of _slip_plane_normals
+  // variableSize() gives the number of slip systems
+  for (unsigned int i = 0; i < _num_uo_slip_rates; ++i) {
+    NSlipSys = _uo_slip_rates[i]->variableSize();
+  }
+  _slip_plane_normals[_qp].resize(NSlipSys * LIBMESH_DIM);
+  slip_plane_normals.resize(NSlipSys * LIBMESH_DIM);
+  
+  for (unsigned int i = 0; i < _num_uo_slip_rates; ++i)
+    _uo_slip_rates[i]->calcFlowDirection(_qp, (*_flow_direction[i])[_qp], slip_plane_normals);
+
+  _slip_plane_normals[_qp] = slip_plane_normals;
+
+  do
+  {
+    _err_tol = false;
+
+    preSolveQp();
+
+    _substep_dt = _dt / num_substep;
+
+    for (unsigned int istep = 0; istep < num_substep; ++istep)
+    {
+      _dfgrd_tmp = (static_cast<Real>(istep) + 1) / num_substep * _delta_dfgrd + _dfgrd_tmp_old;
+
+      solveQp();
+
+      if (_err_tol)
+      {
+        substep_iter++;
+        num_substep *= 2;
+        break;
+      }
+    }
+
+    if (substep_iter > _max_substep_iter && _err_tol)
+      throw MooseException("FiniteStrainUObasedCP: Constitutive failure.");
+  } while (_err_tol);
+
+  postSolveQp();
+}
+
+void
+FiniteStrainUObasedCPCleavage::calcResidual()
 {
   RankTwoTensor iden(RankTwoTensor::initIdentity), ce, ee, ce_pk2, eqv_slip_incr, pk2_new;
   
@@ -160,7 +236,7 @@ FiniteStrainUObasedCPDamageVol::calcResidual()
 }
 
 void
-FiniteStrainUObasedCPDamageVol::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
+FiniteStrainUObasedCPCleavage::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
                                                         RankTwoTensor & ee, RankTwoTensor & ce, 
 														RankTwoTensor & pk2_new)
 {
@@ -264,7 +340,7 @@ FiniteStrainUObasedCPDamageVol::computeStrainVolumetric(Real & F_pos, Real & F_n
 // which is used by the fracture model for damage growth
 // Damage grows only because of the positive part of the elastic energy F_pos
 void
-FiniteStrainUObasedCPDamageVol::computeHistoryVariable(Real & F_pos, Real & F_neg)
+FiniteStrainUObasedCPCleavage::computeHistoryVariable(Real & F_pos, Real & F_neg)
 {
   // Assign history variable
   Real hist_variable = _H_old[_qp];
@@ -291,7 +367,7 @@ FiniteStrainUObasedCPDamageVol::computeHistoryVariable(Real & F_pos, Real & F_ne
 // update jacobian_mult by taking into account of the exact elasto-plastic tangent moduli
 // it includes damage
 void
-FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
+FiniteStrainUObasedCPCleavage::elastoPlasticTangentModuli()
 {
   RankFourTensor tan_mod;
   RankTwoTensor pk2fet, fepk2;
@@ -338,7 +414,7 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
 // These are approximated tangent moduli
 // but damage is included to make it more precise
 void
-FiniteStrainUObasedCPDamageVol::elasticTangentModuli()
+FiniteStrainUObasedCPCleavage::elasticTangentModuli()
 {
   _Jacobian_mult[_qp] = _D[_qp] * _elasticity_tensor[_qp];
 }
