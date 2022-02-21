@@ -1598,11 +1598,13 @@ c	Calculation of known quantities
 c	Calculation of known quantities
 	call invert3x3(Fr,invFr,detFr)      
       
-c     First calculate the original one!
+c     First calculate the original one
       A = matmul(transpose(invFp_t),
      & matmul(matmul(transpose(F),F),invFp_t))
+	 
 c     Modified for residual deformation
-      A=matmul(transpose(invFr),matmul(A,invFr))
+      A = matmul(transpose(invFr),matmul(A,invFr))
+
       
       B=0.0d+0
       B_vec=0.0d+0
@@ -1633,7 +1635,12 @@ c     Trial stress
       
 	  else ! phase field damage model
 	  
-      call computeStrainVolumetric(E_tr,A,S_vec_tr,el_no,ip_no)
+	  ! calculate original elastic deformation gradient
+	  ! and modify it for residual deformation
+      Fe = matmul(F,invFp_t)
+      Fe = matmul(Fe,invFr)
+	  
+      call computeStrainVolumetric(E_tr,A,Fe,S_vec_tr,el_no,ip_no)
 
       end if	
       
@@ -1841,7 +1848,7 @@ c     Calculate inverse of the residual deformation
       
       
 c	Calculate the elastic part of the deformation
-	Fe=matmul(Fe,invFr)
+      Fe=matmul(Fe,invFr)
 	
 c     A is needed by the damage model
       
@@ -1861,7 +1868,7 @@ c     Calculate the stresses
       
 	  else ! phase field damage model
 	  
-      call computeStrainVolumetric(Ee,A,S_vec,el_no,ip_no)
+      call computeStrainVolumetric(Ee,A,Fe,S_vec,el_no,ip_no)
 
       end if	  
       
