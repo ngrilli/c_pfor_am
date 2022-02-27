@@ -1,0 +1,8 @@
+[Tests]
+  [./test_4um_mesh]
+    type = 'Exodiff'
+    input = 'Case1scan1805em4.i'
+    exodiff = 'Case1scan1805em4_out.e'
+	heavy = true
+  [../]
+[]
