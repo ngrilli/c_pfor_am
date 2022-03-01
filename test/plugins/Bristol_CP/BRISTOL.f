@@ -5,18 +5,22 @@ c Hugh Dorward
 c Michael Salvini
 c Nicolò Grilli
 c
+c
+c Kaldindi-Anand semi-implicit two-level time integration scheme is implemented by Eralp Demir.
+c
+c
 c Aug. 12th, 2021 - 1st working version
 c
 c      
       include "globalvars.f"
       include "globalsubs.f"
+      include "phasefieldfracture.f"
       include "lengthscale.f"
       include "gndslipgrad.f"
       include "initialization.f"
       include "slipratelaws.f"
       include "sliphardlaws.f"      
-      include "calculations.f"
-	  include "phasefieldfracture.f"
+      include "calculations.f"	  
 c
 c      
 c      
@@ -27,10 +31,8 @@ c     Subroutine for initialization
       use gndslipgrad, only: calculategnds, calculatebackstress
       implicit none
 c
-c      INCLUDE 'ABA_PARAM.INC'
 c      
 c
-c#      include <SMAAspUserSubroutines.hdr>
 c
 c
 c      
@@ -53,50 +55,47 @@ c
 c
 c
 c     At the start of the analysis (only ONCE!)
-      if (LOP.eq.0) then
+      if (LOP.eq.0 .or. LOP.eq.4) then
 c          
           foldername= "../../tests/umat/"
-c          
-c
-c
-c
-c          
+c                   
           write(6,*) 'initialization has started!' 
           write(6,*) '********************************'
           call initialize_all(foldername)
           write(6,*) '********************************'
           write(6,*) 'initialization has ended!'
+c          
       endif
 c      
 c
-c     GND calculations require non-local method, so MUTEX is placed here!
+c     GND calculations - if selected
       if (GNDeffect.eq.1d+0) then
-c          call MutexInit( 1 )      ! initialize Mutex #1
 c
-c     At the end of each increment 
-c     Update and calculate GNDs (nonlocal calculations)
-c     This is done at the end of calculations because the GNDs that belong to the
-c     PREVOUS time step are used. Initially GNDs are assumed to have "0" values. 
+c
+c         At the end of each increment 
+c         Update and calculate GNDs (nonlocal calculations)
+c         This is done at the end of calculations.
+c         GNDs that belong to the PREVOUS time step are used. 
+c         Initially GNDs are assumed to have "0" values. 
           if (LOP.eq.2) then
 c          
-c              call MutexLock( 1 )      ! lock Mutex #1
 c          
-c                 Calculate GNDs
-                  call calculategnds(DTIME(1))
+c             Calculate GNDs
+              call calculategnds(DTIME(1))
 c              
-c                 Calculate Backstress from GND gradients              
-                  call calculatebackstress             
+c             Calculate Backstress from GND gradients              
+              call calculatebackstress             
 c          
-c              call MutexUnlock( 1 )    ! unlock Mutex #1
-
-                  write(6,*) 'end of increment: ', KINC
-                  write(6,*) 'GND & backstress calculations completed!'
+c
+              write(6,*) 'end of increment: ', KINC
+              write(6,*) 'GND & backstress calculations completed!'
 c          
-                  return
+              return
 c          
-
-
+c
+c
           endif
+c          
       endif
 c      
 c      
@@ -117,8 +116,8 @@ c
 c
       use calculations, only: calcs
 
-      use globalvars, only : phasefielddamageflag
-      use globalvars, only : global_damage
+      use globalvars, only : phasefielddamage
+
 	  
       use phasefieldfracture, only : moose_interface_input
       use phasefieldfracture, only : moose_interface_output
@@ -129,8 +128,8 @@ c
       implicit none
       integer,                        intent(in) :: 
      & nDi,       !< Number of direct stress components at this point
-     & nShr,      !< Number of engineering shear stress components at this point
-     & nTens,     !< Size of the stress or strain component array (NDI + NSHR)
+     & nShr,      !< Number of engineering shear stress components
+     & nTens,     !< Size of the stress / strain components (NDI + NSHR)
      & nStatV,    !< Number of solution-dependent state variables
      & nProps,    !< User-defined number of material constants
      & noEl,      !< element number
@@ -186,39 +185,40 @@ c
 c 
 c      
 c      
-c      integer :: defaultNumThreadsInt                 !< default value set by Abaqus
-c      include "omp_lib.h"
-c      defaultNumThreadsInt = omp_get_num_threads()    ! remember number of threads set by Marc
-c      call omp_set_num_threads(defaultNumThreadsInt)  ! set number of threads for parallel execution set by DAMASK_NUM_THREADS      
 c      
-c
+c     Phase field damage model is added by Nicolò Grilli.
 c     Get information for moose
 c     phase field damage model
 c     through state variables
 c     9 state variables must be declared
 c     for the phase field damage model
-
-      if (phasefielddamageflag == 1) then
-	  
-      call moose_interface_input(NOEL,NPT,STATEV,NSTATV)
-	  
-	  end if
+c
+      if (phasefielddamage.eq.1d+0) then
+c	  
+          call moose_interface_input(NOEL,NPT,STATEV,NSTATV)
+c	  
+      end if
 c 
 c
 c
-c     Perform all the calculations     
+c     Perform crystal plasticity/j2 plasticity calculations     
       call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL,NPT,
      &            STRESS,DDSDDE,PNEWDT,COORDS)
-	 
-c      Send information for moose
-c      phase field damage model
-
-      if (phasefielddamageflag == 1) then
+c
+c
+c
+c
+c     Phase field damage model is added by Nicolò Grilli.
+c     Send information for moose
+c     Phase field damage model
+c
+      if (phasefielddamage.eq.1d+0) then
 	  
-      call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
+          call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
 	  
-	  end if
-
+      end if
+c
+c
 cc     Output state variables to MOOSE
 c      STATEV(1) = global_state(NOEL+1,NPT+1,1,1)	
 c      STATEV(2) = global_state(NOEL+1,NPT+1,1,2)	

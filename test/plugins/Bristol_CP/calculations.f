@@ -23,7 +23,8 @@ c	This subroutine calculates the two main variables: Stress and Consistent tange
      &global_gamma_sum_t,global_gamma_sum,numstvar,thermo,temp0,
      &GSeffect,grainID,grainsize_init,global_state0,tstep_forw,GND_init,
      &tstep_back,numel,numip,global_Fr0,tres,resdef,mtdjaco,coords_init,
-     &grainmorph
+     &grainmorph,global_damage,global_F_pos,global_F_neg,global_pk2_pos,
+     &phasefielddamage 
       use initialization, only: initialize_grainsize, 
      &initialize_gndslipgradel
 	implicit none
@@ -48,7 +49,9 @@ c     SC-model inputs
 c     J2-model inputs
       real(8)	sstate(numstvar),sstate_t(numstvar),sstate0(numstvar),
      &sXdist
-
+c     Variables related with phase field damage
+      real(8) F_pos, F_neg, dam, pk2_pos_mat(3,3)
+      integer damflag
   
       
       
@@ -191,8 +194,7 @@ c          write(6,*) 'J2 CALCULATIONS'
           sstate_t=global_state_t(el_no,ip_no,1,:)
 c         Average slip distance          
           sXdist=sum(grainmorph(el_no,ip_no,:))/numslip
-
-          
+        
                     
           
 c	    Calculate stress and flow stress using J2 plasticity
@@ -380,6 +382,11 @@ c	    Assign the globally stored variables
           gsum_t = global_gamma_sum_t(el_no,ip_no)
           Xdist = grainmorph(el_no,ip_no,:)
           
+          ! assign local damage phase field variable
+          dam = global_damage(el_no,ip_no)
+          damflag = phasefielddamage
+          
+          
 c         Fr is scaled with time: i.e. tres = 1 seconds
           if (resdef.eq.1) then
               if (t.le.tres) then
@@ -403,8 +410,8 @@ c	    Note: el_no and ip_no are needed to get the values of Schmid vectors and
 c	    elasticity tensor from the global variables
 
           call SC_main(dt,F,Fp_t,Fr,S_t,state_t,gsum_t,gint_t,temp,
-     & state0,Xdist,C,S,Lp,Fp,Fe,sigma,gammadot,dgammadot_dtau,state,
-     & gsum,gint,sconv,el_no,ip_no)
+     & state0,Xdist,dam,damflag,C,S,Lp,Fp,Fe,sigma,gammadot,
+     & dgammadot_dtau,state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv)
 
 
       
@@ -526,8 +533,8 @@ c                 Calculate the material tangent (using perturbation)
                   if (mtdjaco.eq.1d+0) then
 				  
       call SC_jacobian_per(dt,F_t,F,S_t,Fp_t,Fr,state_t,
-     & gsum_t,gint_t,temp,state0,Xdist,sigma,jacob,jconv,
-     & el_no,ip_no)
+     & gsum_t,gint_t,temp,state0,Xdist,dam,damflag,sigma,
+     & jacob,jconv)
 
                       
 c                 Calculate the material tangent (using analytical tangent)                      
@@ -601,7 +608,11 @@ c	    Store the important variables
           global_gamma(el_no,ip_no,:) = gint
           global_gamma_sum(el_no,ip_no) = gsum      
           
-
+	  ! assign to global variables
+          global_F_pos(el_no,ip_no) = F_pos
+          global_F_neg(el_no,ip_no) = F_neg
+	    global_pk2_pos(el_no,ip_no,1:3,1:3) =
+     & pk2_pos_mat(1:3,1:3)
           
 
 
@@ -649,14 +660,14 @@ c
 c     Main routine for jacobian calculation for Martensite 
 c	This subroutine calculates consistent tangent
       subroutine J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,
-     & gsum_t,sgint_t,temp,
-     & sstate0,Xdist,Cauchy_vec,jacob,jconv)
+     & gsum_t,sgint_t,temp,sstate0,sXdist,Cauchy_vec,
+     & jacob,jconv)
 
 	use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
 	use globalsubs, only : convert3x3to6,convert6to3x3
 	implicit none
 c	Inputs
-      real(8) F_t(3,3),F(3,3),dt,gsum_t,sgint_t,temp, Xdist
+      real(8) F_t(3,3),F(3,3),dt,gsum_t,sgint_t,temp,sXdist
 	real(8) Fp_t(3,3),Fe_t(3,3),Cauchy_vec(6)
 c	Outputs
 	real(8) jacob(6,6)
@@ -693,8 +704,10 @@ c		Convert the vector to a matrix
 		Fper=F+matmul(dFrel,F_t)
 c		Call the calculation procedure  
           call J2_main(dt,Fper,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
-     &sstate0,Xdist,Fp,Fe,epsdot,sstate,gsum,sgint,Cauchy_per_vec,sconv)
-           
+     &sstate0,sXdist,Fp,Fe,epsdot,sstate,gsum,sgint,
+     &Cauchy_per_vec,sconv)
+
+          
            if (sconv.eq.0) jconv=0
 
 		jacob(1:6,i)=(Cauchy_per_vec-Cauchy_vec)/deps
@@ -723,7 +736,8 @@ c     Main routine for J2-plasticity
       use globalsubs, only: invert3x3, convert3x3to6, trace, normmat, 
      &convert6to3x3, determinant
       use globalvars, only: elas66_iso, G, E, nu, TF, modelno, largenum,
-     &innertol, outertol, innoitmax, ounoitmax, I3, numstvar, dS_cr
+     &innertol, outertol, innoitmax, ounoitmax, I3, numstvar, dS_cr,
+     &outerreltol 
       use slipratelaws, only: sliprate
       use sliphardlaws, only: sliphard
 	implicit none
@@ -744,9 +758,9 @@ c	Vairables used
 	real(8) R1,xx1,xx2,Dp(3,3),invFp(3,3),detFp
       real(8) tau,tautr,dsigma
       real(8)	sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
-      real(8) R2(numstvar),sstatedot(numstvar+1)
+      real(8) Rstate(numstvar),sstatedot(numstvar+1)
       integer iloop,oloop,i
-      logical notnum
+      logical notnum, conv
 c	real(8) xx1_old,sigma_old
  
 c      
@@ -921,26 +935,39 @@ c         Slip hardening law of Dylan
           endif          
           
           
-          
+c          write(6,*) 'statedot',statedot
+c         Assign convergence flag
+          conv = .true.
+c		Residual increments of slip resistance
+          do i=1,numstvar
+            
+              Rstate(i)=sstate(i)-sstate_t(i)-sstatedot(i)*dt
+                  
+c             Check if it is within the tolerance
+              if (dabs(Rstate(i)).gt.outerreltol(i)) then
+                  conv = .false.
+              endif
+                  
+c         Vectorize state variables
+c                  count=count+1
+c             Rstate_vec(count) = Rstate(i,j)
+          enddo          
           
 c          write(6,*) 'oloop',oloop
 c          write(6,*) 'gdot',gdot
 c          write(6,*) 'sstate',sstate
 c          write(6,*) 'sstatedot',sstatedot
 
-c		Increment in shear resistance
-c		Residual in the shear resistance
-      R2=sstate(1:numstvar)-sstate_t(1:numstvar)
-     & -sstatedot(1:numstvar)*dt
 
-c		Absolute tolerance
-		xx2=maxval(dabs(R2))
           
 c		Check the tolerance
-		if (xx2.lt.outertol) exit
+		if (conv) exit
           
 c		Update the shear resistance
-		sstate=sstate_t(1:numstvar)+sstatedot(1:numstvar)*dt
+          do i=1,numstvar
+		    sstate(i)=sstate_t(i)+sstatedot(i)*dt
+          enddo
+          
           
 	enddo
 c
@@ -1030,9 +1057,8 @@ c
 c
 c	This subroutine calculates consistent tangent
       subroutine SC_jacobian_per(dt,F_t,F,S_vec_t,
-     & Fp_t,Fr,state_t,gsum_t,
-     & gint_t,temp,state0,Xdist,Cauchy_vec,jacob,jconv,
-     & el_no,ip_no)
+     & Fp_t,Fr,state_t,gsum_t,gint_t,temp,state0,
+     & Xdist,dam,damflag,Cauchy_vec,jacob,jconv)
 
 	use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
 	use globalsubs, only : convert6to3x3, determinant
@@ -1040,8 +1066,8 @@ c	This subroutine calculates consistent tangent
 c	Inputs
       real(8) F_t(3,3),F(3,3),S_vec_t(6),Cauchy_vec(6),dt,Fr(3,3)
 	real(8) Fp_t(3,3),Cauchy(3,3),gsum_t,gint_t(numslip),temp
-      real(8) Xdist(numslip)
-      integer el_no,ip_no
+      real(8) Xdist(numslip), dam
+      integer damflag
 c	Outputs
 	real(8) jacob(6,6)
 	integer jconv
@@ -1052,6 +1078,7 @@ c	Variables used within this subroutine
 	real(8) invFp_per(3,3),dummy1(3,3,numslip),dummy2(6),dummy3(3,3)
       real(8) dummy4(3,3),dummy5(3,3)
 	real(8) dummy6(numslip),dummy7(numslip),dummy8,dummy9(numslip)
+      real(8) dummy10, dummy11, dummy12(3,3)
 	integer i,j,sconv
       real(8)	state(numslip,numstvar), state_t(numslip,numstvar)
       real(8) state0(numslip,numstvar)
@@ -1081,9 +1108,9 @@ c		Convert the vector to a matrix
 c		Call the calculation procedure
 
 		call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,state_t,gsum_t,gint_t,temp,
-     & state0,Xdist,dummy1,dummy2,dummy3,dummy4,dummy5,Cauchy_per_vec,
-     & dummy6,dummy7,state,dummy8,dummy9,sconv,
-     & el_no,ip_no)
+     & state0,Xdist,dam,damflag,dummy1,dummy2,dummy3,dummy4,dummy5,
+     & Cauchy_per_vec,dummy6,dummy7,state,dummy8,dummy9,dummy10,
+     & dummy11,dummy12,sconv)
 
 c
           if (sconv.eq.0) jconv=0d+0
@@ -1517,14 +1544,7 @@ c     Check if the jacob value converged or not
 c
 
 
-      
-      
-!c     If polar decomposition gives singular solution          
-!      else
-!          jconv=0d+0
-!          jacob = I6
-!      endif      
-!      
+
       
 c      write(6,*) 'jacob'
 c      do i=1,6
@@ -1549,35 +1569,35 @@ c			 Lp(3,3), tauc(12), initno, ouitno
 c	USES:	scale, innertol, outertol, innoitmax, ounoitmax
 
       subroutine SC_main(dt,F,Fp_t,Fr,S_vec_t,state_t,
-     & gsum_t,gint_t,temp,
-     & state0,Xdist,C,S_vec,Lp,Fp,Fe,
-     & Cauchy_vec,gammadot,dgammadot_dtau,
-     & state,gsum,gint,sconv,
-     & el_no,ip_no)
-
+     & gsum_t,gint_t,temp,state0,Xdist,dam,damflag,C,
+     & S_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,dgammadot_dtau,
+     & state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv)
+c
 c      
 c     
       use globalvars, only : ounoitmax, innoitmax, 
      & innertol, outerreltol,
      & numslip, Schmid, SchmidT, I3, elas66, 
      & I6, dS_cr, numstvar, largenum 
-	 
-      use globalvars, only : phasefielddamageflag
-	  
-	  use phasefieldfracture, only : computeStrainVolumetric
-
+c	 
+c
+c	  
+      use phasefieldfracture, only : computeStrainVolumetric
+c
 	use globalsubs, only : invert3x3, determinant,convert3x3to6,
      &convert6to3x3, invertnxn
 	implicit none
 c	Input variable declarations
 	real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,gint_t(numslip),temp
-      real(8) Fr(3,3), Xdist(numslip)
-      integer el_no, ip_no
+      real(8) Fr(3,3), Xdist(numslip), dam
+      integer damflag
 c	Output variable declarations
 	real(8) C(3,3,numslip),S_vec(6),Lp(3,3)
 	real(8) Fp(3,3),Fe(3,3),Cauchy(3,3)
       real(8) Cauchy_vec(6), gammadot(numslip),dgammadot_dtau(numslip)
 	real(8) gsum,gint(numslip)
+c     Output variables related with phase field damage
+      real(8) F_pos, F_neg, pk2_pos_mat(3,3)
 	integer ounoit,innoit,i,j,is,sconv
 c	Variables used within this subroutine
 	real(8) detFp_t,invFp_t(3,3),A(3,3)
@@ -1589,8 +1609,8 @@ c	Variables used within this subroutine
       real(8) Ee(3,3),Ee_vec(6)
       real(8)	state(numslip,numstvar),state_t(numslip,numstvar)
       real(8) statedot(numslip,numstvar),Rstate(numslip,numstvar)
-      logical notnum, conv
-      
+      logical notnum, conv     
+
       
 c	Calculation of known quantities
 	call invert3x3(Fp_t,invFp_t,detFp_t)
@@ -1629,18 +1649,22 @@ c      write(6,*) E_vec_tr
       
 c     Trial stress
 
-      if (phasefielddamageflag == 0) then
+      if (damflag.eq.0d+0) then
 	  
         S_vec_tr = matmul(elas66,E_vec_tr)
+        F_neg=0.0d+0
+        F_pos=0.0d+0
+        pk2_pos_mat=0.0d+0
       
-	  else ! phase field damage model
+      else ! phase field damage model
 	  
 	  ! calculate original elastic deformation gradient
 	  ! and modify it for residual deformation
-      Fe = matmul(F,invFp_t)
-      Fe = matmul(Fe,invFr)
+          Fe = matmul(F,invFp_t)
+          Fe = matmul(Fe,invFr)
 	  
-      call computeStrainVolumetric(E_tr,A,Fe,S_vec_tr,el_no,ip_no)
+          call computeStrainVolumetric(E_tr,A,Fe,dam,
+     &S_vec_tr,F_pos,F_neg,pk2_pos_mat)
 
       end if	
       
@@ -1862,13 +1886,14 @@ c     Vectorize strains
       
 c     Calculate the stresses
 
-      if (phasefielddamageflag == 0) then
+      if (damflag.eq.0d+0) then
 	  
         S_vec = matmul(elas66,Ee_vec)
       
 	  else ! phase field damage model
 	  
-      call computeStrainVolumetric(Ee,A,Fe,S_vec,el_no,ip_no)
+          call computeStrainVolumetric(Ee,A,Fe,dam,
+     &S_vec,F_pos,F_neg,pk2_pos_mat)
 
       end if	  
       

@@ -137,7 +137,7 @@ c	Thermally-coupled or mechanical problem
       integer, public :: thermo
 	  
 c     Flag indicating coupling with fracture is active
-      integer, public :: phasefielddamageflag
+      integer, public :: phasefielddamage
     
 c	Temperature (K) - initial temperature
       real(8), public :: temp0

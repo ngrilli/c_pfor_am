@@ -186,8 +186,10 @@ c         definition of input variables
 c         Xdist is nonlocal slip distance, that has a different value for each IP
 c
 c          
-c         The RHS term represents the Taylor hardening term: alpha*G*b/L scaled with a constant C          
-      mKM_5 = K_5*dsqrt(rhoSSD) - 2.0d+0*yc_5*rhoSSD + C_5/sXdist
+c         The RHS term represents the Taylor hardening term: 
+c         alpha*G*b/L scaled with a constant C          
+          mKM_5 = K_5*dsqrt(rhoSSD) + C_5/sXdist
+     & - 2.0d+0*yc_5*rhoSSD 
 c          
 c         self-hardening
 		sstatedot(1) = mKM_5 * dabs(gdot) / b_5

@@ -1,0 +1,31 @@
+v.0.0. Lengthscale model is given two options: 1-original form, 2-functional decaying form
+v.0.0. model-3 (Code Aster) is added for benchmarking
+v.0.0. state update decision making has changed
+v.0.0. globalsubs - conversions are updated
+v.0.0. globalsvars - orders for conversion are stored
+v.0.0. calculations - statedot is computed for model-3 with division of states by dt
+v.0.0. residual stresses are added as an option - deformation is enforced as a function of time
+v.0.0. a flag is added to identify presence of residual stresses
+v.0.0. a time increment is added for residual stresses
+v.0.0. analytical expression for jacobian added
+v.0.0. option for method of jacobian calculation is presented 1/2/3
+v.0.0. elemental update of state variables
+v.0.0. IP coordinates available in the variable "global_coords"
+v.0.0. model-3 is corrected to its original state evolution form (instead of the rate form)
+v.0.5. model-4 is added for slip gradients
+v.0.5. defined the global variables smallnum/largenum for small and large real numbers
+v.0.5. misorientation calculation is added a subroutine to calculations.f
+v.0.5. dsign(1.0d+0) is corrected in everywhere
+v.0.5. Interaction coefficients for the case mattyp=2 (bcc) was undefined, corrected.
+v.0.5. Polar subroutine is revisited to include the cases with F=I3 and F=R
+v.0.5. misorientation = not found (=90deg) is revisited in globalsubs.f/misorientations
+v.0.5. relative tolerances are defined at initialization.f/initialize_relativetolerances
+v.0.5. in calculations.f/calcs subroutine GSeffect option-2 is corrected
+v.0.5. in initialization.f/initialize_all subroutine GSeffect.gt.0 is corrected to GSeffect.eq.1/2
+v.0.5. in initialization.f/initialize_all option for GSeffect=3 is added
+v.0.6. in lengthscale.f '583 | if (locgrain == .FALSE.)then' converted to 'if (locgrain .eqv. .FALSE.)then'
+v.0.6. The number of grain size effects inputs has changed from 2 to 3, size conversion factor is added
+v.0.7. Slip gradients are computed using the total slip rates at the current step; global_gamma instead of global_gammadot 
+v.0.7. model-6 added
+v.0.7. bug fix, calculations.f/SC_main - line 1861: index 'i' corrected to 'is'
+v.0.9. phase field fracture model and compatibility with gfortran

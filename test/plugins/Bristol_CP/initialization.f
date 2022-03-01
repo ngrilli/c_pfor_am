@@ -1218,7 +1218,7 @@ c	USES: Euler(:,:), ngrain
      &GSeffect, grainsize_param, grainID, tstep_forw, tstep_back,
      &numgrain, nodeout, grainori, output_vars, resdef, tres
 	 
-      use globalvars, only: phasefielddamageflag	 
+      use globalvars, only: phasefielddamage
 	 
 	implicit none	
       integer i, j, dummy, iele, ind
@@ -1273,6 +1273,13 @@ c     20-node quadratic brick - C3D20 (nnpe=20, numip=27)
           nnpe=20d+0 
       endif      
       
+c     phase field damage model flag
+c     0: NO / 1: YES
+      read(100,*) dum 
+      phasefielddamage = int(dum)
+      write(6,*) 'phasefielddamage: ', phasefielddamage 	
+      
+      
       
 c     residual stresses are defined: (0) no / (1) yes 
       read(100,*) dum
@@ -1306,16 +1313,14 @@ c     0: NO / 1: YES
       write(6,*) 'tempdep: ', tempdep
 
       
+
+      
       
 c     initial temperature [K]
       read(100,*) temp0
       write(6,*) 'temp0: ', temp0 
 
-c     phase field damage model flag
-c     0: NO / 1: YES
-      read(100,*) dum 
-      phasefielddamageflag = int(dum)
-      write(6,*) 'phasefielddamageflag: ', phasefielddamageflag 	  
+  
       
 c     material type
       read(100,*) dum
@@ -3132,7 +3137,8 @@ c     initializes the slip distances
 c	USES: 
 	subroutine initialize_grainshape(str)
 	use globalvars, only : numel, numip, numgrain, numslip, b_slip,
-     &n_slip, grainori, grainmorph, sliphard_param, grainID
+     & n_slip, grainori, grainmorph, sliphard_param, grainID,
+     & smallnum, largenum
       use globalsubs, only: ang2ori, cross, normvec
 	implicit none
       character(len=:), allocatable   :: str
@@ -3140,8 +3146,8 @@ c	USES:
       real(8) D1(numgrain,3), D2(numgrain,3), D3(numgrain,3)
       real(8) d, dx, dy, dz, d1vec(3), d2vec(3), d3vec(3), ang(3)
       real(8) R(3,3), SlipDist(numgrain,numslip)
-	  real(8) d1v(3), d2v(3), d3v(3)
-      real(8) d1len, d2len, d3len
+      real(8) d1v(3), d2v(3), d3v(3)
+      real(8) d1len, d2len, d3len d1u(3), d2u(3), d3u(3)
 	
 c     Read the file
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3182,31 +3188,12 @@ c     For each grain
 c         1st axis
           d1vec = D1(ig,:)
           
-c         Size of the vector          
-          call normvec(d1vec,3,d1len)
-         
-c         Normalize the vector
-          d1vec = d1vec/d1len
-          
-          
 c         2nd axis          
           d2vec = D2(ig,:)
-          
-          
-c         Size of the vector          
-          call normvec(d2vec,3,d2len)
-         
-c         Normalize the vector
-          d2vec = d2vec/d2len
-          
+
 c         3rd axis          
           d3vec = D3(ig,:)
-          
-c         Size of the vector          
-          call normvec(d3vec,3,d3len)
-         
-c         Normalize the vector
-          d3vec = d3vec/d3len          
+                
           
           
 c         Transform from sample to crystal
@@ -3232,15 +3219,21 @@ c             Cross product with the slip plane normal
               
               call cross(d3vec, n_slip(is,:), d3v)
               
-c             Projection  to the slip direction              
-      dx = (1.0d+0 - dabs(dot_product(d1v,b_slip(is,:))))*d1len
+c             Magnitude             
+              dx = dot_product(d1v, d1v)
               
-      dy = (1.0d+0 - dabs(dot_product(d2v,b_slip(is,:))))*d2len
+              dy = dot_product(d2v, d2v)
+      
+              dz = dot_product(d3v, d3v)
               
-      dz = (1.0d+0 - dabs(dot_product(d3v,b_slip(is,:))))*d3len
               
+              d = dsqrt(dx + dy + dz)
               
-              d = dsqrt(dx**2.0d+0 + dy**2.0d+0 + dz**2.0d+0)
+c             if grain size is equal to zero
+              if (d.lt.smallnum) then
+                  d=largenum
+              endif              
+              
               
 c             This scheme only works for model-5
 c             Size factor - conversion to mm

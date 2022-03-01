@@ -17,8 +17,8 @@
 	  ! on the dynamic fracture of energetic materials
 	  ! Journal of Applied Physics 126, 155101 (2019)
 	  
-      subroutine computeStrainVolumetric(ee,ce,fe,
-     & pk2_vec_new,el_no,ip_no)
+      subroutine computeStrainVolumetric(ee,ce,fe,c,
+     & pk2_vec_new,F_pos,F_neg,pk2_pos_mat)
 	 
       use globalvars, only : elas66
       use globalvars, only : global_F_pos
@@ -38,12 +38,24 @@
 	  
 	  ! Elastic deformation gradient
       real(8), intent(in) :: fe(3,3)
-
-      ! Element and IP number
-      integer, intent(in) :: el_no, ip_no
+	  
+	  ! damage phase field
+      real(8), intent(in) :: c
 
       ! damaged second Piola-Kirchhoff stress
       real(8), intent(out) :: pk2_vec_new(6)	
+	  
+	  ! tensile part of the Helmholtz free energy
+	  ! which is degraded by damage
+      real(8), intent(out) :: F_pos
+	  
+	  ! compressive part of the Helmholtz free energy
+	  ! which is not degraded by damage
+      real(8), intent(out) :: F_neg
+
+	  ! tensile part of the second Piola-Kirchhoff stress
+	  ! which is degraded by damage	  
+      real(8), intent(out) :: pk2_pos_mat(3,3)
 
       ! undamaged second Piola-Kirchhoff stress
       real(8) :: S_vec(6)	
@@ -53,20 +65,11 @@
 
       ! determinant of the elastic right Cauchy-Green tensor
       real(8) :: detce
-      
-	  ! tensile part of the Helmholtz free energy
-	  ! which is degraded by damage
-      real(8) :: F_pos
-	  
-	  ! compressive part of the Helmholtz free energy
-	  ! which is not degraded by damage
-      real(8) :: F_neg	
 
 	  ! tensile part of the second Piola-Kirchhoff stress
 	  ! which is degraded by damage	  
       real(8) :: pk2_pos_vec(6)
-      real(8) :: pk2_pos_mat(3,3)
-	  
+
 	  ! compressive part of the second Piola-Kirchhoff stress
 	  ! which is not degraded by damage	  
       real(8) :: pk2_neg_vec(6)
@@ -77,9 +80,6 @@
 	  
       ! degradation function
 	  real(8) :: D
-	  
-	  ! local variable for damage phase field
-      real(8) :: c
 	  
  	  ! reference bulk modulus
       real(8) :: Kb
@@ -165,9 +165,6 @@
         pk2_pos_vec = pk2_pos_vec + S_vec
 
       end if
-
-	  ! assign local damage phase field variable
-      c = global_damage(el_no,ip_no)
 	  
 	  ! calculate degradation function
       D = (1.0-c)*(1.0-c)
@@ -182,11 +179,6 @@
       ! Equations 13 and 14 in Grilli, Koslowski, 2019
       F_pos = a_pos_vol + a_pos_cpl
       F_neg = a_neg_vol
-	  
-	  ! assign to global variables
-      global_F_pos(el_no,ip_no) = F_pos
-      global_F_neg(el_no,ip_no) = F_neg
-	  global_pk2_pos(el_no,ip_no,1:3,1:3) = pk2_pos_mat(1:3,1:3)
 	  
 	  return
       end subroutine computeStrainVolumetric
