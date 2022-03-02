@@ -6,9 +6,6 @@
 
 #include "Kernel.h"
 
-// Forward Declaration
-class ConservativeAdvectionSchmid;
-
 /**
  * Advection of the variable by the velocity provided by the user.
  * Options for numerical stabilization are: none; full upwinding
@@ -16,8 +13,6 @@ class ConservativeAdvectionSchmid;
  * Based on dislocation velocity model dependent on the resolved shear stress.
  * Signed edge and screw dislocations are considered
  */
-template <>
-InputParameters validParams<ConservativeAdvectionSchmid>();
 
 class ConservativeAdvectionSchmid : public Kernel
 {

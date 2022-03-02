@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", A2Deviatoric);
 
-defineLegacyParams(A2Deviatoric);
-
 InputParameters
 A2Deviatoric::validParams()
 {

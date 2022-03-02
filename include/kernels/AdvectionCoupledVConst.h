@@ -6,15 +6,10 @@
 
 #include "Kernel.h"
 
-// Forward Declaration
-class AdvectionCoupledVConst;
-
 /**
  * Coupled advection of the variable by the velocity provided by the user.
  * Options for numerical stabilization are: none; full upwinding
  */
-template <>
-InputParameters validParams<AdvectionCoupledVConst>();
 
 class AdvectionCoupledVConst : public Kernel
 {

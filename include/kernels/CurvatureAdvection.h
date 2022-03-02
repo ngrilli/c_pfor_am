@@ -6,9 +6,6 @@
 
 #include "Kernel.h"
 
-// Forward Declaration
-class CurvatureAdvection;
-
 /**
  * Dislocation curvature advection
  * first term on the right hand side of equation (3) in
@@ -16,8 +13,6 @@ class CurvatureAdvection;
  * Pattern formation in a minimal model of continuum dislocation plasticity
  * Modelling Simul. Mater. Sci. Eng. 23 (2015) 065005 (18pp)
  */
-template <>
-InputParameters validParams<CurvatureAdvection>();
 
 class CurvatureAdvection : public Kernel
 {

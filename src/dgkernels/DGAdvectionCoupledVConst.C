@@ -6,8 +6,6 @@
 
 registerMooseObject("MooseApp", DGAdvectionCoupledVConst);
 
-defineLegacyParams(DGAdvectionCoupledVConst);
-
 InputParameters
 DGAdvectionCoupledVConst::validParams()
 {

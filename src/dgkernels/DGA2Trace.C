@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", DGA2Trace);
 
-defineLegacyParams(DGA2Trace);
-
 InputParameters
 DGA2Trace::validParams()
 {

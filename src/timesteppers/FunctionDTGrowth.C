@@ -9,8 +9,6 @@
 
 registerMooseObject("MooseApp", FunctionDTGrowth);
 
-defineLegacyParams(FunctionDTGrowth);
-
 InputParameters
 FunctionDTGrowth::validParams()
 {

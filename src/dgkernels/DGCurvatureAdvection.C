@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", DGCurvatureAdvection);
 
-defineLegacyParams(DGCurvatureAdvection);
-
 InputParameters
 DGCurvatureAdvection::validParams()
 {

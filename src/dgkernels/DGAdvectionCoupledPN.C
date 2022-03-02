@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", DGAdvectionCoupledPN);
 
-defineLegacyParams(DGAdvectionCoupledPN);
-
 InputParameters
 DGAdvectionCoupledPN::validParams()
 {

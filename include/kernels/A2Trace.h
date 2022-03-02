@@ -6,9 +6,6 @@
 
 #include "Kernel.h"
 
-// Forward Declaration
-class A2Trace;
-
 /**
  * Dislocation curvature diffusion
  * second term on the right hand side of equation (3) in
@@ -16,8 +13,6 @@ class A2Trace;
  * Pattern formation in a minimal model of continuum dislocation plasticity
  * Modelling Simul. Mater. Sci. Eng. 23 (2015) 065005 (18pp)
  */
-template <>
-InputParameters validParams<A2Trace>();
 
 class A2Trace : public Kernel
 {

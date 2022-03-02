@@ -6,8 +6,6 @@
 
 registerMooseObject("MooseApp", DGAdvectionRhoGND);
 
-defineLegacyParams(DGAdvectionRhoGND);
-
 InputParameters
 DGAdvectionRhoGND::validParams()
 {

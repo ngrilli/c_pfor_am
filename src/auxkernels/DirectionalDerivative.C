@@ -6,8 +6,6 @@
 
 registerMooseObject("MooseApp", DirectionalDerivative);
 
-defineLegacyParams(DirectionalDerivative);
-
 InputParameters
 DirectionalDerivative::validParams()
 {

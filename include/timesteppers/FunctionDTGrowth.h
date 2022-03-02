@@ -8,12 +8,6 @@
 #include "FunctionInterface.h"
 #include "LinearInterpolation.h"
 
-class FunctionDTGrowth;
-class Function;
-
-template <>
-InputParameters validParams<FunctionDTGrowth>();
-
 class FunctionDTGrowth : public TimeStepper, public FunctionInterface
 {
 public:

@@ -7,8 +7,6 @@
 
 registerMooseObject("MooseApp", AdvectionCoupledVConst);
 
-defineLegacyParams(AdvectionCoupledVConst);
-
 InputParameters
 AdvectionCoupledVConst::validParams()
 {

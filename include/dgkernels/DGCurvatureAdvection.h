@@ -8,11 +8,6 @@
 
 #include "DGKernel.h"
 
-class DGCurvatureAdvection;
-
-template <>
-InputParameters validParams<DGCurvatureAdvection>();
-
 class DGCurvatureAdvection : public DGKernel
 {
 public:

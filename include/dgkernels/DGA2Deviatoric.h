@@ -6,11 +6,6 @@
 
 #include "DGKernel.h"
 
-class DGA2Deviatoric;
-
-template <>
-InputParameters validParams<DGA2Deviatoric>();
-
 class DGA2Deviatoric : public DGKernel
 {
 public:

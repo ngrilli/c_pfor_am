@@ -10,8 +10,6 @@
 
 registerMooseObject("MooseApp", DislocationLoopsIC);
 
-defineLegacyParams(DislocationLoopsIC);
-
 InputParameters
 DislocationLoopsIC::validParams()
 {

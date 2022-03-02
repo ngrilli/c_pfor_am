@@ -6,11 +6,6 @@
 
 #include "DGKernel.h"
 
-class DGA2Trace;
-
-template <>
-InputParameters validParams<DGA2Trace>();
-
 class DGA2Trace : public DGKernel
 {
 public:

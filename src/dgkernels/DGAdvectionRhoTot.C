@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", DGAdvectionRhoTot);
 
-defineLegacyParams(DGAdvectionRhoTot);
-
 InputParameters
 DGAdvectionRhoTot::validParams()
 {

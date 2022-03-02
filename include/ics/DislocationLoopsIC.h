@@ -9,16 +9,6 @@
 #include "RankTwoTensor.h"
 #include "RotationTensor.h"
 
-// Forward Declarations
-class DislocationLoopsIC;
-class InputParameters;
-
-template <typename T>
-InputParameters validParams();
-
-template <>
-InputParameters validParams<DislocationLoopsIC>();
-
 /**
  * Initialize dislocation loops.
  */

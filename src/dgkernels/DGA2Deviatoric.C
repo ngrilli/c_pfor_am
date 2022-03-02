@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", DGA2Deviatoric);
 
-defineLegacyParams(DGA2Deviatoric);
-
 InputParameters
 DGA2Deviatoric::validParams()
 {

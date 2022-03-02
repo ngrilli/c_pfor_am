@@ -6,8 +6,6 @@
 
 registerMooseObject("MooseApp", A2Trace);
 
-defineLegacyParams(A2Trace);
-
 InputParameters
 A2Trace::validParams()
 {

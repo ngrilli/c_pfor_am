@@ -6,8 +6,6 @@
 
 registerMooseObject("MooseApp", CurvatureAdvection);
 
-defineLegacyParams(CurvatureAdvection);
-
 InputParameters
 CurvatureAdvection::validParams()
 {

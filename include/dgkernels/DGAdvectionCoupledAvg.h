@@ -17,11 +17,6 @@
 
 #include "DGKernel.h"
 
-class DGAdvectionCoupledAvg;
-
-template <>
-InputParameters validParams<DGAdvectionCoupledAvg>();
-
 class DGAdvectionCoupledAvg : public DGKernel
 {
 public:

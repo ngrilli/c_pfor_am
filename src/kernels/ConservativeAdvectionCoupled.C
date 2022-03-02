@@ -8,8 +8,6 @@
 
 registerMooseObject("MooseApp", ConservativeAdvectionCoupled);
 
-defineLegacyParams(ConservativeAdvectionCoupled);
-
 InputParameters
 ConservativeAdvectionCoupled::validParams()
 {

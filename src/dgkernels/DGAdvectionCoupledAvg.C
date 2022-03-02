@@ -6,8 +6,6 @@
 
 registerMooseObject("MooseApp", DGAdvectionCoupledAvg);
 
-defineLegacyParams(DGAdvectionCoupledAvg);
-
 InputParameters
 DGAdvectionCoupledAvg::validParams()
 {

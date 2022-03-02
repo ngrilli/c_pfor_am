@@ -19,11 +19,6 @@
 
 #include "DGKernel.h"
 
-class DGAdvectionCoupledPN;
-
-template <>
-InputParameters validParams<DGAdvectionCoupledPN>();
-
 class DGAdvectionCoupledPN : public DGKernel
 {
 public:

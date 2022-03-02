@@ -15,11 +15,6 @@
 
 #include "DGKernel.h"
 
-class DGAdvectionCoupled;
-
-template <>
-InputParameters validParams<DGAdvectionCoupled>();
-
 class DGAdvectionCoupled : public DGKernel
 {
 public:

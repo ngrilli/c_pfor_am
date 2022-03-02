@@ -20,11 +20,6 @@
 
 #include "DGKernel.h"
 
-class DGAdvectionRhoGND;
-
-template <>
-InputParameters validParams<DGAdvectionRhoGND>();
-
 class DGAdvectionRhoGND : public DGKernel
 {
 public:
