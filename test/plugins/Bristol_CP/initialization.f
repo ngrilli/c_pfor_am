@@ -518,7 +518,7 @@ c	USES: sliphard_law, sliphard_param, intmat,numslip
 c	OUTPUTS: intmat
 	subroutine initialize_hardeningmatrix
 	use globalvars, only: interno, slipint_param, intmat, numslip,
-     &mattyp, intmat1, intmat2
+     &mattyp, intmatI
 	implicit none
       integer i, j, k
       real(8) g0, g1, g2, g3, g4, g5, g6
@@ -526,8 +526,7 @@ c Model with 6 interaction hardening matrix coefficients
       real(8) a, b, ai, bi, omega1, omega2, omegai1, omegai2      
       
       allocate (intmat(numslip,numslip))
-      allocate (intmat1(numslip,numslip))	
-      allocate (intmat2(numslip,numslip))
+      allocate (intmatI(numslip,numslip))
       
 c     No latent hardeing (Identity matrix)
       if (interno.eq.0) then
@@ -766,98 +765,86 @@ c         Only defined for FCC tpye of materials
           
 c Irradiation defects interaction matrix   	
       elseif (interno.eq.4d+0) then	
+ 	
+          g0 = slipint_param(1)
+          g1 = slipint_param(2)
+          g2 = slipint_param(3)
+          g3 = slipint_param(4)
+          g4 = slipint_param(5)
+          g5 = slipint_param(6)
           	
-          omega1 = slipint_param(1)	
-          omega2 = slipint_param(2)	
-          omegai1 = slipint_param(3)	
-          omegai2 = slipint_param(4)	
-          	
-          a = omega1	
-          b = 1.0d+0 + (omega1 - omega2)	
+          omegai1 = slipint_param(7)	
+          omegai2 = slipint_param(8)	
+          		
           ai = omegai1	
-          bi = 1.0d+0 + (omegai1 - omegai2)	
+          bi = 1.0d+0 + (omegai1 - omegai2)
           	
 c         FCC - structure	
-c         Only defined for FCC tpye of materials	
+
           if (mattyp.eq.1d+0) then	
               	
-c              do i = 1, numslip	
-c                  do j = 1, numslip	
-c                      if (i == j) then	
-c                          intmat1(i,j) = omega1	
-c                      else	
-c                          intmat1(i,j) = omega2	
-c                      endif	
-c                  enddo	
-c              enddo	
+            intmat(1,:) = (/g0,g1,g1,g2,g2,g2,g3,g3,g3,g3,g3,g3/)
+	        intmat(2,:) = (/g1,g0,g1,g3,g3,g3,g2,g2,g2,g3,g3,g3/)
+	        intmat(3,:) = (/g1,g1,g0,g3,g3,g3,g3,g3,g3,g2,g2,g2/)
+	        intmat(4,:) = (/g2,g2,g2,g0,g1,g1,g3,g3,g3,g3,g3,g3/)
+	        intmat(5,:) = (/g3,g3,g3,g1,g0,g1,g3,g3,g3,g2,g2,g2/)
+	        intmat(6,:) = (/g3,g3,g3,g1,g1,g0,g2,g2,g2,g3,g3,g3/)
+	        intmat(7,:) = (/g4,g4,g4,g4,g4,g4,g0,g1,g1,g5,g5,g5/)
+	        intmat(8,:) = (/g2,g2,g2,g3,g3,g3,g1,g0,g1,g3,g3,g3/)
+	        intmat(9,:) = (/g3,g3,g3,g2,g2,g2,g1,g1,g0,g3,g3,g3/)
+	        intmat(10,:) = (/g4,g4,g4,g4,g4,g4,g5,g5,g5,g0,g1,g1/)
+	        intmat(11,:) = (/g3,g3,g3,g2,g2,g2,g3,g3,g3,g1,g0,g1/)
+	        intmat(12,:) = (/g2,g2,g2,g3,g3,g3,g3,g3,g3,g1,g1,g0/)
               	
-c              do i = 1, numslip	
-c                  do j = 1, numslip	
-c                      if (i == j) then	
-c                          intmat2(i,j) = omegai1	
-c                      else	
-c                          intmat2(i,j) = omegai2	
-c                      endif	
-c                  enddo	
-c              enddo	
-                  	
-              	
-            intmat1(1,:) = (/a,b,b,b,b,b,b,b,b,b,b,b/)	
-	        intmat1(2,:) = (/b,a,b,b,b,b,b,b,b,b,b,b/)	
-	        intmat1(3,:) = (/b,b,a,b,b,b,b,b,b,b,b,b/)	
-	        intmat1(4,:) = (/b,b,b,a,b,b,b,b,b,b,b,b/)	
-	        intmat1(5,:) = (/b,b,b,b,a,b,b,b,b,b,b,b/)	
-	        intmat1(6,:) = (/b,b,b,b,b,a,b,b,b,b,b,b/)	
-	        intmat1(7,:) = (/b,b,b,b,b,b,a,b,b,b,b,b/)	
-	        intmat1(8,:) = (/b,b,b,b,b,b,b,a,b,b,b,b/)	
-	        intmat1(9,:) = (/b,b,b,b,b,b,b,b,a,b,b,b/)	
-	        intmat1(10,:) = (/b,b,b,b,b,b,b,b,b,a,b,b/)	
-	        intmat1(11,:) = (/b,b,b,b,b,b,b,b,b,b,a,b/)	
-	        intmat1(12,:) = (/b,b,b,b,b,b,b,b,b,b,b,a/) 	
-              	
-            intmat2(1,:) = (/ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
-	        intmat2(2,:) = (/bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
-	        intmat2(3,:) = (/bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
-	        intmat2(4,:) = (/bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi/)	
-	        intmat2(5,:) = (/bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi/)	
-	        intmat2(6,:) = (/bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi/)	
-	        intmat2(7,:) = (/bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi/)	
-	        intmat2(8,:) = (/bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi/)	
-	        intmat2(9,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi/)	
-	        intmat2(10,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi/)	
-	        intmat2(11,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi/)	
-	        intmat2(12,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai/)	
-       
-              write(6,*) 'intmat1'     
-              do i=1,numslip 	
-                  write(6,*) (intmat1(i,j),j=1,numslip)
-              enddo	
-      	
-       
-              write(6,*) 'intmat2'      
-              do i=1,numslip 	
-                  write(6,*) (intmat2(i,j),j=1,numslip)	
-              enddo   	
-              	
-          	
-          	
-          end if	
-      end if    
-          
-          
-          
-          
-          
-          
-          
-          
-          
+            intmatI(1,:) = (/ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(2,:) = (/bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(3,:) = (/bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(4,:) = (/bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(5,:) = (/bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(6,:) = (/bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(7,:) = (/bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi/)	
+	        intmatI(8,:) = (/bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi/)	
+	        intmatI(9,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi/)	
+	        intmatI(10,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi/)	
+	        intmatI(11,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi/)	
+	        intmatI(12,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai/)		
 
-      
+c         BCC - structure
 
-      
+          elseif (mattyp.eq.2d+0) then
+
+            intmat(1,:) = (/g0,g1,g1,g2,g2,g2,g3,g3,g3,g3,g3,g3/)
+	        intmat(2,:) = (/g1,g0,g1,g3,g3,g3,g2,g2,g2,g3,g3,g3/)
+	        intmat(3,:) = (/g1,g1,g0,g3,g3,g3,g3,g3,g3,g2,g2,g2/)
+	        intmat(4,:) = (/g2,g2,g2,g0,g1,g1,g3,g3,g3,g3,g3,g3/)
+	        intmat(5,:) = (/g3,g3,g3,g1,g0,g1,g3,g3,g3,g2,g2,g2/)
+	        intmat(6,:) = (/g3,g3,g3,g1,g1,g0,g2,g2,g2,g3,g3,g3/)
+	        intmat(7,:) = (/g4,g4,g4,g4,g4,g4,g0,g1,g1,g5,g5,g5/)
+	        intmat(8,:) = (/g2,g2,g2,g3,g3,g3,g1,g0,g1,g3,g3,g3/)
+	        intmat(9,:) = (/g3,g3,g3,g2,g2,g2,g1,g1,g0,g3,g3,g3/)
+	        intmat(10,:) = (/g4,g4,g4,g4,g4,g4,g5,g5,g5,g0,g1,g1/)
+	        intmat(11,:) = (/g3,g3,g3,g2,g2,g2,g3,g3,g3,g1,g0,g1/)
+	        intmat(12,:) = (/g2,g2,g2,g3,g3,g3,g3,g3,g3,g1,g1,g0/) 	
+              	
+            intmatI(1,:) = (/ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(2,:) = (/bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(3,:) = (/bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(4,:) = (/bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(5,:) = (/bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(6,:) = (/bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi,bi/)	
+	        intmatI(7,:) = (/bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi,bi/)	
+	        intmatI(8,:) = (/bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi,bi/)	
+	        intmatI(9,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi,bi/)	
+	        intmatI(10,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi,bi/)	
+	        intmatI(11,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai,bi/)	
+	        intmatI(12,:) = (/bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,bi,ai/)   	
+              	
+          end if
+		  
+      end if   
           
-	return
+      return
+	  
       end subroutine initialize_hardeningmatrix
       
       
@@ -1419,7 +1406,7 @@ c     model = 5 (slip or creep with backstress)
           	
 c     model = 6 Irradiation hardening addition to model 4                       	
       elseif (modelno.eq.6d+0) then	
-          allocate (sliprate_param(3))
+          allocate (sliprate_param(2))
           
       endif    
    
@@ -1495,7 +1482,7 @@ c 4 - backstress
 c 5 - frank partial dislocation loop density	
           numstvar = 5d+0	
           	
-          allocate (sliphard_param(12))	
+          allocate (sliphard_param(14))	
           	
           write(6,*) 'numstvar: ', numstvar                
           
@@ -1522,7 +1509,7 @@ c     Interaction matrix - (Code Aster) - only defined for FCC material
           
 c     Interaction matrix - Irradiation damage	
       elseif (interno.eq.4d+0) then    	
-          allocate (slipint_param(4))
+          allocate (slipint_param(8))
           
 c     NO interaction matrix- still allocate this array
       else
@@ -1705,11 +1692,7 @@ c         Reference slip rate - gammadot0(s)
           write(6,*) 'sliprate_param(1)', sliprate_param(1)	
 c         Rate sensitivity exponent - m(s)      	
           read(100,*) sliprate_param(2)	
-          write(6,*) 'sliprate_param(2)', sliprate_param(2)	
-c         statistical coefficient - lambda 	
-          read(100,*) sliprate_param(3)      	
-          write(6,*) 'sliprate_param(3)', sliprate_param(3)          
-          
+          write(6,*) 'sliprate_param(2)', sliprate_param(2)
           
       endif
               
@@ -1854,10 +1837,24 @@ c         Scaling factor for strain hardening
 c         Annihilation area for frank loop dislocations - AL	
           read(100,*) sliphard_param(10)	
 c         Saturation density for frank loop dislocations - rhoSATURATION	
-          read(100,*) sliphard_param(11)	
+          read(100,*) sliphard_param(11)
+		  
+c         Defining defect density in either BCC or FCC crystal	
+          if (mattyp.eq.2) then
+                    	           
+c         A -dpa - defect number density constant of proportionality mm^-3	
+            read(100,*) sliphard_param(12)	
+c         B - dpa - defect size constant of proportionality mm
+            read(100,*) sliphard_param(13)          
+c         Total irradiation dose - dpa
+            read(100,*) sliphard_param(14)
+
+          elseif (mattyp.eq.1) then
+
 c         Initial frank loop dislocation density	
-          read(100,*) sliphard_param(12)           
-          
+            read(100,*) sliphard_param(12)
+			
+          endif
           
       endif     
           
@@ -1906,17 +1903,26 @@ c         g6
           read(100,*) slipint_param(7)     
           
 c     interaction matrix coeffcients for irradiation model	
+c     intmat correlates to unirrad model 4
       elseif (interno.eq.4d+0) then	
+
 c         interaction hardening coefficients	
-c         omega1 - self hardening coefficient	
+c         g0	
           read(100,*) slipint_param(1)     	
-c         omega2 - latent hardening coefficient	
+c         g1	
           read(100,*) slipint_param(2)               	
-c         omegai1 - irradiation self hardening coefficient	
+c         g2	
           read(100,*) slipint_param(3)    	
+c         g3	
+          read(100,*) slipint_param(4)
+c         g4
+          read(100,*) slipint_param(5)     	
+c         g5	
+          read(100,*) slipint_param(6)               	
+c         omegai1 - irradiation self hardening coefficient	
+          read(100,*) slipint_param(7)    	
 c         omegai2 - irradiation latent hardening coefficient	
-          read(100,*) slipint_param(4)           
-          
+          read(100,*) slipint_param(8)
           
       endif      
       
@@ -2092,11 +2098,7 @@ c         Reference slip rate - gdot0
 c         Rate sensitivity exponent for slip - m            	
           write(6,*) 'sliprate_param(2): ',	
      &                (sliprate_param(2))	
-c         Statistical coefficient - lambda            	
-          write(6,*) 'sliprate_param(3): ',	
-     &                (sliprate_param(3)) 	
-                    
-          
+
 c         Other slip rate laws are to be added here!  
 
       endif          
@@ -2265,16 +2267,30 @@ c         Frank loop dislocation annihilation area
      &                (sliphard_param(10))                 	
 c         saturation dislocation density for frank loop dislocations	
           write(6,*) 'sliphard_param(11): ',	
-     &                (sliphard_param(11))       	
-c         Initial frank loop dislocation density	
-          write(6,*) 'sliphard_param(12): ',	
-     &                (sliphard_param(12))          	          
-          
-          
-          
-c         Other slip rate laws are to be added here!  
+     &                (sliphard_param(11))       
 
-                  
+c         Defect density params for BCC or FCC
+          if (mattyp.eq.1) then
+c         Initial frank loop dislocation density	
+              write(6,*) 'sliphard_param(12): ',	
+     &                (sliphard_param(12))
+          
+          elseif (mattyp.eq.2) then
+                                    	          
+c         sliphard param inputs to calculate defect density - BCC
+c         A -dpa - defect number density constant of proportionality mm^-3	
+              write(6,*) 'sliphard_param(12): ',	
+     &                (sliphard_param(12))                 	
+c         B - dpa - defect size constant of proportionality mm
+              write(6,*) 'sliphard_param(13): ',	
+     &                (sliphard_param(13))       	
+c         Total Irradiation dose - dpa
+              write(6,*) 'sliphard_param(14): ',	
+     &                (sliphard_param(14)) 
+          endif      	          
+
+c         Other slip rate laws are to be added here!  
+          
       endif           
           
 
@@ -2357,8 +2373,16 @@ c         self and latent hardening coefficients
      &                slipint_param(2)  	
           write(6,*) 'slipint_param(3): ',	
      &                slipint_param(3)  	
-          write(6,*) 'slipint_param(4): ',	
-     &                slipint_param(4)             
+          write(6,*) 'slipint_param(4): ',
+     &                slipint_param(4)
+          write(6,*) 'slipint_param(5): ',	
+     &                slipint_param(5)    	
+          write(6,*) 'slipint_param(6): ',	
+     &                slipint_param(6)  	
+          write(6,*) 'slipint_param(7): ',	
+     &                slipint_param(7)  	
+          write(6,*) 'slipint_param(8): ',	
+     &                slipint_param(8)             
           
       endif
       
@@ -2899,7 +2923,7 @@ c     A large number is assigned since 1/X is used in the calculations
       
 c	This initializes the state variables
 	subroutine initialize_statevars
-	use globalvars, only: modelno, sliphard_param,
+	use globalvars, only: mattyp, modelno, sliphard_param,
      &global_state_t, global_state, global_state0
 	implicit none
 	integer i
@@ -2970,19 +2994,37 @@ c      Initialize defects for irradiation model
 c         All the state variables (GNDe/GNDs/backstress)	
           global_state0=0.0d+0	
           global_state=0.0d+0	
-          global_state_t=0.0d+0	
-          	
-c         Irradiation induced frank dislocation loops	
-          global_state0(:,:,:,5)=sliphard_param(12)	
-          global_state(:,:,:,5)=sliphard_param(12)	
-          global_state_t(:,:,:,5)=sliphard_param(12)	
+          global_state_t=0.0d+0		
           	
 c         Statistically stored initial dislocations (SSD)	
           global_state0(:,:,:,1)=sliphard_param(2)	
           global_state(:,:,:,1)=sliphard_param(2)	
-          global_state_t(:,:,:,1)=sliphard_param(2)          
+          global_state_t(:,:,:,1)=sliphard_param(2)
+
+c         initialise globalvars for BCC/FCC crystal
+         
+          if (mattyp.eq.2) then         
+c         Irradiation induced frank dislocation loops
+c         using rho = ND
+c         N = A *(dpa^0.5) d = B *(dpa^0.5)
+  
+              global_state0(:,:,:,5) = sliphard_param(12)*
+     &sliphard_param(13) * sliphard_param(14)
+          	
+              global_state(:,:,:,5) = sliphard_param(12)*
+     &sliphard_param(13) * sliphard_param(14)
+          	
+              global_state_t(:,:,:,5) = sliphard_param(12)*
+     &sliphard_param(13) * sliphard_param(14)
+     
+          elseif (mattyp.eq.1) then
+              global_state0(:,:,:,5)=sliphard_param(12)	
+              global_state(:,:,:,5)=sliphard_param(12)	
+              global_state_t(:,:,:,5)=sliphard_param(12)          
+          endif          
           
       endif
+
       
       
       

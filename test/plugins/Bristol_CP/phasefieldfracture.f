@@ -29,6 +29,7 @@
       use globalsubs, only : convert3x3to6
 	  use globalsubs, only : convert6to3x3
       use globalsubs, only : invert3x3
+      use globalsubs, only : determinant
 	  
 	  ! Elastic Green-Lagrange strain
       real(8), intent(in) :: ee(3,3)
@@ -111,7 +112,7 @@
       end do
       Kb = Kb / 9.0
 	  
-      call M33DET(fe,Je)
+	  call determinant(fe,Je)
 
       Je23 = Je**(2.0/3.0)
 
@@ -216,6 +217,10 @@
       use globalvars, only : global_F_pos
       use globalvars, only : global_F_neg
       use globalvars, only : global_pk2_pos
+      use globalvars, only : global_state
+      use globalvars, only : Euler
+      use globalvars, only : numstvar
+      use globalvars, only : numslip
 	  
       ! element and integration point numbers
 	  ! using moose convention, starting from zero
@@ -228,7 +233,7 @@
       real(8), intent(out) :: STATEV(NSTATV) 
 
       ! indices of iterations
-      integer :: i
+      integer :: i, j
       
       ! 2 and 3 are components of the Helmholtz free energy
 	  ! by convention
@@ -246,32 +251,19 @@
       end do
       STATEV(7) = global_pk2_pos(elem,ip,1,2)
       STATEV(8) = global_pk2_pos(elem,ip,1,3)
-      STATEV(9) = global_pk2_pos(elem,ip,2,3)	  
+      STATEV(9) = global_pk2_pos(elem,ip,2,3)	
+
+      ! output model state variables and Euler angles
+      do i = 1,3
+        STATEV(i+9) = Euler(elem,i)
+      end do
+      do i = 1,numstvar
+        do j = 1,numslip
+          STATEV((i-1)*numslip+12+j) = global_state(elem,ip,j,i)
+        end do
+      end do
 
 	  return
-      end subroutine moose_interface_output
-	  
-	  
-	  ! calculate determinant of 3x3 matrix
-      ! A = input 3x3 matrix
-      ! detA = output determinant	  
-	  
-      subroutine M33DET(A,detA)	  
-	  
-      real(8), intent(in) :: A(3,3)
-
-      real(8), intent(out) :: detA
-	  
-      detA = 0.0
-	  
-      detA = detA + A(1,1)*A(2,2)*A(3,3)
-      detA = detA - A(1,1)*A(2,3)*A(3,2)
-      detA = detA - A(1,2)*A(2,1)*A(3,3)
-      detA = detA + A(1,2)*A(2,3)*A(3,1)
-      detA = detA + A(1,3)*A(2,1)*A(3,2)	  
-      detA = detA - A(1,3)*A(2,2)*A(3,1)
-
-      return
-      end subroutine M33DET			
+      end subroutine moose_interface_output		
 
       end module phasefieldfracture

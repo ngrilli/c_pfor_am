@@ -1986,7 +1986,7 @@ c	USES: Schmid(12,3,3), Schmid_vec(12,6), zeta66(6,6), gammadot0, mm, I3(3,3)
      &tau,gammadot,dgammadot_dtau,Lp,sumG)
       use globalvars, only : I3,elas66,Schmid,
      & Schmid_vec,numslip,numstvar,
-     & modelno, intmat, intmat1, intmat2
+     & modelno, intmat, intmatI
 	use globalsubs, only : convert3x3to6
       use slipratelaws, only: sliprate
 	implicit none
@@ -2047,15 +2047,15 @@ c Irradiation model for tauc
       elseif (modelno.eq.6d+0) then	
           	
       	
-          state_(:,1) = matmul(intmat1,state(:,1))	
+          state_(:,1) = matmul(intmat,state(:,1))	
           	
-          state_(:,2) = matmul(intmat1,dabs(state(:,2)))	
+          state_(:,2) = matmul(intmat,dabs(state(:,2)))	
           	
-          state_(:,3) = matmul(intmat1,dabs(state(:,3)))	
+          state_(:,3) = matmul(intmat,dabs(state(:,3)))	
           	
           state_(:,4) = state(:,4)	
           	
-          state_(:,5) = matmul(intmat2,dabs(state(:,5)))
+          state_(:,5) = matmul(intmatI,dabs(state(:,5)))
           
           
           

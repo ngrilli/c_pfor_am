@@ -192,8 +192,7 @@ c
 c	Hardening interaction matrix
 	real(8), allocatable, public :: intmat(:,:)
 c	Irradiated Hardening matrices for gnds and DLs	
-	real(8), allocatable, public :: intmat1(:,:)	
-	real(8), allocatable, public :: intmat2(:,:)        
+      real(8), allocatable, public :: intmatI(:,:)        
       
 c	Length scale parameters (1:3)
       real(8), public :: grainsize_param(3)

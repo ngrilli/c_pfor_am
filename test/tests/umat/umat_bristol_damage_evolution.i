@@ -382,7 +382,7 @@
     type = UMATStressDamage
     constant_properties = '0'
     plugin = '../../plugins/Bristol_CP/BRISTOL'
-    num_state_vars = 9
+    num_state_vars = 72
 	c = c
 	use_one_based_indexing = true
     E_name = 'elastic_energy'

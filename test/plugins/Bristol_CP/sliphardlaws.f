@@ -232,9 +232,10 @@ c
 c        SSD evolution          	
          sstatedot(1)=dabs(gdot)/b_6*(K_6*dsqrt(rhotot)-
      & 2.0d+0*yc_6*rhoSSD)
+	 
 c        Irradiation induced frank dislocation loop density evolution	
-c
-          sstatedot(5)=AL_6*(rhos_6-rhoLOOP)*rhoLOOP*dabs(gdot)	
+c        rhotot reflects annihilation from SSD, GND
+          sstatedot(5)=AL_6*(rhos_6-rhoLOOP)*rhotot*dabs(gdot)	
 c          	
 c          	
 c         GND evolution is calculated at the end of the former time increment	

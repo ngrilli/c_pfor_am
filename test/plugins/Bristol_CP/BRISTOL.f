@@ -49,6 +49,10 @@ c
      & DTIME
       real(8), dimension(2),          intent(in) ::
      & TIME
+
+      ! variables required to read the current working directory	 
+      integer*4 :: status_getcwd
+	  character(len=255) :: foldername255
 c      
 c
 c
@@ -57,8 +61,13 @@ c
 c     At the start of the analysis (only ONCE!)
       if (LOP.eq.0 .or. LOP.eq.4) then
 c          
-          foldername= "../../tests/umat/"
+c          foldername= "../../tests/umat/"
 c                   
+      status_getcwd = getcwd(foldername255)
+      if ( status_getcwd .ne. 0 ) stop 
+     & 'Error: simulation files must be in the cwd'
+	  foldername = trim(foldername255)
+
           write(6,*) 'initialization has started!' 
           write(6,*) '********************************'
           call initialize_all(foldername)
@@ -218,13 +227,7 @@ c
 	  
       end if
 c
-c
-cc     Output state variables to MOOSE
-c      STATEV(1) = global_state(NOEL+1,NPT+1,1,1)	
-c      STATEV(2) = global_state(NOEL+1,NPT+1,1,2)	
-c      STATEV(3) = global_state(NOEL+1,NPT+1,1,3)	
-c      STATEV(4) = global_state(NOEL+1,NPT+1,2,4)      	
-c      STATEV(5) = global_state(NOEL+1,NPT+1,2,5)      
+c     
 c      
 c
 c      write(6,*) 'KINC',KINC

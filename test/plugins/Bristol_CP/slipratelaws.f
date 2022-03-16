@@ -29,7 +29,7 @@ c     model constatns for GND using slip gradients
 c     model constatns for slip/creep with backstress (Power Law)
       real(8) gdot0_5, m_5, alpha_5, b_5, tauc0_5, C_5
 c     Irradiation hardening law constants	
-      real(8) gdot0_6, m_6, alpha_6, b_6, tauc0_6, lambda_6      
+      real(8) gdot0_6, m_6, alpha_6, b_6, tauc0_6      
       
 c     Slip/Creep  with no kinematic hardening (x = 0), s it has no effect
       if (modelno.eq.1d+0) then
@@ -148,6 +148,9 @@ c         Initial slip resistance
 c         Calculate slip resistance          
           tauc = tauc0_4 + alpha_4 * G * b_4 * 
      & dsqrt(sstate(1) + sstate(2) +sstate(3)) 
+	 
+c         Temperature dependence	 
+          tauc = tauc * (0.53+0.47*exp(-0.008*(temp - 298.0)))
           
 c          write(6,*) 'tauc', tauc
           
@@ -234,10 +237,8 @@ c         Initial slip rate
           gdot0_6 = sliprate_param(1)
 c         Power law exponent          	
           m_6 = sliprate_param(2)
-c         Statistical coefficient          
-          lambda_6 = sliprate_param(3)
           	
-          	
+			
 c         Geometric factor for slip resistance calculation	
           alpha_6 = sliphard_param(4)	
           	
@@ -249,9 +250,10 @@ c         Initial slip resistance
           tauc0_6 = sliphard_param(1)	
           	
           	
-c         Calculate slip resistance      	
-          tauc = tauc0_6+lambda_6*G*b_6* 	
-     & dsqrt(sstate(1)+sstate(2)+sstate(3)+sstate(5)) 	
+c         Calculate slip resistance 
+c         This reduces to model 4 in absence of irradiation     	
+          tauc = tauc0_6 + alpha_6 * G * b_6 * 	
+     & dsqrt(sstate(1)+sstate(2)+sstate(3)+sstate(5))	
           	
 
 
