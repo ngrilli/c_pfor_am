@@ -29,3 +29,5 @@ v.0.7. Slip gradients are computed using the total slip rates at the current ste
 v.0.7. model-6 added
 v.0.7. bug fix, calculations.f/SC_main - line 1861: index 'i' corrected to 'is'
 v.0.9. phase field fracture model and compatibility with gfortran
+v.0.10. fracture model with volumetric/deviatoric free energy, gnd model
+v.0.11. temperature dependence of the dislocation based model for creep
