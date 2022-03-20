@@ -159,6 +159,57 @@ FiniteStrainUObasedCPDamageVol::calcResidual()
   _resid = _pk2[_qp] - pk2_new;
 }
 
+// Jacobian for the Newton-Raphson crystal plasticity algorithm
+// includes damage
+void
+FiniteStrainUObasedCPDamageVol::calcJacobian()
+{
+  RankFourTensor dfedfpinv, deedfe, dfpinvdpk2;
+  Real Je; // Je is relative elastic volume change
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+        dfedfpinv(i, j, k, j) = _dfgrd_tmp(i, k);
+
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+      {
+        deedfe(i, j, k, i) = deedfe(i, j, k, i) + _fe(k, j) * 0.5;
+        deedfe(i, j, k, j) = deedfe(i, j, k, j) + _fe(k, i) * 0.5;
+      }
+
+  for (unsigned int i = 0; i < _num_uo_slip_rates; ++i)
+  {
+    unsigned int nss = _uo_slip_rates[i]->variableSize();
+    std::vector<RankTwoTensor> dtaudpk2(nss), dfpinvdslip(nss);
+    std::vector<Real> dslipdtau;
+    dslipdtau.resize(nss);
+    _uo_slip_rates[i]->calcSlipRateDerivative(_qp, _substep_dt, dslipdtau);
+    for (unsigned int j = 0; j < nss; j++)
+    {
+      dtaudpk2[j] = (*_flow_direction[i])[_qp][j];
+      dfpinvdslip[j] = -_fp_old_inv * (*_flow_direction[i])[_qp][j];
+      dfpinvdpk2 += (dfpinvdslip[j] * dslipdtau[j] * _substep_dt).outerProduct(dtaudpk2[j]);
+    }
+  }
+  
+  Je = _fe.det();
+  
+  if (Je >= 1.0) { // expansion
+  
+  _jac = RankFourTensor::IdentityFour() 
+       - (_D[_qp] * _elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);  
+  
+  } else { // compression
+
+  _jac = RankFourTensor::IdentityFour() 
+       - (_elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);  
+	  
+  }
+}
+
 void
 FiniteStrainUObasedCPDamageVol::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
                                                         RankTwoTensor & ee, RankTwoTensor & ce, 
@@ -306,8 +357,19 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
         deedfe(i, j, k, j) = deedfe(i, j, k, j) + _fe(k, i) * 0.5;
       }
 
-  // This equation is exact for Je >= 1 but only an approximation for Je < 1
-  dsigdpk2dfe = _fe.mixedProductIkJl(_fe) * _D[_qp] * _elasticity_tensor[_qp] * deedfe;
+  // This equation is approximated:
+  // The term Je23 * Kb * delta * invce is considered the same as
+  // _elasticity_tensor[_qp] * ee
+  Real je = _fe.det();
+  if (je >= 1.0) { // expansion
+  
+    dsigdpk2dfe = _fe.mixedProductIkJl(_fe) * _D[_qp] * _elasticity_tensor[_qp] * deedfe;
+
+  } else { // compression
+	  
+    dsigdpk2dfe = _fe.mixedProductIkJl(_fe) * _elasticity_tensor[_qp] * deedfe;
+
+  }
 
   pk2fet = _pk2[_qp] * _fe.transpose();
   fepk2 = _fe * _pk2[_qp];
@@ -322,7 +384,6 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
 
   tan_mod += dsigdpk2dfe;
 
-  Real je = _fe.det();
   if (je > 0.0)
     tan_mod /= je;
 
@@ -340,7 +401,19 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
 void
 FiniteStrainUObasedCPDamageVol::elasticTangentModuli()
 {
-  _Jacobian_mult[_qp] = _D[_qp] * _elasticity_tensor[_qp];
+  // This equation is approximated:
+  // The term Je23 * Kb * delta * invce is considered the same as
+  // _elasticity_tensor[_qp] * ee
+  Real je = _fe.det();
+  if (je >= 1.0) { // expansion
+  
+    _Jacobian_mult[_qp] = _D[_qp] * _elasticity_tensor[_qp];
+
+  } else { // compression
+	  
+    _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
+
+  }
 }
 
 

@@ -34,6 +34,11 @@ protected:
   virtual void calcResidual();
   
   /**
+   * calculate jacobian.
+   */
+  virtual void calcJacobian();
+  
+  /**
    * Method to split elastic energy based on strain volumetric/non-volumetric decomposition
    * @param F_pos tensile part of total elastic energy
    * @param F_neg compressive part of total elastic energy
