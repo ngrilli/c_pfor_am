@@ -117,7 +117,7 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
   
   for (const auto i : make_range(_number_slip_systems)) {
 	for (const auto j : make_range(LIBMESH_DIM)) {
-	  _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = local_direction_vector[i](j)
+	  _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = local_direction_vector[i](j);
 	} 
   }
   
