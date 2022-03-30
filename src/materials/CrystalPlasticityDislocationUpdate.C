@@ -1,3 +1,5 @@
+// Daijun Hu
+// National University of Singapore
 // Nicolò Grilli
 // University of Bristol
 // 27 Marzo 2022
@@ -57,8 +59,8 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
-    _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
-	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
+    _edge_slip_direction(declareProperty<std::vector<Real>>(_base_name + "edge_slip_direction")),
+	_screw_slip_direction(declareProperty<std::vector<Real>>(_base_name + "screw_slip_direction"))
 {
 }
 
@@ -121,6 +123,7 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
   
   // Calculate and store edge and screw slip directions are also assigned
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
+  _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   
   for (const auto i : make_range(_number_slip_systems)) {
 	for (const auto j : make_range(LIBMESH_DIM)) {
