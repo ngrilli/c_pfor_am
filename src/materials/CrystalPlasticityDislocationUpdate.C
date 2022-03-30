@@ -4,6 +4,7 @@
 
 #include "CrystalPlasticityDislocationUpdate.h"
 #include "libmesh/int_range.h"
+#include <cmath>
 
 registerMooseObject("TensorMechanicsApp", CrystalPlasticityDislocationUpdate);
 
@@ -87,6 +88,12 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
   std::vector<RealVectorValue> local_direction_vector, local_plane_normal;
   local_direction_vector.resize(number_slip_systems);
   local_plane_normal.resize(number_slip_systems);
+  
+  // Temporary directions and normals to calculate
+  // screw dislocation slip direction
+  RealVectorValue temp_mo;
+  RealVectorValue temp_no;
+  RealVectorValue temp_screw_mo;
 
   // Update slip direction and normal with crystal orientation
   for (const auto i : make_range(_number_slip_systems))
@@ -112,13 +119,29 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
       }
   }
   
-  // Store edge and screw slip directions are also assigned
+  // Calculate and store edge and screw slip directions are also assigned
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   
   for (const auto i : make_range(_number_slip_systems)) {
 	for (const auto j : make_range(LIBMESH_DIM)) {
 	  _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = local_direction_vector[i](j);
 	} 
+  }
+  
+  for (const auto i : make_range(_number_slip_systems)) {
+    for (const auto j : make_range(LIBMESH_DIM)) {
+	  // assign temporary slip direction and normal for this slip system
+      temp_mo(j) = local_direction_vector[i](j);
+	  temp_no(j) = local_plane_normal[i](j);
+    }  
+	
+	// calculate screw slip direction for this slip system
+	// and store it in the screw slip direction vector
+	temp_screw_mo = temp_mo.cross(temp_no);
+	
+	for (const auto j : make_range(LIBMESH_DIM)) {
+	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
+	}
   }
   
 }
