@@ -28,13 +28,8 @@ protected:
 
 private:
 
-  //const ArrayVariableValue & _variable;
-  
   // The vector variable from which to compute the directional derivative
   const ArrayVariableGradient & _grad_variable;
-  
-  // Slip system index to determine slip direction
-  //const unsigned int _slip_sys_index;
   
   // Edge slip directions of all slip systems
   const MaterialProperty<std::vector<Real>> & _edge_slip_direction;

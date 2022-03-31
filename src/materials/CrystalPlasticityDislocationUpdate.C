@@ -74,6 +74,11 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
     _slip_resistance[_qp][i] = _gss_initial;
     _slip_increment[_qp][i] = 0.0;
   }
+  
+  // Initialize vectors size here because they are used by AuxKernels
+  // that are called just after initialization  
+  _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
+  _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
 }
 
 // Calculate Schmid tensor and

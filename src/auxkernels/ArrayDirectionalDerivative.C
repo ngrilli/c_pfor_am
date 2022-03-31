@@ -17,8 +17,6 @@ ArrayDirectionalDerivative::validParams()
 	  "This AuxKernel applies to a vector auxiliary variable");
   params.addRequiredCoupledVar("gradient_variable",
                                "The vector variable from which to compute the directional derivative");
-  //params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip direction "
-  //							   "for instance from 0 to 11 for FCC.");
   MooseEnum dislo_character("edge screw", "edge");
   params.addRequiredParam<MooseEnum>("dislo_character",
                                      dislo_character,
@@ -28,9 +26,7 @@ ArrayDirectionalDerivative::validParams()
 
 ArrayDirectionalDerivative::ArrayDirectionalDerivative(const InputParameters & parameters)
   : ArrayAuxKernel(parameters),
-    //_variable(coupledArrayValue("variable")),
-    _grad_variable(coupledArrayGradient("gradient_variable")), 
-    //_slip_sys_index(getParam<int>("slip_sys_index")),
+    _grad_variable(coupledArrayGradient("gradient_variable")),
     _edge_slip_direction(getMaterialProperty<std::vector<Real>>("edge_slip_direction")), // Edge velocity direction
 	_screw_slip_direction(getMaterialProperty<std::vector<Real>>("screw_slip_direction")), // Screw velocity direction
 	_dislo_character(getParam<MooseEnum>("dislo_character").getEnum<DisloCharacter>())
