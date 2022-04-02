@@ -202,7 +202,7 @@ CrystalPlasticityDislocationUpdate::calculateEquivalentSlipIncrement(
                                    _flow_direction[_qp][i] * _slip_increment[_qp][i] * _substep_dt;
   }
   else // if no twinning volume fraction material property supplied, use base class
-    CrystalPlasticityStressUpdateBase::calculateEquivalentSlipIncrement(equivalent_slip_increment);
+    CrystalPlasticityDislocationUpdateBase::calculateEquivalentSlipIncrement(equivalent_slip_increment);
 }
 
 void

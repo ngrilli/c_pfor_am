@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "CrystalPlasticityStressUpdateBase.h"
+#include "CrystalPlasticityDislocationUpdateBase.h"
 
 class CrystalPlasticityDislocationUpdate;
 
@@ -19,7 +19,7 @@ class CrystalPlasticityDislocationUpdate;
  * Dislocation based model for crystal plasticity.
  */
 
-class CrystalPlasticityDislocationUpdate : public CrystalPlasticityStressUpdateBase
+class CrystalPlasticityDislocationUpdate : public CrystalPlasticityDislocationUpdateBase
 {
 public:
   static InputParameters validParams();
@@ -32,12 +32,6 @@ protected:
    * stress, plastic deformation gradient, slip system resistances, etc.
    */
   virtual void initQpStatefulProperties() override;
-  
-  /**
-   * Computes the Schmid tensor (m x n) for the original (reference) crystal
-   * lattice orientation for each glide slip system
-   */
-  virtual void calculateFlowDirection(const RankTwoTensor & crysrot);
   
   /**
    * A helper method to rotate the a direction and plane normal system set into
