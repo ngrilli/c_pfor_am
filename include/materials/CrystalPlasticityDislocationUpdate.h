@@ -34,12 +34,18 @@ protected:
   virtual void initQpStatefulProperties() override;
   
   /**
+   * Computes the Schmid tensor (m x n) for the original (reference) crystal
+   * lattice orientation for each glide slip system
+   */
+  virtual void calculateFlowDirection(const RankTwoTensor & crysrot);
+  
+  /**
    * A helper method to rotate the a direction and plane normal system set into
    * the local crystal lattice orientation as defined by the crystal rotation
    * tensor from the Elasticity tensor class.
    * Edge and screw slip directions are also assigned
    */
-  void calculateSchmidTensor(const unsigned int & number_dislocation_systems,
+  virtual void calculateSchmidTensor(const unsigned int & number_dislocation_systems,
                              const std::vector<RealVectorValue> & plane_normal_vector,
                              const std::vector<RealVectorValue> & direction_vector,
                              std::vector<RankTwoTensor> & schmid_tensor,

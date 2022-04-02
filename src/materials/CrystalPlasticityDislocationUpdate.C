@@ -59,8 +59,8 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
-    _edge_slip_direction(declareProperty<std::vector<Real>>(_base_name + "edge_slip_direction")),
-	_screw_slip_direction(declareProperty<std::vector<Real>>(_base_name + "screw_slip_direction"))
+    _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
+	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
 {
 }
 
@@ -79,6 +79,13 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   // that are called just after initialization  
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
+}
+
+void
+CrystalPlasticityDislocationUpdate::calculateFlowDirection(const RankTwoTensor & crysrot)
+{
+  calculateSchmidTensor(
+      _number_slip_systems, _slip_plane_normal, _slip_direction, _flow_direction[_qp], crysrot);
 }
 
 // Calculate Schmid tensor and
@@ -129,6 +136,8 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
   // Calculate and store edge and screw slip directions are also assigned
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
+  
+  std::cout << "inside calculateSchmidTensor" << std::endl;
   
   for (const auto i : make_range(_number_slip_systems)) {
 	for (const auto j : make_range(LIBMESH_DIM)) {

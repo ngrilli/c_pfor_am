@@ -42,7 +42,7 @@ ArrayDirectionalDerivative::computeValue()
 
   // Temporary vector to store the gradient components
   // of the variable on a specific slip system
-  RealVectorValue temp_grad_variable;
+  //RealVectorValue temp_grad_variable;
 
   _velocity.resize(3, 0.0);
   
@@ -75,13 +75,22 @@ ArrayDirectionalDerivative::computeValue()
   // Calculate output for slip system i
   val(i) = 0.0;
   
-  temp_grad_variable = _grad_variable[_qp](i);
+  // _grad_variable[_qp] is an array with number of component
+  // given by _var.count() * LIBMESH_DIM
+  // the order of the components is, for instance, in 3D
+  // the first _var.count() variables are the derivatives along x of
+  // the components of _var
+  // the next _var.count() variables are the derivatives along y of
+  // the components of _var
+  // the next _var.count() variables are the derivatives along z of
+  // the components of _var
     
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j) {
-    val(i) += temp_grad_variable(j) * _velocity[j];  
+    val(i) += _grad_variable[_qp](j*_var.count()+i) * _velocity[j];
+	std::cout << _edge_slip_direction[_qp][i * LIBMESH_DIM + j] << std::endl;
   }
 	
-  } // end of iteration over slip systems	
+  } // end of iteration over slip systems
   
   return val;
 }
