@@ -1,0 +1,8 @@
+[Tests]
+  [./simple_gradient]
+    type = 'Exodiff'
+    input = 'simple_gradient.i'
+    exodiff = 'simple_gradient_out.e'
+	heavy = false
+  [../]
+[]
