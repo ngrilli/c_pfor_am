@@ -87,7 +87,6 @@ ArrayDirectionalDerivative::computeValue()
     
   for (unsigned int j = 0; j < LIBMESH_DIM; ++j) {
     val(i) += _grad_variable[_qp](j*_var.count()+i) * _velocity[j];
-	std::cout << _edge_slip_direction[_qp][i * LIBMESH_DIM + j] << std::endl;
   }
 	
   } // end of iteration over slip systems

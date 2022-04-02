@@ -13,7 +13,7 @@ registerMooseObject("TensorMechanicsApp", CrystalPlasticityDislocationUpdate);
 InputParameters
 CrystalPlasticityDislocationUpdate::validParams()
 {
-  InputParameters params = CrystalPlasticityStressUpdateBase::validParams();
+  InputParameters params = CrystalPlasticityDislocationUpdateBase::validParams();
   params.addClassDescription("Dislocation based model for crystal plasticity "
                              "using the stress update code");
   params.addParam<Real>("r", 1.0, "Latent hardening coefficient");
@@ -33,7 +33,7 @@ CrystalPlasticityDislocationUpdate::validParams()
 
 CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     const InputParameters & parameters)
-  : CrystalPlasticityStressUpdateBase(parameters),
+  : CrystalPlasticityDislocationUpdateBase(parameters),
     // Constitutive values
     _r(getParam<Real>("r")),
     _h(getParam<Real>("h")),
@@ -67,7 +67,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 void
 CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
 {
-  CrystalPlasticityStressUpdateBase::initQpStatefulProperties();
+  CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties();
 
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -79,13 +79,6 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   // that are called just after initialization  
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-}
-
-void
-CrystalPlasticityDislocationUpdate::calculateFlowDirection(const RankTwoTensor & crysrot)
-{
-  calculateSchmidTensor(
-      _number_slip_systems, _slip_plane_normal, _slip_direction, _flow_direction[_qp], crysrot);
 }
 
 // Calculate Schmid tensor and
@@ -136,8 +129,6 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
   // Calculate and store edge and screw slip directions are also assigned
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-  
-  std::cout << "inside calculateSchmidTensor" << std::endl;
   
   for (const auto i : make_range(_number_slip_systems)) {
 	for (const auto j : make_range(LIBMESH_DIM)) {
