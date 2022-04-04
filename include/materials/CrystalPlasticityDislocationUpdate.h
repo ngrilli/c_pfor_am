@@ -68,6 +68,8 @@ protected:
   virtual void updateSubstepConstitutiveVariableValues() override;
 
   virtual bool calculateSlipRate() override;
+  
+  virtual void calculateSlipResistance();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -95,41 +97,77 @@ protected:
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
 
-  ///@{Varibles used in the Kalidindi 1992 slip system resistance constiutive model
-  const Real _r;
-  const Real _h;
-  const Real _tau_sat;
-  const Real _gss_a;
+  // Variables used in
+  // Eralp Demir, Ivan Gutierrez-Urrutia
+  // Investigation of strain hardening near grain boundaries of an aluminum oligocrystal: 
+  // Experiments and crystal based finite element method
+  // International Journal of Plasticity
+  // Volume 136, January 2021, 102898
+  
+  // Slip rate constants
   const Real _ao;
   const Real _xm;
-  const Real _gss_initial;
-  ///@}
+
+  // Magnitude of the Burgers vector
+  const Real _burgers_vector_mag;
+  
+  // Shear modulus in Taylor hardening law G
+  const Real _shear_modulus;
+  
+  // Prefactor of Taylor hardening law, alpha
+  const Real _alpha_0;
+  
+  // Latent hardening coefficient
+  const Real _r;
+  
+  // Peierls stress
+  const Real _tau_c_0;
+  
+  // Coefficient K in SSD evolution, representing accumulation rate
+  const Real _k_0;
+  
+  // Critical annihilation diameter
+  const Real _y_c;
+  
+  // Initial values of the dislocation density
+  const Real _init_rho_ssd;
+  const Real _init_rho_gnd_edge;
+  const Real _init_rho_gnd_screw;
+  
+  // Tolerance on dislocation density update
+  const Real _rho_tol;
+  
+  // Dislocation densities
+  MaterialProperty<std::vector<Real>> & _rho_ssd;
+  const MaterialProperty<std::vector<Real>> & _rho_ssd_old;
+  MaterialProperty<std::vector<Real>> & _rho_gnd_edge;
+  const MaterialProperty<std::vector<Real>> & _rho_gnd_edge_old;
+  MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
+  const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
+  
+  /// Increment of dislocation densities
+  std::vector<Real> _rho_ssd_increment;
+  std::vector<Real> _rho_gnd_edge_increment;
+  std::vector<Real> _rho_gnd_screw_increment;  
 
   /**
-   * Slip system interaction matrix used to calculate the hardening contributions
-   * from the self and latent slip systems, from Kalidindi et al (1992).
-   */
-  std::vector<Real> _hb;
-
-  /// Increment of increased resistance for each slip system
-  std::vector<Real> _slip_resistance_increment;
-
-  /**
-   * Stores the values of the slip system resistance from the previous substep
+   * Stores the values of the dislocation densities from the previous substep
    * In classes which use dislocation densities, analogous dislocation density
    * substep vectors will be required.
    */
-  std::vector<Real> _previous_substep_slip_resistance;
+  std::vector<Real> _previous_substep_rho_ssd;
+  std::vector<Real> _previous_substep_rho_gnd_edge;
+  std::vector<Real> _previous_substep_rho_gnd_screw;
 
   /**
-   * Caches the value of the current slip system resistance immediately prior
-   * to the update of the slip system resistance, and is used to calculate the
-   * the slip system resistance increment for the current substep (or step if
+   * Caches the value of the current dislocation densities immediately prior
+   * to the update, and they are used to calculate the
+   * the dislocation densities for the current substep (or step if
    * only one substep is taken) for the convergence check tolerance comparison.
-   * In classes which use dislocation densities, analogous dislocation density
-   * caching vectors will also be required.
    */
-  std::vector<Real> _slip_resistance_before_update;
+  std::vector<Real> _rho_ssd_before_update;
+  std::vector<Real> _rho_gnd_edge_before_update; 
+  std::vector<Real> _rho_gnd_screw_before_update;
 
   /**
    * Flag to include the total twin volume fraction in the plastic velocity
