@@ -32,6 +32,8 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
+  params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
+  params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   return params;
 }
 
@@ -89,6 +91,10 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _twin_volume_fraction_total(_include_twinning_in_Lp
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
                                     : nullptr),
+									
+    // Directional derivatives of the slip rate
+    _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
+    _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
@@ -245,22 +251,18 @@ void
 CrystalPlasticityDislocationUpdate::setInitialConstitutiveVariableValues()
 {
   // Would also set old dislocation densities here if included in this model
-  //_slip_resistance[_qp] = _slip_resistance_old[_qp];
   _rho_ssd[_qp] = _rho_ssd_old[_qp];
   _previous_substep_rho_ssd = _rho_ssd_old[_qp];
   _rho_gnd_edge[_qp] = _rho_gnd_edge_old[_qp];
   _previous_substep_rho_gnd_edge = _rho_gnd_edge_old[_qp];
   _rho_gnd_screw[_qp] = _rho_gnd_screw_old[_qp];
   _previous_substep_rho_gnd_screw = _rho_gnd_screw_old[_qp];
-
-  //_previous_substep_slip_resistance = _slip_resistance_old[_qp];
 }
 
 void
 CrystalPlasticityDislocationUpdate::setSubstepConstitutiveVariableValues()
 {
   // Would also set substepped dislocation densities here if included in this model
-  //_slip_resistance[_qp] = _previous_substep_slip_resistance;
   _rho_ssd[_qp] = _previous_substep_rho_ssd;
   _rho_gnd_edge[_qp] = _previous_substep_rho_gnd_edge;
   _rho_gnd_screw[_qp] = _previous_substep_rho_gnd_screw;
@@ -334,11 +336,8 @@ CrystalPlasticityDislocationUpdate::calculateSlipResistance()
 	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
 	                          * std::sqrt(taylor_hardening));
 	
-  }	
-	
-	//std::cout << _slip_resistance[_qp][0] << std::endl;
-	
-	
+  }
+
 }
 
 void
@@ -417,31 +416,20 @@ CrystalPlasticityDislocationUpdate::calculateStateVariableEvolutionRateComponent
 
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
-	// and is multiplied by time step in updateStateVariables
+	// and the rate equation gets multiplied by time step in updateStateVariables
     _rho_ssd_increment[i] = _k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
     _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
 
   }
   
   // GND dislocation density increment
-  for (const auto i : make_range(_number_slip_systems)) {
-	  
-    // TO DO
-    _rho_gnd_edge_increment[i] = 0.0;
-    _rho_gnd_screw_increment[i] = 0.0;
+  for (const auto i : make_range(_number_slip_systems)) 
+  {
 
-    // no need for this, they are already assigned 
-    // calculateSchmidTensor();
- 
-    // There is no need here for _edge_slip_direction
-	// _grad_slip_increment is already the directional derivative
-	// meaning \nabla \gamma \dot \hat{t} 
-	// this is the rate
-    //_rho_gnd_edge_increment[j] = (-1) * _grad_slip_increment[i] *  / _burgers_vector - _rho_gnd_edge_old[j];
-    //_rho_gnd_screw_increment[j] = (-1) * _grad_slip_increment[i] * _screw_slip_direction[_qp][i * LIBMESH_DIM + j] / _burgers_vector - _rho_gnd_screw_old[j];    
-
+    _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
+    _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
+		
   }
-
 }
 
 bool

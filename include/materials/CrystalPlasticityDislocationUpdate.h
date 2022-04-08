@@ -184,6 +184,11 @@ protected:
    */
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
   
+  // Directional derivative of the slip rate along the edge dislocation motion direction
+  // and along the screw dislocation motion direction
+  const ArrayVariableValue & _dslip_increment_dedge;
+  const ArrayVariableValue & _dslip_increment_dscrew;
+  
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
   // it indicates the edge dislocation velocity direction for all slip systems
