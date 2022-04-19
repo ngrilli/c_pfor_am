@@ -126,8 +126,7 @@ c
       use calculations, only: calcs
 
       use globalvars, only : phasefielddamage
-
-	  
+  
       use phasefieldfracture, only : moose_interface_input
       use phasefieldfracture, only : moose_interface_output
 
@@ -220,12 +219,12 @@ c
 c     Phase field damage model is added by Nicolò Grilli.
 c     Send information for moose
 c     Phase field damage model
+c     If damage model is not used all the relevant
+c     variables will remain zero
 c
-      if (phasefielddamage.eq.1d+0) then
+
+      call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
 	  
-          call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
-	  
-      end if
 c
 c     
 c      
