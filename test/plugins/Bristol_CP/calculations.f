@@ -543,7 +543,7 @@ c                 Calculate the material tangent (using analytical tangent)
 
                       
                       call SC_jacobian_ana(dt,F,Fe,Fr,S,F_t,Fe_t,
-     & Fr_t,gammadot,dgammadot_dtau,C,jacob,jconv)
+     & Fr_t,gammadot,dgammadot_dtau,C,jacob,jconv,dam,damflag)
                       
 
                       
@@ -1140,12 +1140,13 @@ c
                       
 c	This subroutine calculates consistent tangent
 	subroutine SC_jacobian_ana(dt,F,Fe,Fr,T_vec,F_t,Fe_t,Fr_t,
-     & gammadot,dgammadot_dtau,C,jacob,jconv)
+     & gammadot,dgammadot_dtau,C,jacob,jconv,dam,damflag)
       use globalvars, only: numslip, Schmid, 
      & elas3333, I3333, I6, largenum
-	use globalsubs, only: invert3x3, convert6to3x3, polar,
+      use globalsubs, only: invert3x3, convert6to3x3, polar,
      & convert3x3x3x3to9x9, invertnxn, convert9x9to3x3x3x3, 
      & convert3x3x3x3to6x6
+      use globalsubs, only: determinant
 	implicit none
 c	Inputs
       real(8) dt,F(3,3),Fe(3,3),Fr(3,3),T_vec(6),F_t(3,3),Fe_t(3,3)
@@ -1163,6 +1164,9 @@ c	Variables used within this subroutine
       real(8) S4(3,3,3,3), W4(3,3,3,3)
       integer i,j,k,l,m,n,q,p,is
       logical notnum
+      integer damflag
+      real(8) dam 
+      real(8) Je
       
 
 c	Assign the convergent behavior
@@ -1210,7 +1214,7 @@ c     Step-1. Calculation of L
               do k=1,3
                   do l=1,3
                       sum=0.0d+0
-					do m=1,3
+					  do m=1,3
 						sum = sum + Fer_t(k,i) * dU(l,m) * Fer_t(m,j)
      & + Fer_t(m,i) * dU(m,k) * Fer_t(l,j)
           
@@ -1221,11 +1225,8 @@ c     Step-1. Calculation of L
               enddo
           enddo
       enddo
-          
 
-          
-c     Step-2. Elasticity (elas3333): no need to transform
-      
+      call determinant(Fe, Je) 
           
 c     Step-3. Calculation of D
       D4 = 0.0d+0
@@ -1237,8 +1238,18 @@ c     Step-3. Calculation of D
                       do m=1,3
                           do n=1,3
                                   
-                              sum = sum + 0.5d+0 * elas3333(i,j,m,n)
+      if (damflag.eq.1d+0 .and. Je>=1d+0) then
+                                  
+      sum = sum + 0.5d+0
+     & * elas3333(i,j,m,n) * L4(m,n,k,l) * (1.0 - dam) * (1.0 - dam)
+                              
+      else
+                                  
+      sum = sum + 0.5d+0*elas3333(i,j,m,n)
      & * L4(m,n,k,l)
+	 
+      endif
+
                           enddo
                       enddo
                           
@@ -1291,8 +1302,18 @@ c     (b) Calculation of J
                           do m=1,3
                               do n=1,3
           
-                                  sum = sum + 0.5d+0 * elas3333(i,j,m,n)
-     & * G4(is,m,n,k,l)
+      if (damflag.eq.1d+0 .and. Je>=1d+0) then
+                                 
+      sum = sum + 0.5d+0
+     & *elas3333(i,j,m,n)*G4(is,m,n,k,l)*(1.0-dam)*(1.0-dam)
+
+      else
+
+      sum = sum + 0.5d+0
+     & * elas3333(i,j,m,n) * G4(is,m,n,k,l)
+                                  
+      endif
+
                               enddo
                           enddo
                               
