@@ -20,10 +20,10 @@
   dim = 3
   nx = 10
   ny = 10
-  nz = 2
+  nz = 1
   xmax = 10.0
   ymax = 10.0
-  zmax = 2.0
+  zmax = 1.0
   elem_type = HEX8
   displacements = 'disp_x disp_y disp_z'
 []
