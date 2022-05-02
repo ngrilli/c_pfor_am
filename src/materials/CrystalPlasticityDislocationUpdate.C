@@ -32,6 +32,10 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
+  params.addParam<UserObjectName>("read_initial_gnd_density",
+                                  "The ElementReadPropertyFile "
+                                  "GeneralUserObject to read element value "
+                                  "of the initial GND density");
   params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
   params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   return params;
@@ -91,6 +95,11 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _twin_volume_fraction_total(_include_twinning_in_Lp
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
                                     : nullptr),
+
+    // UserObject to read the initial GND density from file						
+    _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
+                               ? &getUserObject<ElementPropertyReadFile>("read_initial_gnd_density")
+                               : nullptr),
 									
     // Directional derivatives of the slip rate
     _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
@@ -120,8 +129,18 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   for (const auto i : make_range(_number_slip_systems))
   {
     _rho_ssd[_qp][i] = _init_rho_ssd;
+	
+	if (_read_initial_gnd_density) { // Read initial GND density from file
+	
+    _rho_gnd_edge[_qp][i] = _read_initial_gnd_density->getData(_current_elem, i);
+	_rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
+	
+	} else { // Initialize uniform GND density
+		
     _rho_gnd_edge[_qp][i] = _init_rho_gnd_edge;
     _rho_gnd_screw[_qp][i] = _init_rho_gnd_screw;
+	
+	}
   }
   
   // Initialize value of the slip resistance

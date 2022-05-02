@@ -7,6 +7,7 @@
 #pragma once
 
 #include "CrystalPlasticityDislocationUpdateBase.h"
+#include "ElementPropertyReadFile.h"
 
 class CrystalPlasticityDislocationUpdate;
 
@@ -183,6 +184,11 @@ protected:
    * value by a single timestep.
    */
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
+  
+  /**
+   * UserObject to read the initial GND density from file
+   */
+  const ElementPropertyReadFile * const _read_initial_gnd_density;
   
   // Directional derivative of the slip rate along the edge dislocation motion direction
   // and along the screw dislocation motion direction
