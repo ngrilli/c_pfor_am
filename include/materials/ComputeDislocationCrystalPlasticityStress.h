@@ -8,6 +8,7 @@
 
 #include "CrystalPlasticityDislocationUpdateBase.h"
 #include "ComputeCrystalPlasticityEigenstrainBase.h"
+#include "ElementPropertyReadFile.h"
 
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
@@ -220,6 +221,13 @@ protected:
 
   /// Flag to print to console warning messages on stress, constitutive model convergence
   const bool _print_convergence_message;
+  
+  // UserObject to read the initial plastic deformation gradient from file
+  // The file will have one row for each element
+  // each row will contain the components
+  // Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33}
+  // of the initial plastic deformation gradient
+  const ElementPropertyReadFile * const _read_initial_Fp;
 
   /// Flag to check whether convergence is achieved or if substepping is needed
   bool _convergence_failed;

@@ -56,6 +56,10 @@ ComputeDislocationCrystalPlasticityStress::validParams()
       false,
       "Whether or not to print warning messages from the crystal plasticity specific convergence "
       "checks on the stress measure and general constitutive model quantinties.");
+  params.addParam<UserObjectName>("read_initial_Fp",
+                                  "The ElementReadPropertyFile "
+                                  "GeneralUserObject to read element value "
+                                  "of the initial plastic deformation gradient");
   return params;
 }
 
@@ -96,7 +100,12 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
     _updated_rotation(declareProperty<RankTwoTensor>("updated_rotation")),
     _crysrot(getMaterialProperty<RankTwoTensor>(
         "crysrot")), // defined in the elasticity tensor classes for crystal plasticity
-    _print_convergence_message(getParam<bool>("print_state_variable_convergence_error_messages"))
+    _print_convergence_message(getParam<bool>("print_state_variable_convergence_error_messages")),
+    
+	// UserObject to read the initial plastic deformation gradient from file						
+    _read_initial_Fp(isParamValid("read_initial_Fp")
+                               ? &getUserObject<ElementPropertyReadFile>("read_initial_Fp")
+                               : nullptr)
 {
   _convergence_failed = false;
 }
@@ -104,8 +113,31 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
 void
 ComputeDislocationCrystalPlasticityStress::initQpStatefulProperties()
 {
-  _plastic_deformation_gradient[_qp].zero();
-  _plastic_deformation_gradient[_qp].addIa(1.0);
+  // temporary variable to store the initial plastic deformation gradient
+  // read from file and then assign it to _plastic_deformation_gradient
+  RankTwoTensor initial_Fp;	
+	
+  // Initialize Fp
+  if (_read_initial_Fp) { // Read initial plastic deformation gradient from file
+
+    // The file will have one row for each element
+    // each row will contain the components
+    // Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33} 
+	
+    for (unsigned int i = 0; i < 3; ++i) {
+	  for (unsigned int j = 0; j < 3; ++j) {
+        initial_Fp(i,j) = _read_initial_Fp->getData(_current_elem, 3*i+j);
+	  }
+	}
+  
+    _plastic_deformation_gradient[_qp] = initial_Fp;
+  
+  } else { // Initialize uniform plastic deformation gradient to identity
+  
+    _plastic_deformation_gradient[_qp].zero();
+    _plastic_deformation_gradient[_qp].addIa(1.0);
+  
+  }
 
   if (_num_eigenstrains)
   {
@@ -324,7 +356,7 @@ ComputeDislocationCrystalPlasticityStress::solveStateVariables()
       return;
 
     _plastic_deformation_gradient[_qp] =
-        _inverse_plastic_deformation_grad.inverse(); // the postSoveStress
+        _inverse_plastic_deformation_grad.inverse(); // the postSolveStress
 
     // Update slip system resistance and state variable after the stress has been finalized
     // We loop through all the models for each calculation
