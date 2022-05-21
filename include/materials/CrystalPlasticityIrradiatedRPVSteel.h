@@ -77,6 +77,8 @@ protected:
   virtual bool calculateSlipRate() override;
   
   virtual void calculateSlipResistance();
+  
+  virtual void calculateSelfInteractionSlipResistance();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -104,17 +106,31 @@ protected:
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
   
-  // TO DO: model constants
-  
-  // Slip rate constants
-  const Real _ao;
-  const Real _xm;
+  // model parameters
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
   
   // Shear modulus in Taylor hardening law G
+  // mu in the article
   const Real _shear_modulus;
+  
+  // Shear modulus at room temperature in Taylor hardening law G
+  // mu(300 K) in the article
+  const Real _RT_shear_modulus;
+  
+  // Self interaction coefficient of the slip systems
+  const Real _a_self;
+  
+  
+  
+  // TO DO
+  
+  // Slip rate constants
+  const Real _ao;
+  const Real _xm;
+
+
   
   // Prefactor of Taylor hardening law, alpha
   const Real _alpha_0;
@@ -228,5 +244,8 @@ protected:
   // edge dislocation line direction
   // corresponding to direction of motion of screw dislocations
   MaterialProperty<std::vector<Real>> & _screw_slip_direction;
+  
+  // Self interaction stress tau_self for each slip system
+  std::vector<Real> _tau_self;
   
 };

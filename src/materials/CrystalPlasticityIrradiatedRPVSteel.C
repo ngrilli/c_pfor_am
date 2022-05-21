@@ -27,12 +27,16 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
                              "using the stress update code."
 							 "Irradiation damage in RPV steel.");
 							 
+  params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
+  params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
+  params.addParam<Real>("RT_shear_modulus",86000.0,"Shear modulus at room temperature");
+  params.addParam<Real>("a_self",0.1,"Self interaction coefficient of the slip systems");
+
 							 
   // TO DO - add parameters						 
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
-  params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
-  params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
+
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
@@ -64,10 +68,15 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
   : CrystalPlasticityDislocationUpdateBase(parameters),
   
     // Constitutive model parameters
-    _ao(getParam<Real>("ao")),
-    _xm(getParam<Real>("xm")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
+	_RT_shear_modulus(getParam<Real>("RT_shear_modulus")),
+    _a_self(getParam<Real>("a_self")),		
+	
+	// TO DO
+    _ao(getParam<Real>("ao")),
+    _xm(getParam<Real>("xm")),
+
 	_alpha_0(getParam<Real>("alpha_0")),
     _r(getParam<Real>("r")),
 	_tau_c_0(getParam<Real>("tau_c_0")),
@@ -146,7 +155,10 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
-	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
+	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")),
+	
+	// Self interaction stress tau_self for each slip system
+	_tau_self(_number_slip_systems, 0.0)
 {
 }
 
@@ -196,6 +208,9 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
   // Function to calculate slip resistance can be called
   // here because the state variables are already assigned
   calculateSlipResistance();
+  
+  
+  // TO DO
   
   // Initialize value of the slip resistance
   // as a function of the dislocation density
@@ -380,8 +395,16 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipRate()
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
 {
+	
+  calculateSelfInteractionSlipResistance();
+
+
+
+  // TO DO
   Real taylor_hardening;
 	
+	
+  // TO DO	
   for (const auto i : make_range(_number_slip_systems))
   {
     // Add Peierls stress
@@ -416,6 +439,27 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
 	
 	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
 	                          * std::sqrt(taylor_hardening));
+	
+  }
+
+}
+
+// Self-interaction slip resistance based on equation (12)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateSelfInteractionSlipResistance()
+{
+  // temporary variable for the total dislocation density
+  // including GND and SSD
+  Real rho_tot;	
+
+  for (const auto i : make_range(_number_slip_systems))	{
+	  
+    rho_tot = _rho_ssd[_qp][i] 
+	        + std::abs(_rho_gnd_edge[_qp][i])
+			+ std::abs(_rho_gnd_screw[_qp][i]);
+	  
+    _tau_self[i] = _burgers_vector_mag * _shear_modulus 
+	             * std::sqrt(_a_self * rho_tot);
 	
   }
 
