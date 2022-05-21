@@ -31,6 +31,9 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("RT_shear_modulus",86000.0,"Shear modulus at room temperature");
   params.addParam<Real>("a_self",0.1,"Self interaction coefficient of the slip systems");
+  params.addParam<Real>("K_Hall_Petch",1.0,"Hall-Petch effect prefactor");
+  params.addParam<Real>("d_grain",100.0,"Average grain size (micron)");
+  
 
 							 
   // TO DO - add parameters						 
@@ -71,7 +74,10 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_RT_shear_modulus(getParam<Real>("RT_shear_modulus")),
-    _a_self(getParam<Real>("a_self")),		
+    _a_self(getParam<Real>("a_self")),
+    _K_Hall_Petch(getParam<Real>("K_Hall_Petch")),
+	_d_grain(getParam<Real>("d_grain")),
+	
 	
 	// TO DO
     _ao(getParam<Real>("ao")),
@@ -397,8 +403,11 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
 {
 	
   calculateSelfInteractionSlipResistance();
+  calculateHallPetchSlipResistance();
 
-
+  // sum the contributions to the CRSS
+  
+  
 
   // TO DO
   Real taylor_hardening;
@@ -462,6 +471,16 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSelfInteractionSlipResistance()
 	             * std::sqrt(_a_self * rho_tot);
 	
   }
+
+}
+
+// Hall-Petch slip resistance based on equation (13)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateHallPetchSlipResistance()
+{
+	
+  _tau_Hall_Petch = (_shear_modulus / _RT_shear_modulus) 
+                  * (_K_Hall_Petch / std::sqrt(_d_grain));
 
 }
 

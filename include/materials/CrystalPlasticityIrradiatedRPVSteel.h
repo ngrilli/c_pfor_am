@@ -79,6 +79,8 @@ protected:
   virtual void calculateSlipResistance();
   
   virtual void calculateSelfInteractionSlipResistance();
+  
+  virtual void calculateHallPetchSlipResistance();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -121,6 +123,13 @@ protected:
   
   // Self interaction coefficient of the slip systems
   const Real _a_self;
+  
+  // Hall-Petch prefactor
+  // value is reported in reference [22] of the article
+  const Real _K_Hall_Petch;
+  
+  // Average grain size
+  const Real _d_grain;
   
   
   
@@ -247,5 +256,9 @@ protected:
   
   // Self interaction stress tau_self for each slip system
   std::vector<Real> _tau_self;
+  
+  // Hall-Petch slip resistance
+  // it is the same for each slip system
+  Real _tau_Hall_Petch;
   
 };
