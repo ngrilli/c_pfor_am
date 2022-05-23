@@ -78,9 +78,13 @@ protected:
   
   virtual void calculateSlipResistance();
   
+  virtual void calculateObstaclesDensity();
+  
   virtual void calculateSelfInteractionSlipResistance();
   
   virtual void calculateHallPetchSlipResistance();
+  
+  virtual void calculateLineTensionSlipResistance();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -130,6 +134,23 @@ protected:
   
   // Average grain size
   const Real _d_grain;
+  
+  // Carbide planar density
+  const Real _rho_carbide;
+  
+  // Constant average diameters of
+  // irradiation dislocation loops and
+  // irradiation solute clusters
+  const Real _C_DL_diameter;
+  const Real _C_SC_diameter;
+  
+  // According to section 3.2 in
+  // Nathan R.Barton, Athanasios Arsenlis, Jaime Marian
+  // A polycrystal plasticity model of strain localization in irradiated iron
+  // Journal of the Mechanics and Physics of Solids
+  // Volume 61, Issue 2, February 2013, Pages 341-351
+  // https://www.sciencedirect.com/science/article/pii/S002250961200230X?via%3Dihub
+  // the average diameter of the irradiation dislocation loops is 100b
   
   
   
@@ -254,11 +275,19 @@ protected:
   // corresponding to direction of motion of screw dislocations
   MaterialProperty<std::vector<Real>> & _screw_slip_direction;
   
+  // Total density of local obstacles
+  std::vector<Real> _rho_obstacles;
+  
   // Self interaction stress tau_self for each slip system
   std::vector<Real> _tau_self;
   
   // Hall-Petch slip resistance
   // it is the same for each slip system
+  // note that if GND are activated, part of the Hall-Petch effect
+  // will be provided by the GNDs
   Real _tau_Hall_Petch;
+  
+  // Line tension slip resistance
+  std::vector<Real> _tau_line_tension;  
   
 };
