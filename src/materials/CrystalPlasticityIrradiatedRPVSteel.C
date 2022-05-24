@@ -31,6 +31,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("RT_shear_modulus",86000.0,"Shear modulus at room temperature");
   params.addParam<Real>("a_self",0.1,"Self interaction coefficient of the slip systems");
+  params.addParam<Real>("a_col",0.7,"Collinear interaction coefficient of the slip systems");
   params.addParam<Real>("K_Hall_Petch",1.0,"Hall-Petch effect prefactor");
   params.addParam<Real>("d_grain",100.0,"Average grain size (micron)");
   params.addParam<Real>("rho_carbide",0.0,"Carbide planar density");
@@ -80,6 +81,7 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_RT_shear_modulus(getParam<Real>("RT_shear_modulus")),
     _a_self(getParam<Real>("a_self")),
+	_a_col(getParam<Real>("a_col")),
     _K_Hall_Petch(getParam<Real>("K_Hall_Petch")),
 	_d_grain(getParam<Real>("d_grain")),
 	_rho_carbide(getParam<Real>("rho_carbide")),
@@ -182,7 +184,10 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	_tau_self(_number_slip_systems, 0.0),
 	
 	// Line tension slip resistance for each slip system
-	_tau_line_tension(_number_slip_systems, 0.0)
+	_tau_line_tension(_number_slip_systems, 0.0),
+	
+	// Reference interaction matrix between slip systems
+	_a_ref(_number_slip_systems, _number_slip_systems)
 {
 }
 
@@ -233,6 +238,8 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
   // here because the state variables are already assigned
   calculateSlipResistance();
   
+  // Initialize constant reference interaction matrix between slip systems
+  initializeReferenceInteractionMatrix();
   
   // TO DO
   
@@ -288,6 +295,36 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
 
+}
+
+// Initialize constant reference interaction matrix between slip systems
+// based on Figure 1
+// This is meant to work for BCC crystals only
+void
+CrystalPlasticityIrradiatedRPVSteel::initializeReferenceInteractionMatrix()
+{
+  // Initially fill with self interaction
+  for (const auto i : make_range(_number_slip_systems)) {
+    for (const auto j : make_range(_number_slip_systems)) {
+		
+      _a_ref(i,j) = _a_self;	
+		
+	}  
+  }
+
+  // Fill the collinear in the 3x3 diagonal blocks
+  for (unsigned int i = 0; i < (_number_slip_systems/3); ++i) {
+	  
+    _a_ref(3*i,3*i+1) = _a_col;
+	_a_ref(3*i+1,3*i) = _a_col;
+    _a_ref(3*i,3*i+2) = _a_col;
+	_a_ref(3*i+2,3*i) = _a_col;
+    _a_ref(3*i+1,3*i+2) = _a_col;
+    _a_ref(3*i+2,3*i+1) = _a_col;	
+
+  }
+	
+  // TO DO: add the collinear in the cross slip blocks
 }
 
 // Calculate Schmid tensor and

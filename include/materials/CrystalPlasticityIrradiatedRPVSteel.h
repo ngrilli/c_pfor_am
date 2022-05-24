@@ -40,6 +40,9 @@ protected:
    */
   virtual void initQpStatefulProperties() override;
   
+  // Initialize constant reference interaction matrix between slip systems
+  virtual void initializeReferenceInteractionMatrix();
+  
   /**
    * A helper method to rotate the a direction and plane normal system set into
    * the local crystal lattice orientation as defined by the crystal rotation
@@ -125,8 +128,9 @@ protected:
   // mu(300 K) in the article
   const Real _RT_shear_modulus;
   
-  // Self interaction coefficient of the slip systems
+  // Self and collinear interaction coefficients of the slip systems
   const Real _a_self;
+  const Real _a_col;
   
   // Hall-Petch prefactor
   // value is reported in reference [22] of the article
@@ -289,5 +293,9 @@ protected:
   
   // Line tension slip resistance
   std::vector<Real> _tau_line_tension;  
+  
+  // Reference interaction matrix between slip systems
+  // as shown in Figure 1
+  DenseMatrix<Real> _a_ref;
   
 };
