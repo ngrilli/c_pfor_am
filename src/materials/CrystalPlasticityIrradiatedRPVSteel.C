@@ -324,7 +324,35 @@ CrystalPlasticityIrradiatedRPVSteel::initializeReferenceInteractionMatrix()
 
   }
 	
-  // TO DO: add the collinear in the cross slip blocks
+  // Fill the collinear in the 3x3 cross slip blocks
+  // Assigning one by one because there is little regularity
+  _a_ref(0,13) = _a_col;
+  _a_ref(1,14) = _a_col;
+  _a_ref(2,12) = _a_col;
+  _a_ref(3,16) = _a_col;
+  _a_ref(4,15) = _a_col;
+  _a_ref(5,17) = _a_col;
+  _a_ref(6,20) = _a_col;
+  _a_ref(7,18) = _a_col;
+  _a_ref(8,19) = _a_col;
+  _a_ref(9,22) = _a_col;
+  _a_ref(10,23) = _a_col;
+  _a_ref(11,21) = _a_col;
+  
+  // add the transpose part
+  _a_ref(13,0) = _a_col;
+  _a_ref(14,1) = _a_col;
+  _a_ref(12,2) = _a_col;
+  _a_ref(16,3) = _a_col;
+  _a_ref(15,4) = _a_col;
+  _a_ref(17,5) = _a_col;
+  _a_ref(20,6) = _a_col;
+  _a_ref(18,7) = _a_col;
+  _a_ref(19,8) = _a_col;
+  _a_ref(22,9) = _a_col;
+  _a_ref(23,10) = _a_col;
+  _a_ref(21,11) = _a_col;
+  
 }
 
 // Calculate Schmid tensor and
