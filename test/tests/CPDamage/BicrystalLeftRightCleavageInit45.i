@@ -322,82 +322,82 @@
 []
 
 [UserObjects]
-  [./slip_rate_gss_alpha]
+  [./slip_rate_gss_1]
     type = CrystalPlasticitySlipRateCleavage
     variable_size = 12
     slip_sys_file_name = 'input_slip_sys.txt'
     num_slip_sys_flowrate_props = 2
     flowprops = '1 12 0.001 0.14'
-    uo_state_var_name = state_var_gss_alpha
+    uo_state_var_name = state_var_gss_1
     block = '1'
   [../]
-  [./slip_rate_gss_beta]
+  [./slip_rate_gss_2]
     type = CrystalPlasticitySlipRateCleavage
     variable_size = 12
     slip_sys_file_name = 'input_slip_sys.txt'
     num_slip_sys_flowrate_props = 2
     flowprops = '1 12 0.001 0.14'
-    uo_state_var_name = state_var_gss_beta
+    uo_state_var_name = state_var_gss_2
     block = '2'
   [../]
-  [./slip_resistance_gss_alpha]
+  [./slip_resistance_gss_1]
     type = CrystalPlasticitySlipResistanceGSS
     variable_size = 12
-    uo_state_var_name = state_var_gss_alpha
+    uo_state_var_name = state_var_gss_1
     block = '1'
   [../]
-  [./slip_resistance_gss_beta]
+  [./slip_resistance_gss_2]
     type = CrystalPlasticitySlipResistanceGSS
     variable_size = 12
-    uo_state_var_name = state_var_gss_beta
+    uo_state_var_name = state_var_gss_2
     block = '2'
   [../]
-  [./state_var_gss_alpha]
+  [./state_var_gss_1]
     type = CrystalPlasticityStateVariable
     variable_size = 12
     groups = '0 3 6 12'
     group_values = '420 420 420'
-    uo_state_var_evol_rate_comp_name = state_var_evol_rate_comp_gss_alpha
+    uo_state_var_evol_rate_comp_name = state_var_evol_rate_comp_gss_1
     scale_factor = 1.0
     block = '1'
   [../]
-  [./state_var_gss_beta]
+  [./state_var_gss_2]
     type = CrystalPlasticityStateVariable
     variable_size = 12
     groups = '0 3 6 12'
     group_values = '420 420 420'
-    uo_state_var_evol_rate_comp_name = state_var_evol_rate_comp_gss_beta
+    uo_state_var_evol_rate_comp_name = state_var_evol_rate_comp_gss_2
     scale_factor = 1.0
     block = '2'
   [../]
-  [./state_var_evol_rate_comp_gss_alpha]
+  [./state_var_evol_rate_comp_gss_1]
     type = CrystalPlasticityStateVarRateComponentGSS
     variable_size = 12
     hprops = '1 631.2 462 2.5'
-    uo_slip_rate_name = slip_rate_gss_alpha
-    uo_state_var_name = state_var_gss_alpha
+    uo_slip_rate_name = slip_rate_gss_1
+    uo_state_var_name = state_var_gss_1
     block = '1'
   [../]
-  [./state_var_evol_rate_comp_gss_beta]
+  [./state_var_evol_rate_comp_gss_2]
     type = CrystalPlasticityStateVarRateComponentGSS
     variable_size = 12
     hprops = '1 631.2 462 2.5'
-    uo_slip_rate_name = slip_rate_gss_beta
-    uo_state_var_name = state_var_gss_beta
+    uo_slip_rate_name = slip_rate_gss_2
+    uo_state_var_name = state_var_gss_2
     block = '2'
   [../]
 []
 
 [Materials]
-  [./crysp_alpha] # class outputting slip plane for the cleavage plane 
+  [./crysp_1] # class outputting slip plane for the cleavage plane 
     type = FiniteStrainUObasedCPCleavage
     c = c
     stol = 1e-2
     tan_mod_type = exact
-    uo_slip_rates = 'slip_rate_gss_alpha'
-    uo_slip_resistances = 'slip_resistance_gss_alpha'
-    uo_state_vars = 'state_var_gss_alpha'
-    uo_state_var_evol_rate_comps = 'state_var_evol_rate_comp_gss_alpha'
+    uo_slip_rates = 'slip_rate_gss_1'
+    uo_slip_resistances = 'slip_resistance_gss_1'
+    uo_state_vars = 'state_var_gss_1'
+    uo_state_var_evol_rate_comps = 'state_var_evol_rate_comp_gss_1'
     E_name = 'elastic_energy'
     D_name = 'degradation'
     use_current_history_variable = false
@@ -406,24 +406,24 @@
     use_line_search = true
     block = '1'
   [../]
-  [./elasticity_tensor_alpha]
+  [./elasticity_tensor_1]
     type = ComputeElasticityTensorCP
-    C_ijkl = '1.624e5 .92e5 .69e5 1.624e5 .69e5 1.807e5 0.467e5 0.467e5 0.352e5' #Kim
+    C_ijkl = '1.624e5 .92e5 .69e5 1.624e5 .69e5 1.807e5 0.467e5 0.467e5 0.352e5'
     fill_method = symmetric9
     euler_angle_1 = 0.0
     euler_angle_2 = 0.0
     euler_angle_3 = 0.0
     block = '1'
   [../]
-  [./crysp_beta] # new class with damage (volumetric)
+  [./crysp_2] # new class with damage (volumetric)
     type = FiniteStrainUObasedCPCleavage
     c = c
     stol = 1e-2
     tan_mod_type = exact
-    uo_slip_rates = 'slip_rate_gss_beta'
-    uo_slip_resistances = 'slip_resistance_gss_beta'
-    uo_state_vars = 'state_var_gss_beta'
-    uo_state_var_evol_rate_comps = 'state_var_evol_rate_comp_gss_beta'
+    uo_slip_rates = 'slip_rate_gss_2'
+    uo_slip_resistances = 'slip_resistance_gss_2'
+    uo_state_vars = 'state_var_gss_2'
+    uo_state_var_evol_rate_comps = 'state_var_evol_rate_comp_gss_2'
     E_name = 'elastic_energy'
     D_name = 'degradation'
     use_current_history_variable = false
@@ -432,9 +432,9 @@
     use_line_search = true
     block = '2'
   [../]
-  [./elasticity_tensor_beta]
+  [./elasticity_tensor_2]
     type = ComputeElasticityTensorCP
-    C_ijkl = '1.624e5 .92e5 .69e5 1.624e5 .69e5 1.807e5 0.467e5 0.467e5 0.352e5' #Kim
+    C_ijkl = '1.624e5 .92e5 .69e5 1.624e5 .69e5 1.807e5 0.467e5 0.467e5 0.352e5'
     fill_method = symmetric9
     euler_angle_1 = 90.0
     euler_angle_2 = 0.0

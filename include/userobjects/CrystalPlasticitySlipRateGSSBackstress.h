@@ -1,6 +1,6 @@
-// Aayush Trivedi
-// Alankar Alankar
-// IIT Bombay
+// Nicolò Grilli
+// University of Bristol
+// 17 Marzo 2022
 
 #pragma once
 

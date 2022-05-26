@@ -1,8 +1,5 @@
 // Nicolò Grilli
 // University of Bristol
-// Aayush Trivedi
-// Alankar Alankar
-// IIT Bombay
 // 17 Marzo 2022
 
 #include "CrystalPlasticityPosNegStateVariable.h"

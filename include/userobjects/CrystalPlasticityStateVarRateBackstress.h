@@ -1,6 +1,3 @@
-// Aayush Trivedi
-// Alankar Alankar
-// IIT Bombay
 // Nicolò Grilli
 // University of Bristol
 // 10 Marzo 2022

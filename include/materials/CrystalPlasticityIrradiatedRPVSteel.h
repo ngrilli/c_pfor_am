@@ -43,6 +43,9 @@ protected:
   // Initialize constant reference interaction matrix between slip systems
   virtual void initializeReferenceInteractionMatrix();
   
+  // Logarithmic correction to the interaction matrix in equation (7)
+  virtual void logarithmicCorrectionInteractionMatrix();
+  
   /**
    * A helper method to rotate the a direction and plane normal system set into
    * the local crystal lattice orientation as defined by the crystal rotation
@@ -156,7 +159,10 @@ protected:
   // https://www.sciencedirect.com/science/article/pii/S002250961200230X?via%3Dihub
   // the average diameter of the irradiation dislocation loops is 100b
   
-  
+  // Reference dislocation density at which the interaction
+  // matrix between slip system is the reference matrix
+  // (1 / micron^2)
+  const Real _rho_ref;  
   
   // TO DO
   
@@ -297,5 +303,9 @@ protected:
   // Reference interaction matrix between slip systems
   // as shown in Figure 1
   DenseMatrix<Real> _a_ref;
+  
+  // Corrected interaction matrix between slip systems
+  // that accounts for the logarithmic correction in equation (7)
+  DenseMatrix<Real> _a_slip_slip_interaction;
   
 };

@@ -37,6 +37,9 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("rho_carbide",0.0,"Carbide planar density");
   params.addParam<Real>("C_DL_diameter",0.0256,"Average diameter of irradiation dislocation loops");
   params.addParam<Real>("C_SC_diameter",0.0256,"Average diameter of irradiation solute clusters");
+  params.addParam<Real>("rho_ref",1.0,"Reference dislocation density at which the interaction "
+                                      "matrix between slip system is the reference matrix "
+									  "(1 / micron^2)");
   
   
   
@@ -87,6 +90,8 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	_rho_carbide(getParam<Real>("rho_carbide")),
 	_C_DL_diameter(getParam<Real>("C_DL_diameter")),
 	_C_SC_diameter(getParam<Real>("C_SC_diameter")),
+	_rho_ref(getParam<Real>("rho_ref")),
+	
 	
 	
 	
@@ -187,7 +192,11 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	_tau_line_tension(_number_slip_systems, 0.0),
 	
 	// Reference interaction matrix between slip systems
-	_a_ref(_number_slip_systems, _number_slip_systems)
+	_a_ref(_number_slip_systems, _number_slip_systems),
+	
+	// Corrected interaction matrix between slip systems
+	// that accounts for the logarithmic correction in equation (7)
+	_a_slip_slip_interaction(_number_slip_systems, _number_slip_systems)
 {
 }
 
@@ -353,6 +362,17 @@ CrystalPlasticityIrradiatedRPVSteel::initializeReferenceInteractionMatrix()
   _a_ref(23,10) = _a_col;
   _a_ref(21,11) = _a_col;
   
+}
+
+// Logarithmic correction to the interaction matrix in equation (7)
+void
+CrystalPlasticityIrradiatedRPVSteel::logarithmicCorrectionInteractionMatrix()
+{
+
+  // TO DO
+  // rho obstacles must be already calculated at this point
+  _a_slip_slip_interaction = _a_ref;
+
 }
 
 // Calculate Schmid tensor and

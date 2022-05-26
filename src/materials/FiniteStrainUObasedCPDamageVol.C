@@ -1,8 +1,5 @@
 // Nicolò Grilli
 // University of Bristol
-// Aayush Trivedi
-// Alankar Alankar
-// IIT Bombay
 // 23 Ottobre 2021
 
 #include "FiniteStrainUObasedCPDamageVol.h"
