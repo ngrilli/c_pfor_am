@@ -4,11 +4,19 @@
     input = 'simple_gradient.i'
     exodiff = 'simple_gradient_out.e'
 	heavy = false
+    rel_err = 1e-4
+    abs_zero = 1e-6
   [../]
   [./polycrystal_slip_grad]
     type = 'Exodiff'
     input = 'polycrystal_slip_grad.i'
     exodiff = 'polycrystal_slip_grad_out.e'
+	heavy = false
+  [../]
+  [./polycrystal_initial_GND]
+    type = 'Exodiff'
+    input = 'polycrystal_initial_GND.i'
+    exodiff = 'polycrystal_initial_GND_out.e'
 	heavy = false
   [../]
 []

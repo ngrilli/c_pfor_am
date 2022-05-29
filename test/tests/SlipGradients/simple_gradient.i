@@ -230,6 +230,12 @@
     type = CrystalPlasticityDislocationUpdate
     number_slip_systems = 12
     slip_sys_file_name = input_slip_sys.txt
+	# These activate slip gradients
+	# they are compulsory
+	# codes currently has problems if not introduced
+	# to remove the effect of slip gradients, zero arrays can be passed
+	dslip_increment_dedge = d_vettore_edge
+	dslip_increment_dscrew = d_vettore_screw
   [../]
 []
 
