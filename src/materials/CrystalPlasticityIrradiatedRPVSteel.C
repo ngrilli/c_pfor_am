@@ -27,16 +27,16 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
                              "using the stress update code."
 							 "Irradiation damage in RPV steel.");
 							 
-  params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
+  params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector (micron)");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("RT_shear_modulus",86000.0,"Shear modulus at room temperature");
   params.addParam<Real>("a_self",0.1,"Self interaction coefficient of the slip systems");
   params.addParam<Real>("a_col",0.7,"Collinear interaction coefficient of the slip systems");
   params.addParam<Real>("K_Hall_Petch",480.0,"Hall-Petch effect prefactor (MPa micron^(1/2))");
-  params.addParam<Real>("d_grain",100.0,"Average grain size (micron)");
-  params.addParam<Real>("rho_carbide",0.0,"Carbide planar density");
-  params.addParam<Real>("C_DL_diameter",0.0256,"Average diameter of irradiation dislocation loops");
-  params.addParam<Real>("C_SC_diameter",0.0256,"Average diameter of irradiation solute clusters");
+  params.addParam<Real>("d_grain",6.9,"Average grain size (micron)");
+  params.addParam<Real>("rho_carbide",0.0608,"Carbide planar density (micron)^{-2}");
+  params.addParam<Real>("C_DL_diameter",0.0256,"Average diameter of irradiation dislocation loops (micron)");
+  params.addParam<Real>("C_SC_diameter",0.0256,"Average diameter of irradiation solute clusters (micron)");
   params.addParam<Real>("rho_ref",1.0,"Reference dislocation density at which the interaction "
                                       "matrix between slip system is the reference matrix "
 									  "(1 / micron^2)");
@@ -45,7 +45,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   
 
 							 
-  // TO DO - add parameters						 
+  // TO DO - add or remove parameters						 
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
 
@@ -58,9 +58,9 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   
   
   
-  params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
-  params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
-  params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
+  params.addParam<Real>("init_rho_ssd",10.0,"Initial dislocation density (micron)^{-2}");
+  params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density (micron)^{-2}");
+  params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density (micron)^{-2}");
   params.addParam<Real>("init_C_DL",0.0,"Initial concentration of irradiation dislocation loops");
   params.addParam<Real>("init_C_SC",0.0,"Initial concentration of irradiation solute clusters");
   params.addParam<MaterialPropertyName>(
@@ -107,6 +107,11 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	_tau_c_0(getParam<Real>("tau_c_0")),
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
+	
+	
+	
+	
+	
 	
 	// Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
@@ -242,13 +247,15 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
     _C_DL[_qp][i] = _init_C_DL;
 	_C_SC[_qp][i] = _init_C_SC;
   }
+
+  // Initialize constant reference interaction matrix between slip systems
+  initializeReferenceInteractionMatrix();
   
   // Function to calculate slip resistance can be called
   // here because the state variables are already assigned
   calculateSlipResistance();
   
-  // Initialize constant reference interaction matrix between slip systems
-  initializeReferenceInteractionMatrix();
+
   
   // TO DO
   
@@ -368,11 +375,23 @@ CrystalPlasticityIrradiatedRPVSteel::initializeReferenceInteractionMatrix()
 void
 CrystalPlasticityIrradiatedRPVSteel::logarithmicCorrectionInteractionMatrix()
 {
-
-  // TO DO
   // rho obstacles must be already calculated at this point
-  _a_slip_slip_interaction = _a_ref;
-
+  
+  // temporary variable to store the logarithmic correction prefactor
+  Real temp_log_factor;
+  
+  for (const auto i : make_range(_number_slip_systems)) {
+    for (const auto j : make_range(_number_slip_systems)) {
+	
+      temp_log_factor = std::log(0.35 * _burgers_vector_mag * std::sqrt(_rho_obstacles[i]));
+	  temp_log_factor /= std::log(0.35 * _burgers_vector_mag * std::sqrt(_rho_ref));
+	  temp_log_factor *= 0.8;
+	  temp_log_factor += 0.2;
+  
+      _a_slip_slip_interaction(i,j) = temp_log_factor * temp_log_factor * _a_ref(i,j);
+  
+	}
+  }
 }
 
 // Calculate Schmid tensor and
@@ -509,6 +528,10 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
 {
   // Calculate total density of local obstacles
   calculateObstaclesDensity();
+  
+  // Calculate logarithmic correction to slip-slip
+  // interaction matrix
+  logarithmicCorrectionInteractionMatrix();
 	
   // Calculate different contributions to the CRSS
   calculateSelfInteractionSlipResistance();

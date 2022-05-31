@@ -150,6 +150,8 @@ protected:
   const Real _d_grain;
   
   // Carbide planar density
+  // The default value is given by the product C_{carbide} D_{carbide}
+  // with values in table 1
   const Real _rho_carbide;
   
   // Constant average diameters of
@@ -165,13 +167,18 @@ protected:
   // Volume 61, Issue 2, February 2013, Pages 341-351
   // https://www.sciencedirect.com/science/article/pii/S002250961200230X?via%3Dihub
   // the average diameter of the irradiation dislocation loops is 100b
+  // we assume the same default value for dislocation loops
+  // and solute clusters
   
   // Reference dislocation density at which the interaction
   // matrix between slip system is the reference matrix
   // (1 / micron^2)
   const Real _rho_ref;  
   
-  // TO DO
+  
+  
+  
+  // TO DO or remove
   
   // Slip rate constants
   const Real _ao;
@@ -193,6 +200,11 @@ protected:
   
   // Critical annihilation diameter
   const Real _y_c;
+  
+  
+  
+  
+  
   
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
