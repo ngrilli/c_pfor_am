@@ -136,7 +136,14 @@ protected:
   const Real _a_col;
   
   // Hall-Petch prefactor
+  // N. Tsuchida, H. Masuda, Y. Harada, K. Fukaura, Y. Tomota, K.Nagaid
   // value is reported in reference [22] of the article
+  // Effect of ferrite grain size on tensile deformation 
+  // behavior of a ferrite-cementite low carbon steel
+  // Materials Science and Engineering: A
+  // Volume 488, Issues 1–2, 15 August 2008, Pages 446-452
+  // In figure 7, a value about 480 MPa (micron)^{1/2} is reported
+  // at low strain
   const Real _K_Hall_Petch;
   
   // Average grain size

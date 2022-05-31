@@ -32,7 +32,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("RT_shear_modulus",86000.0,"Shear modulus at room temperature");
   params.addParam<Real>("a_self",0.1,"Self interaction coefficient of the slip systems");
   params.addParam<Real>("a_col",0.7,"Collinear interaction coefficient of the slip systems");
-  params.addParam<Real>("K_Hall_Petch",1.0,"Hall-Petch effect prefactor");
+  params.addParam<Real>("K_Hall_Petch",480.0,"Hall-Petch effect prefactor (MPa micron^(1/2))");
   params.addParam<Real>("d_grain",100.0,"Average grain size (micron)");
   params.addParam<Real>("rho_carbide",0.0,"Carbide planar density");
   params.addParam<Real>("C_DL_diameter",0.0256,"Average diameter of irradiation dislocation loops");
