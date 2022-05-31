@@ -86,6 +86,8 @@ protected:
   
   virtual void calculateObstaclesDensity();
   
+  virtual void calculateObstaclesStrength();
+  
   virtual void calculateSelfInteractionSlipResistance();
   
   virtual void calculateHallPetchSlipResistance();
@@ -154,11 +156,17 @@ protected:
   // with values in table 1
   const Real _rho_carbide;
   
+  // Carbide interaction coefficient with the slip systems
+  const Real _a_carbide;
+  
   // Constant average diameters of
   // irradiation dislocation loops and
   // irradiation solute clusters
+  // and interaction coefficients with the slip systems
   const Real _C_DL_diameter;
+  const Real _a_DL;
   const Real _C_SC_diameter;
+  const Real _a_SC;
   
   // According to section 3.2 in
   // Nathan R.Barton, Athanasios Arsenlis, Jaime Marian
@@ -304,8 +312,16 @@ protected:
   // corresponding to direction of motion of screw dislocations
   MaterialProperty<std::vector<Real>> & _screw_slip_direction;
   
-  // Total density of local obstacles
+  // Total density of dislocations including SSD and GND
+  // on each slip system
+  std::vector<Real> _rho_tot;
+  
+  // Total density of local obstacles for each slip system
   std::vector<Real> _rho_obstacles;
+  
+  // Average obstacles strength for each slip system
+  // according to equation (6)
+  std::vector<Real> _obstacles_strength;
   
   // Self interaction stress tau_self for each slip system
   std::vector<Real> _tau_self;

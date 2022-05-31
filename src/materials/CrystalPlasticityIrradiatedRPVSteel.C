@@ -35,8 +35,11 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("K_Hall_Petch",480.0,"Hall-Petch effect prefactor (MPa micron^(1/2))");
   params.addParam<Real>("d_grain",6.9,"Average grain size (micron)");
   params.addParam<Real>("rho_carbide",0.0608,"Carbide planar density (micron)^{-2}");
+  params.addParam<Real>("a_carbide",0.0,"Carbide interaction coefficient");
   params.addParam<Real>("C_DL_diameter",0.0256,"Average diameter of irradiation dislocation loops (micron)");
+  params.addParam<Real>("a_DL",0.0,"Irradiation dislocation loops interaction coefficient");
   params.addParam<Real>("C_SC_diameter",0.0256,"Average diameter of irradiation solute clusters (micron)");
+  params.addParam<Real>("a_SC",0.0,"Solute clusters interaction coefficient");
   params.addParam<Real>("rho_ref",1.0,"Reference dislocation density at which the interaction "
                                       "matrix between slip system is the reference matrix "
 									  "(1 / micron^2)");
@@ -88,8 +91,11 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
     _K_Hall_Petch(getParam<Real>("K_Hall_Petch")),
 	_d_grain(getParam<Real>("d_grain")),
 	_rho_carbide(getParam<Real>("rho_carbide")),
+	_a_carbide(getParam<Real>("a_carbide")),
 	_C_DL_diameter(getParam<Real>("C_DL_diameter")),
+    _a_DL(getParam<Real>("a_DL")),
 	_C_SC_diameter(getParam<Real>("C_SC_diameter")),
+    _a_SC(getParam<Real>("a_SC")),
 	_rho_ref(getParam<Real>("rho_ref")),
 	
 	
@@ -187,8 +193,15 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
 	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")),
 	
+	// Total density of dislocations including SSD and GND on each slip system
+	_rho_tot(_number_slip_systems, 0.0),
+	
 	// Total density of local obstacles for each slip system
 	_rho_obstacles(_number_slip_systems, 0.0),
+	
+	// Average obstacles strength for each slip system
+	// according to equation (6)
+	_obstacles_strength(_number_slip_systems, 0.0),
 	
 	// Self interaction stress tau_self for each slip system
 	_tau_self(_number_slip_systems, 0.0),
@@ -532,6 +545,9 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
   // Calculate logarithmic correction to slip-slip
   // interaction matrix
   logarithmicCorrectionInteractionMatrix();
+  
+  // Calculate average obstacles strength
+  calculateObstaclesStrength();
 	
   // Calculate different contributions to the CRSS
   calculateSelfInteractionSlipResistance();
@@ -592,30 +608,35 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
 }
 
 // Calculate total density of local obstacles based on equation (5)
+// this function stores at the same time the sum of SSD and GND
+// which is needed later in the obstacles strength calculation
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateObstaclesDensity()
 {
-  // temporary variable for the total dislocation density
-  // including GND and SSD
-  Real rho_tot;	
+  // Define total dislocation density
+  // including GND and SSD on each slip system 
 	
   for (const auto i : make_range(_number_slip_systems))	
   {
-    _rho_obstacles[i] = 0.0;
-	
-	for (const auto j : make_range(_number_slip_systems))
-	{
-      if (j != i) {
-        
-	    rho_tot = _rho_ssd[_qp][j] 
-	            + std::abs(_rho_gnd_edge[_qp][j])
-			    + std::abs(_rho_gnd_screw[_qp][j]);
-				
-	    _rho_obstacles[i] += rho_tot;
-		
-	  }
-	}		
+    _rho_tot[i] = _rho_ssd[_qp][i] 
+                + std::abs(_rho_gnd_edge[_qp][i])
+                + std::abs(_rho_gnd_screw[_qp][i]);
   }
+	
+  for (const auto i : make_range(_number_slip_systems)) 
+  {
+    _rho_obstacles[i] = 0.0;
+		
+    for (const auto j : make_range(_number_slip_systems)) 
+    {
+		 
+      if (j != i) {
+
+	    _rho_obstacles[i] += _rho_tot[j];
+		
+	  } 
+    }
+  }		
   
   // Add carbide density
   for (const auto i : make_range(_number_slip_systems)) {
@@ -634,22 +655,51 @@ CrystalPlasticityIrradiatedRPVSteel::calculateObstaclesDensity()
   
 }
 
+// Calculate average obstacle strength based on equation (6)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateObstaclesStrength()
+{
+  // temporary variable to sum the contributions
+  // of different mechanisms for different slip systems
+  Real temp_sqrt_argument;
+  
+  for (const auto i : make_range(_number_slip_systems)) {
+	  
+    temp_sqrt_argument = 0.0;
+	  
+    // Other slip systems contribution 
+    for (const auto j : make_range(_number_slip_systems)) {
+		
+      if (j != i) {
+
+	    temp_sqrt_argument += _a_slip_slip_interaction(i,j) * _rho_tot[j];		  
+		  
+	  }	
+	}
+	
+	// carbide contribution
+	temp_sqrt_argument += _a_carbide * _rho_carbide;
+
+    // irradiation damage contribution
+    // would be better to store rho_DL and rho_SC
+    // into state variables because the multiplication is repeated
+    temp_sqrt_argument += _a_DL * _C_DL_diameter * _C_DL[_qp][i];
+    temp_sqrt_argument += _a_SC	* _C_SC_diameter * _C_SC[_qp][i];
+
+    _obstacles_strength[i] = std::sqrt(temp_sqrt_argument) / std::sqrt(_rho_obstacles[i]);
+	
+  }
+
+}
+
 // Self-interaction slip resistance based on equation (12)
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateSelfInteractionSlipResistance()
 {
-  // temporary variable for the total dislocation density
-  // including GND and SSD
-  Real rho_tot;	
-
   for (const auto i : make_range(_number_slip_systems))	{
 	  
-    rho_tot = _rho_ssd[_qp][i] 
-	        + std::abs(_rho_gnd_edge[_qp][i])
-			+ std::abs(_rho_gnd_screw[_qp][i]);
-	  
     _tau_self[i] = _burgers_vector_mag * _shear_modulus 
-	             * std::sqrt(_a_self * rho_tot);
+	             * std::sqrt(_a_self * _rho_tot[i]);
 	
   }
 
