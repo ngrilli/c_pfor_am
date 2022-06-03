@@ -93,6 +93,10 @@ protected:
   virtual void calculateHallPetchSlipResistance();
   
   virtual void calculateLineTensionSlipResistance();
+  
+  virtual bool calculateDragSlipRate();
+  
+  virtual bool calculateLatticeFrictionSlipRate();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -107,6 +111,9 @@ protected:
    * equation (11)
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
+  
+  // Calculate increment of SSD
+  virtual void calculateSSDincrement();
 
   /*
    * Finalizes the values of the state variables and slip system resistance
@@ -181,7 +188,13 @@ protected:
   // Reference dislocation density at which the interaction
   // matrix between slip system is the reference matrix
   // (1 / micron^2)
-  const Real _rho_ref;  
+  const Real _rho_ref;
+
+  // slip rate coefficient (s^{-1}) in equation (2)
+  const Real _ao;
+  
+  // exponent for slip rate in equation (2)
+  const Real _xm;
   
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
@@ -302,7 +315,22 @@ protected:
   Real _tau_Hall_Petch;
   
   // Line tension slip resistance
-  std::vector<Real> _tau_line_tension;  
+  std::vector<Real> _tau_line_tension;
+
+  // Drag contribution to the slip increment
+  // according to equation (2)
+  std::vector<Real> _drag_slip_increment;  
+  
+  // Lattice friction contribution to the slip increment
+  // according to equation (3)
+  std::vector<Real> _lattice_friction_slip_increment;
+  
+  // Lambda^s in equation (18)
+  std::vector<Real> _dislocation_mean_free_path;
+  
+  // Slip system depedent annihilation distance
+  // in equation (20)
+  std::vector<Real> _annihilation_distance;
   
   // Reference interaction matrix between slip systems
   // as shown in Figure 1
