@@ -183,37 +183,6 @@ protected:
   // (1 / micron^2)
   const Real _rho_ref;  
   
-  
-  
-  
-  // TO DO or remove
-  
-  // Slip rate constants
-  const Real _ao;
-  const Real _xm;
-
-
-  
-  // Prefactor of Taylor hardening law, alpha
-  const Real _alpha_0;
-  
-  // Latent hardening coefficient
-  const Real _r;
-  
-  // Peierls stress
-  const Real _tau_c_0;
-  
-  // Coefficient K in SSD evolution, representing accumulation rate
-  const Real _k_0;
-  
-  // Critical annihilation diameter
-  const Real _y_c;
-  
-  
-  
-  
-  
-  
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
   const Real _init_rho_gnd_edge;

@@ -98,27 +98,6 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
     _a_SC(getParam<Real>("a_SC")),
 	_rho_ref(getParam<Real>("rho_ref")),
 	
-	
-	
-	
-	
-	
-	
-	// TO DO
-    _ao(getParam<Real>("ao")),
-    _xm(getParam<Real>("xm")),
-
-	_alpha_0(getParam<Real>("alpha_0")),
-    _r(getParam<Real>("r")),
-	_tau_c_0(getParam<Real>("tau_c_0")),
-	_k_0(getParam<Real>("k_0")),
-	_y_c(getParam<Real>("y_c")),
-	
-	
-	
-	
-	
-	
 	// Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
@@ -266,52 +245,8 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
   
   // Function to calculate slip resistance can be called
   // here because the state variables are already assigned
+  // and _slip_resistance[_qp][i] is initialized
   calculateSlipResistance();
-  
-
-  
-  // TO DO
-  
-  // Initialize value of the slip resistance
-  // as a function of the dislocation density
-  // and irradiation defect density
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    // Add Peierls stress
-    _slip_resistance[_qp][i] = _tau_c_0;
-
-    taylor_hardening = 0.0;
-	  
-    for (const auto j : make_range(_number_slip_systems))
-    {
-      // Determine slip planes
-      unsigned int iplane, jplane;
-      iplane = i / 3;
-      jplane = j / 3;
-
-      if (iplane == jplane) { // self vs. latent hardening
-	  
-	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])); 
-		  
-	  } else { // latent hardening
-	  
-	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));	  
-		  
-	  }
-    }
-	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening));
-	
-  }
-
-
-
 
   // initialize slip increment
   for (const auto i : make_range(_number_slip_systems))
@@ -323,7 +258,6 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
   // that are called just after initialization  
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-
 }
 
 // Initialize constant reference interaction matrix between slip systems
@@ -539,6 +473,10 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipRate()
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
 {
+  // temporary variable to sum the contributions
+  // of different mechanisms for different slip systems
+  Real temp_sqrt_argument;	
+	
   // Calculate total density of local obstacles
   calculateObstaclesDensity();
   
@@ -554,57 +492,13 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
   calculateHallPetchSlipResistance();
   calculateLineTensionSlipResistance();
 
-  // sum the contributions to the CRSS
+  // sum the contributions to the CRSS based on equation (11)
   for (const auto i : make_range(_number_slip_systems))
   {
-    _slip_resistance[_qp][i] = _tau_self[i];
-	_slip_resistance[_qp][i] += _tau_Hall_Petch;
-	_slip_resistance[_qp][i] += _tau_line_tension[i];
+    temp_sqrt_argument = _tau_self[i] * _tau_self[i]
+	                   + _tau_line_tension[i] * _tau_line_tension[i];
+	_slip_resistance[_qp][i] = _tau_Hall_Petch + std::sqrt(temp_sqrt_argument);
   }  
-  
-
-  // TO DO
-  Real taylor_hardening;
-	
-	
-  // TO DO	
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    // Add Peierls stress
-    _slip_resistance[_qp][i] = _tau_c_0;
-
-    taylor_hardening = 0.0;
-	  
-    for (const auto j : make_range(_number_slip_systems))
-    {
-      // Determine slip planes
-      unsigned int iplane, jplane;
-      iplane = i / 3;
-      jplane = j / 3;
-
-      if (iplane == jplane) { // self vs. latent hardening
-	  
-	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])); 
-		  
-	  } else { // latent hardening
-	  
-	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));
-
-        		  
-		  
-	  }
-    }
-	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening));
-	
-  }
-
 }
 
 // Calculate total density of local obstacles based on equation (5)
@@ -686,6 +580,7 @@ CrystalPlasticityIrradiatedRPVSteel::calculateObstaclesStrength()
     temp_sqrt_argument += _a_DL * _C_DL_diameter * _C_DL[_qp][i];
     temp_sqrt_argument += _a_SC	* _C_SC_diameter * _C_SC[_qp][i];
 
+    // may need to consider the case in which _rho_obstacles[i] = 0 separately
     _obstacles_strength[i] = std::sqrt(temp_sqrt_argument) / std::sqrt(_rho_obstacles[i]);
 	
   }
@@ -708,6 +603,9 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSelfInteractionSlipResistance()
 // Hall-Petch slip resistance based on equation (13)
 // note that if GND are activated, part of the Hall-Petch effect
 // will be provided by the GNDs
+// note that this is a constant but I leave it here and not in initialization
+// because it can be easily extended to temperature changing behavior
+// for the shear modulus
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateHallPetchSlipResistance()
 {
@@ -725,11 +623,10 @@ CrystalPlasticityIrradiatedRPVSteel::calculateLineTensionSlipResistance()
 {
   for (const auto i : make_range(_number_slip_systems))	{
 	  
-	// TO DO: add density and alpha^s
-    _tau_line_tension[i] = _shear_modulus * _burgers_vector_mag;
+    _tau_line_tension[i] = _obstacles_strength[i] * _shear_modulus * _burgers_vector_mag
+	                     * std::sqrt(_rho_obstacles[i]);
 	
   }
-  
 }
 
 void
