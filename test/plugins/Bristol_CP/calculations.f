@@ -1630,7 +1630,8 @@ c	Variables used within this subroutine
       real(8) Ee(3,3),Ee_vec(6)
       real(8)	state(numslip,numstvar),state_t(numslip,numstvar)
       real(8) statedot(numslip,numstvar),Rstate(numslip,numstvar)
-      logical notnum, conv     
+      logical notnum, conv   
+      real(8) Je	  
 
       
 c	Calculation of known quantities
@@ -1683,6 +1684,7 @@ c     Trial stress
 	  ! and modify it for residual deformation
           Fe = matmul(F,invFp_t)
           Fe = matmul(Fe,invFr)
+		  call determinant(Fe, Je) 
 	  
           call computeStrainVolumetric(E_tr,A,Fe,dam,
      &S_vec_tr,F_pos,F_neg,pk2_pos_mat)
@@ -1694,9 +1696,20 @@ c     Calculation of constant C
       C_vec=0.0d+0
       
       do is=1,numslip
-          
+	 
+	    ! include damage in the NR Jacobian
+        if (damflag.eq.1d+0 .and. Je>=1d+0) then
+		
+      C_vec(:,is) = 0.5d+0*(1.0-dam)*(1.0-dam)
+     & *matmul(elas66,B_vec(:,is))
+		
+        else
+
           C_vec(:,is) = 0.5d+0*matmul(elas66,B_vec(:,is))
-          call convert6to3x3(C_vec(:,is),C(:,:,is))
+		
+        endif
+		
+        call convert6to3x3(C_vec(:,is),C(:,:,is))
           
       enddo
       
