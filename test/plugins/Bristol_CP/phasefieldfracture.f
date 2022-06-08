@@ -101,6 +101,12 @@
       ! Isochoric free energy
       real(8) :: a_pos_cpl
 	  
+	  ! Hard coded isochoric free energy contribution to damage
+	  ! 1 = full contribution
+	  ! 0 = no contribution
+      real(8) :: cpl_contribution_to_damage
+      cpl_contribution_to_damage = 1.0
+	  
       ! Anisotropic elasticity (Luscher 2017)
       ! Kb = K in (Luscher 2017)
       ! Kb = (1/9) I : C : I
@@ -149,21 +155,28 @@
       ! Calculate positive and negative parts of the Piola-Kirchhoff stress
       ! Equation 18 in Grilli, Koslowski, 2019
 	  
+      call invert3x3(ce,invce,detce)
+	  
+      pk2_neg_mat = Je23 * Kb * delta * invce
+      call convert3x3to6(pk2_neg_mat,pk2_neg_vec)
+	  
       if (Je >= 1.0) then ! expansion
   
-        pk2_pos_vec = S_vec
-        pk2_neg_vec = 0.0
+      pk2_pos_vec = cpl_contribution_to_damage * S_vec
+      pk2_pos_vec = pk2_pos_vec + (1.0-cpl_contribution_to_damage)
+     & * pk2_neg_vec
+		
+      pk2_neg_vec = (1.0-cpl_contribution_to_damage)
+     & *(S_vec - pk2_neg_vec)
 
       else ! compression
-  
-        call invert3x3(ce,invce,detce)
-	
-        pk2_neg_mat = Je23 * Kb * delta * invce
+
+      pk2_pos_vec = (-1.0) * pk2_neg_vec
+      pk2_pos_vec = pk2_pos_vec + S_vec
+      pk2_pos_vec = cpl_contribution_to_damage * pk2_pos_vec
 		
-        call convert3x3to6(pk2_neg_mat,pk2_neg_vec)
-	
-        pk2_pos_vec = (-1.0) * pk2_neg_vec	
-        pk2_pos_vec = pk2_pos_vec + S_vec
+      pk2_neg_vec = (1.0-cpl_contribution_to_damage) * S_vec
+     & + cpl_contribution_to_damage * pk2_neg_vec
 
       end if
 	  
@@ -178,8 +191,8 @@
 	  
       ! Positive and negative parts of the free energy
       ! Equations 13 and 14 in Grilli, Koslowski, 2019
-      F_pos = a_pos_vol + a_pos_cpl
-      F_neg = a_neg_vol
+      F_pos = a_pos_vol + cpl_contribution_to_damage*a_pos_cpl
+      F_neg = a_neg_vol + (1.0-cpl_contribution_to_damage)*a_pos_cpl
 	  
 	  return
       end subroutine computeStrainVolumetric
