@@ -38,6 +38,30 @@
     block = 1
     new_boundary = 'moving_interface'
   []
+  [./restricted_bottom] # part of bottom surface that belongs to block '1'
+    input = sidesets
+    type = BoundingBoxNodeSetGenerator
+    new_boundary = bottom_on_block_1
+    bottom_left = '-0.01 -0.01 -0.01'
+    top_right = '1.01 0.01 1.01'
+    location = INSIDE
+  [../]
+  [./restricted_back] # part of back surface that belongs to block '1'
+    input = restricted_bottom
+    type = BoundingBoxNodeSetGenerator
+    new_boundary = back_on_block_1
+    bottom_left = '-0.01 -0.01 -0.01'
+    top_right = '1.01 1.01 0.01'
+    location = INSIDE
+  [../]
+  [./restricted_front] # part of front surface that belongs to block '1'
+    input = restricted_back
+    type = BoundingBoxNodeSetGenerator
+    new_boundary = front_on_block_1
+    bottom_left = '-0.01 -0.01 0.99'
+    top_right = '1.01 1.01 1.01'
+    location = INSIDE
+  [../]
 []
 
 [GlobalParams]
@@ -148,14 +172,14 @@
   [./z_back]
     type = DirichletBC
     variable = disp_z
-    boundary = back
+    boundary = back_on_block_1
     value = 0.0
   [../]
 
   [./y_bottom]
     type = DirichletBC
     variable = disp_y
-    boundary = bottom
+    boundary = bottom_on_block_1
     value = 0.0
   [../]
 
@@ -165,23 +189,16 @@
     boundary = left
     value = 0.0
   [../]
-  
-  [./x_right]
-    type = DirichletBC
-    variable = disp_x
-    boundary = right
-    value = 0.0
-  [../]
-  
+
   [./z_load]
     type = FunctionDirichletBC
     variable = disp_z
-    boundary = front
+    boundary = front_on_block_1
     function = disp_load
   [../]
 
 []
- 
+
 [Postprocessors]
 
 []
@@ -194,7 +211,7 @@
     slip_sys_file_name = input_slip_sys.txt # no need to normalize vectors
     nss = 12 # Number of slip systems
     num_slip_sys_flowrate_props = 2 #Number of flow rate properties in a slip system
-    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1' # slip rate equations parameters 
+    flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1' # slip rate equations parameters
 # Calibrated by comparing with Fig 2b in:
 # Wen Chen et al.
 # Microscale residual stresses in additively
@@ -230,7 +247,7 @@
   [./elasticity_tensor]
     type = ComputeElasticityTensorCPGrain
 # Elastic constants of 316L SS from:
-# Clausen, B., Lorentzen, T. and Leffers, T. 
+# Clausen, B., Lorentzen, T. and Leffers, T.
 # Self-consistent modelling of the plastic
 # deformation of FCC polycrystals and its implications for diffraction
 # measurements of internal stresses.
