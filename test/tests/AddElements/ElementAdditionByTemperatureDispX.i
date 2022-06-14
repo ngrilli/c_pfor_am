@@ -37,6 +37,30 @@
     block = 1
     new_boundary = 'moving_interface'
   []
+  [./restricted_bottom] # part of bottom surface that belongs to block '1'
+    input = sidesets
+    type = BoundingBoxNodeSetGenerator
+    new_boundary = bottom_on_block_1
+    bottom_left = '-0.01 -0.01 -0.01'
+    top_right = '1.01 0.01 0.51'
+    location = INSIDE
+  [../]
+  [./restricted_right] # part of right surface that belongs to block '1'
+    input = restricted_bottom
+    type = BoundingBoxNodeSetGenerator
+    new_boundary = right_on_block_1
+    bottom_left = '0.99 -0.01 -0.01'
+    top_right = '1.01 1.01 0.51'
+    location = INSIDE
+  [../]
+  [./restricted_left] # part of left surface that belongs to block '1'
+    input = restricted_right
+    type = BoundingBoxNodeSetGenerator
+    new_boundary = left_on_block_1
+    bottom_left = '-0.01 -0.01 -0.01'
+    top_right = '0.01 1.01 0.51'
+    location = INSIDE
+  [../]
 []
 
 [GlobalParams]
@@ -74,13 +98,13 @@
     order = CONSTANT
     family = MONOMIAL
   [../]
-  
+
   [./stress_xx]
     order = CONSTANT
     family = MONOMIAL
 	block = '1'
   [../]
-  
+
   [./strain_xx]
     order = CONSTANT
     family = MONOMIAL
@@ -107,7 +131,7 @@
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = 'max(0.001*t,0.001)'	
+    value = 'max(0.001*t,0.001)'
   [../]
 []
 
@@ -126,7 +150,7 @@
     variable = temperature
     function = temperature_load
   [../]
-  
+
   [./stress_xx]
     type = RankTwoAux
     variable = stress_xx
@@ -136,7 +160,7 @@
     execute_on = timestep_end
 	block = '1'
   [../]
-  
+
   [./strain_xx]
     type = RankTwoAux
     variable = strain_xx
@@ -183,21 +207,21 @@
   [./y0]
     type = DirichletBC
     variable = disp_y
-    boundary = bottom
+    boundary = bottom_on_block_1
     value = 0.0
   [../]
 
   [./x0]
     type = DirichletBC
     variable = disp_x
-    boundary = left
+    boundary = left_on_block_1
     value = 0.0
   [../]
-  
+
   [./x1]
     type = FunctionDirichletBC
     variable = disp_x
-    boundary = right
+    boundary = right_on_block_1
     function = disp_load
   [../]
 []
@@ -246,4 +270,3 @@
   exodus = true
   interval = 1 #5
 []
-
