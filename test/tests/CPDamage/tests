@@ -27,11 +27,13 @@
   [./test_anisotropic_cleavage]
     type = 'Exodiff'
     input = 'AnisoCleavage.i'
-	exodiff = 'AnisoCleavage_out.e'
+	  exodiff = 'AnisoCleavage_out.e'
+    rel_err = 1e-4
+    abs_zero = 1e-6
   [../]
   [./test_cleavage_on_slip_plane]
     type = 'Exodiff'
     input = 'BicrystalLeftRightCleavageInit45.i'
-	exodiff = 'BicrystalLeftRightCleavageInit45_out.e'
+	  exodiff = 'BicrystalLeftRightCleavageInit45_out.e'
   [../]
 []

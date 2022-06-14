@@ -1,3 +1,9 @@
+# a dislocation in the center is transported
+# towards the top right side of the geometry
+# the transport direction can be changed
+# by changing the angles in
+# euler_ang_test.inp
+
 [Mesh]
   type = GeneratedMesh
   dim = 3
@@ -30,7 +36,7 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  
+
   [./rho] # Dislocation density
     order = FIRST
     family = LAGRANGE
@@ -76,11 +82,11 @@
     order = CONSTANT
     family = MONOMIAL
   [../]
-  
+
   [./dislov]
     order = CONSTANT
     family = MONOMIAL
-  [../]  
+  [../]
 
 []
 
@@ -138,7 +144,7 @@
     index_i = 1
     execute_on = timestep_end
     block = 'ANY_BLOCK_ID 0'
-  [../]  
+  [../]
 
   [./stress_xx]
     type = RankTwoAux
@@ -195,7 +201,7 @@
     execute_on = timestep_end
     block = 'ANY_BLOCK_ID 0'
   [../]
-  
+
   [./dislov]
     type = MaterialStdVectorAux
     variable = dislov
@@ -229,7 +235,7 @@
     boundary = left
     value = 0.0
   [../]
-  
+
   [./x1_disp]
     type = FunctionDirichletBC
     variable = disp_x
@@ -238,7 +244,7 @@
   [../]
 
 []
- 
+
 [Postprocessors]
 
 []
@@ -273,7 +279,7 @@
   [./elasticity_tensor]
     type = ComputeElasticityTensorCPGrain
 # Elastic constants of 316L SS from:
-# Clausen, B., Lorentzen, T. and Leffers, T. 
+# Clausen, B., Lorentzen, T. and Leffers, T.
 # Self-consistent modelling of the plastic
 # deformation of FCC polycrystals and its implications for diffraction
 # measurements of internal stresses.
