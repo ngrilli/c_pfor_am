@@ -39,13 +39,13 @@ protected:
    * stress, plastic deformation gradient, slip system resistances, etc.
    */
   virtual void initQpStatefulProperties() override;
-  
+
   // Initialize constant reference interaction matrix between slip systems
   virtual void initializeReferenceInteractionMatrix();
-  
+
   // Logarithmic correction to the interaction matrix in equation (7)
   virtual void logarithmicCorrectionInteractionMatrix();
-  
+
   /**
    * A helper method to rotate the a direction and plane normal system set into
    * the local crystal lattice orientation as defined by the crystal rotation
@@ -81,22 +81,30 @@ protected:
   virtual void updateSubstepConstitutiveVariableValues() override;
 
   virtual bool calculateSlipRate() override;
-  
+
   virtual void calculateSlipResistance();
-  
+
   virtual void calculateObstaclesDensity();
-  
+
   virtual void calculateObstaclesStrength();
-  
+
   virtual void calculateSelfInteractionSlipResistance();
-  
+
   virtual void calculateHallPetchSlipResistance();
-  
+
   virtual void calculateLineTensionSlipResistance();
-  
+
   virtual bool calculateDragSlipRate();
-  
+
   virtual bool calculateLatticeFrictionSlipRate();
+
+  virtual void calculateCurvatureDiameter();
+
+  virtual void calculateEffectiveRSS();
+
+  virtual void calculateObstaclesSpacing();
+
+  virtual void calculateAvgLengthScrew();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -111,7 +119,7 @@ protected:
    * equation (11)
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
-  
+
   // Calculate increment of SSD
   virtual void calculateSSDincrement();
 
@@ -126,46 +134,46 @@ protected:
    * by comparing the change in the values over the iteration period.
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
-  
+
   // model parameters
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
-  
+
   // Shear modulus in Taylor hardening law G
   // mu in the article
   const Real _shear_modulus;
-  
+
   // Shear modulus at room temperature in Taylor hardening law G
   // mu(300 K) in the article
   const Real _RT_shear_modulus;
-  
+
   // Self and collinear interaction coefficients of the slip systems
   const Real _a_self;
   const Real _a_col;
-  
+
   // Hall-Petch prefactor
   // N. Tsuchida, H. Masuda, Y. Harada, K. Fukaura, Y. Tomota, K.Nagaid
   // value is reported in reference [22] of the article
-  // Effect of ferrite grain size on tensile deformation 
+  // Effect of ferrite grain size on tensile deformation
   // behavior of a ferrite-cementite low carbon steel
   // Materials Science and Engineering: A
   // Volume 488, Issues 1–2, 15 August 2008, Pages 446-452
   // In figure 7, a value about 480 MPa (micron)^{1/2} is reported
   // at low strain
   const Real _K_Hall_Petch;
-  
+
   // Average grain size
   const Real _d_grain;
-  
+
   // Carbide planar density
   // The default value is given by the product C_{carbide} D_{carbide}
   // with values in table 1
   const Real _rho_carbide;
-  
+
   // Carbide interaction coefficient with the slip systems
   const Real _a_carbide;
-  
+
   // Constant average diameters of
   // irradiation dislocation loops and
   // irradiation solute clusters
@@ -174,7 +182,7 @@ protected:
   const Real _a_DL;
   const Real _C_SC_diameter;
   const Real _a_SC;
-  
+
   // According to section 3.2 in
   // Nathan R.Barton, Athanasios Arsenlis, Jaime Marian
   // A polycrystal plasticity model of strain localization in irradiated iron
@@ -184,7 +192,7 @@ protected:
   // the average diameter of the irradiation dislocation loops is 100b
   // we assume the same default value for dislocation loops
   // and solute clusters
-  
+
   // Reference dislocation density at which the interaction
   // matrix between slip system is the reference matrix
   // (1 / micron^2)
@@ -192,48 +200,73 @@ protected:
 
   // slip rate coefficient (s^{-1}) in equation (2)
   const Real _ao;
-  
+
   // exponent for slip rate in equation (2)
   const Real _xm;
-  
+
+  // attack frequency for the lattice friction slip rate (1/s)
+  const Real _attack_frequency;
+
+  // minimum length of screw dislocation segments l_c in equation (10)
+  const Real _minimum_screw_length;
+
+  // Gibbs free energy jump for thermal slip in equation (3)
+  const Real _Gibbs_free_energy_slip;
+
+  // Boltzmann constant
+  const Real _k;
+
+  // Constant slip resistances of
+  // 110 slip planes
+  // 112 slip planes in twinning direction
+  // 112 slip planes in anti-twinning direction
+  // for the slip systems see Table 1 in:
+  // BCC single crystal plasticity modeling and its
+  // experimental identification
+  // T Yalcinkaya et al 2008 Modelling Simul. Mater. Sci. Eng. 16 085007
+  // https://iopscience.iop.org/article/10.1088/0965-0393/16/8/085007/pdf
+  const Real _const_slip_resistance_110;
+  const Real _const_slip_resistance_112_TW;
+  const Real _const_slip_resistance_112_AT;
+
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
   const Real _init_rho_gnd_edge;
   const Real _init_rho_gnd_screw;
-  
+
   // Initial values of the irradiation defect densities
   const Real _init_C_DL;
   const Real _init_C_SC;
-  
+
   // Tolerance on dislocation density update
   const Real _rho_tol;
-  
+
   // State variables
-  
+
   // _rho_ssd corresponds to rho_s in equation (18)
   MaterialProperty<std::vector<Real>> & _rho_ssd;
   const MaterialProperty<std::vector<Real>> & _rho_ssd_old;
-  
+
   // GND dislocation densities: not in the original model
   MaterialProperty<std::vector<Real>> & _rho_gnd_edge;
   const MaterialProperty<std::vector<Real>> & _rho_gnd_edge_old;
   MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
   const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
-  
+
   // C_DL: concentration of dislocation loops induced by irradiation
   // on each slip system
   MaterialProperty<std::vector<Real>> & _C_DL;
   const MaterialProperty<std::vector<Real>> & _C_DL_old;
-  
+
   // C_SC: concentration of solute clusters induce by irradiation
   // on each slip system
   MaterialProperty<std::vector<Real>> & _C_SC;
   const MaterialProperty<std::vector<Real>> & _C_SC_old;
-  
+
   /// Increment of state variables
   std::vector<Real> _rho_ssd_increment;
   std::vector<Real> _rho_gnd_edge_increment;
-  std::vector<Real> _rho_gnd_screw_increment;  
+  std::vector<Real> _rho_gnd_screw_increment;
   std::vector<Real> _C_DL_increment;
   std::vector<Real> _C_SC_increment;
 
@@ -255,7 +288,7 @@ protected:
    * only one substep is taken) for the convergence check tolerance comparison.
    */
   std::vector<Real> _rho_ssd_before_update;
-  std::vector<Real> _rho_gnd_edge_before_update; 
+  std::vector<Real> _rho_gnd_edge_before_update;
   std::vector<Real> _rho_gnd_screw_before_update;
   std::vector<Real> _C_DL_before_update;
   std::vector<Real> _C_SC_before_update;
@@ -274,70 +307,90 @@ protected:
    * value by a single timestep.
    */
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
-  
+
   /**
    * UserObject to read the initial GND density from file
    */
   const ElementPropertyReadFile * const _read_initial_gnd_density;
-  
+
   // Directional derivative of the slip rate along the edge dislocation motion direction
   // and along the screw dislocation motion direction
   const ArrayVariableValue & _dslip_increment_dedge;
   const ArrayVariableValue & _dslip_increment_dscrew;
-  
+
+  // Temperature in K as coupled variables
+  // so temperature evolution can be included in the model
+  const VariableValue & _temperature;
+
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
   // it indicates the edge dislocation velocity direction for all slip systems
   MaterialProperty<std::vector<Real>> & _edge_slip_direction;
-  
+
   // edge dislocation line direction
   // corresponding to direction of motion of screw dislocations
   MaterialProperty<std::vector<Real>> & _screw_slip_direction;
-  
+
   // Total density of dislocations including SSD and GND
   // on each slip system
   std::vector<Real> _rho_tot;
-  
+
   // Total density of local obstacles for each slip system
   std::vector<Real> _rho_obstacles;
-  
+
   // Average obstacles strength for each slip system
   // according to equation (6)
   std::vector<Real> _obstacles_strength;
-  
+
   // Self interaction stress tau_self for each slip system
   std::vector<Real> _tau_self;
-  
+
   // Hall-Petch slip resistance
   // it is the same for each slip system
   // note that if GND are activated, part of the Hall-Petch effect
   // will be provided by the GNDs
   Real _tau_Hall_Petch;
-  
+
   // Line tension slip resistance
   std::vector<Real> _tau_line_tension;
 
   // Drag contribution to the slip increment
   // according to equation (2)
-  std::vector<Real> _drag_slip_increment;  
-  
+  std::vector<Real> _drag_slip_increment;
+
   // Lattice friction contribution to the slip increment
   // according to equation (3)
   std::vector<Real> _lattice_friction_slip_increment;
-  
+
   // Lambda^s in equation (18)
   std::vector<Real> _dislocation_mean_free_path;
-  
+
   // Slip system depedent annihilation distance
   // in equation (20)
   std::vector<Real> _annihilation_distance;
-  
+
+  // Low mobility of screw dislocations induces a curvature of non-screw
+  // dislocations given by the diameter in equation (8)
+  std::vector<Real> _curvature_diameter;
+
+  // effective resolved shear stress \tau_{eff}^s
+  // for each slip system in equation (4)
+  std::vector<Real> _effective_RSS;
+
+  // obstacles spacing in equation (9)
+  // \lambda^s
+  std::vector<Real> _obstacles_spacing;
+
+  // average length of screw dislocations l_{sc}^s
+  // in equation (10)
+  std::vector<Real> _avg_length_screw;
+
   // Reference interaction matrix between slip systems
   // as shown in Figure 1
   DenseMatrix<Real> _a_ref;
-  
+
   // Corrected interaction matrix between slip systems
   // that accounts for the logarithmic correction in equation (7)
   DenseMatrix<Real> _a_slip_slip_interaction;
-  
+
 };
