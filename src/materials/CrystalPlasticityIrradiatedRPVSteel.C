@@ -816,6 +816,7 @@ void CrystalPlasticityIrradiatedRPVSteel::calculateCurvatureDiameter() {
 }
 
 // Calculate effective resolved shear stress in equation (4)
+// it is always positive
 void CrystalPlasticityIrradiatedRPVSteel::calculateEffectiveRSS() {
 
   for (const auto i : make_range(_number_slip_systems)) {
@@ -880,23 +881,38 @@ CrystalPlasticityIrradiatedRPVSteel::calculateEquivalentSlipIncrement(
 // while this is called in calculateJacobian
 // therefore it is ok to call calculateSlipResistance
 // only inside calculateSlipRate
+// chain rule on equation (1)
+// (1/dotgamma^2) (d dotgamma / d tau) = (1/dotgammadrag^2) (d dotgammadrag / d tau) + (1/dotgammafric^2) (d dotgammafric / d tau)
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
 {
+  // temporary variables to store the ratio between slip rates
+  Real temp_ratio;
+  Real temp_denominator;
+
   // calculate the derivatives of the two terms in equations (2) and (3)
   calculateDragSlipRateDerivative();
   calculateLatticeFrictionSlipRateDerivative();
 
-  // TO DO: implement the correct derivative
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
-      dslip_dtau[i] = 0.0;
-    else
-      dslip_dtau[i] = _ao / _xm *
-                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
-                      _slip_resistance[_qp][i];
+    dslip_dtau[i] = 0.0;
+
+    temp_denominator = _lattice_friction_slip_increment[i] + _drag_slip_increment[i];
+    temp_denominator = temp_denominator*temp_denominator;
+
+    if (temp_denominator > 1.0e-18) {
+
+      temp_ratio = _lattice_friction_slip_increment[i] * _lattice_friction_slip_increment[i];
+      temp_ratio /= temp_denominator;
+      dslip_dtau[i] += temp_ratio * _ddrag_slip_increment_dtau[i];
+
+      temp_ratio = _drag_slip_increment[i] * _drag_slip_increment[i];
+      temp_ratio /= temp_denominator;
+      dslip_dtau[i] += temp_ratio * _dlattice_friction_slip_increment_dtau[i];
+
+    }
   }
 }
 
@@ -921,18 +937,12 @@ CrystalPlasticityIrradiatedRPVSteel::calculateLatticeFrictionSlipRateDerivative(
 {
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
+    if (_effective_RSS[i] < 1.0e-9)
       _dlattice_friction_slip_increment_dtau[i] = 0.0;
     else
-      _dlattice_friction_slip_increment_dtau[i] =
-
-
-
-
-
-      _ao / _xm *
-                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
-                      _slip_resistance[_qp][i];
+      _dlattice_friction_slip_increment_dtau[i] = std::abs(_lattice_friction_slip_increment[i])
+                                                * (_Gibbs_free_energy_slip / (2.0 * _k * _temperature[_qp]))
+                                                / std::sqrt(_const_slip_resistance[i] * _effective_RSS[i]);
   }
 }
 
