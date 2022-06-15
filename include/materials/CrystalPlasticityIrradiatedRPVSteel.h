@@ -43,6 +43,9 @@ protected:
   // Initialize constant reference interaction matrix between slip systems
   virtual void initializeReferenceInteractionMatrix();
 
+  // Initialize the constant slip resistance \tau_0 in equation (3)
+  virtual void intializeConstSlipResistance();
+
   // Logarithmic correction to the interaction matrix in equation (7)
   virtual void logarithmicCorrectionInteractionMatrix();
 
@@ -111,6 +114,10 @@ protected:
 
   virtual void calculateConstitutiveSlipDerivative(std::vector<Real> & dslip_dtau) override;
 
+  virtual void calculateDragSlipRateDerivative();
+
+  virtual void calculateLatticeFrictionSlipRateDerivative();
+
   // Cache the slip system value before the update for the diff in the convergence check
   virtual void cacheStateVariablesBeforeUpdate() override;
 
@@ -122,6 +129,12 @@ protected:
 
   // Calculate increment of SSD
   virtual void calculateSSDincrement();
+
+  // calculate dislocation mean free path in equation (19)
+  virtual void calculateMeanFreePath();
+
+  // calculate annihilation distance in equation (20)
+  virtual void calculateAnnihilationDistance();
 
   /*
    * Finalizes the values of the state variables and slip system resistance
@@ -229,6 +242,15 @@ protected:
   const Real _const_slip_resistance_112_TW;
   const Real _const_slip_resistance_112_AT;
 
+  // number of intersections with primary and forest dislocations before immobilization
+  // in equation (19)
+  const Real _K_self;
+  const Real _K_forest;
+
+  // annihilation distance that prevails at high temperature in the drag regime
+  // in equation (20)
+  const Real _y_drag;
+
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
   const Real _init_rho_gnd_edge;
@@ -258,7 +280,7 @@ protected:
   MaterialProperty<std::vector<Real>> & _C_DL;
   const MaterialProperty<std::vector<Real>> & _C_DL_old;
 
-  // C_SC: concentration of solute clusters induce by irradiation
+  // C_SC: concentration of solute clusters induced by irradiation
   // on each slip system
   MaterialProperty<std::vector<Real>> & _C_SC;
   const MaterialProperty<std::vector<Real>> & _C_SC_old;
@@ -358,9 +380,15 @@ protected:
   // according to equation (2)
   std::vector<Real> _drag_slip_increment;
 
+  // and its derivative with respect to the RSS
+  std::vector<Real> _ddrag_slip_increment_dtau;
+
   // Lattice friction contribution to the slip increment
   // according to equation (3)
   std::vector<Real> _lattice_friction_slip_increment;
+
+  // and its derivative with respect to the RSS
+  std::vector<Real> _dlattice_friction_slip_increment_dtau;
 
   // Lambda^s in equation (18)
   std::vector<Real> _dislocation_mean_free_path;
@@ -384,6 +412,10 @@ protected:
   // average length of screw dislocations l_{sc}^s
   // in equation (10)
   std::vector<Real> _avg_length_screw;
+
+  // Constant slip resistance \tau_0
+  // for the different slip systems in equation (3)
+  std::vector<Real> _const_slip_resistance;
 
   // Reference interaction matrix between slip systems
   // as shown in Figure 1

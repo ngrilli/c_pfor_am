@@ -52,6 +52,9 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("const_slip_resistance_110", 360.0, "Constant slip resistance of 110 slip planes (MPa)");
   params.addParam<Real>("const_slip_resistance_112_TW", 410.0, "Constant slip resistance of 112 slip planes in twinning direction (MPa)");
   params.addParam<Real>("const_slip_resistance_112_AT", 480.0, "Constant slip resistance of 112 slip planes in anti-twinning direction (MPa)");
+  params.addParam<Real>("K_self", 17.0, "number of intersections with primary dislocations before immobilization (adimensional)");
+  params.addParam<Real>("K_forest", 5.666, "number of intersections with forest dislocations before immobilization (adimensional)");
+  params.addParam<Real>("y_drag", 0.002, "annihilation distance that prevails at high temperature in the drag regime (micron)");
 
   params.addParam<Real>("init_rho_ssd",10.0,"Initial dislocation density (micron)^{-2}");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density (micron)^{-2}");
@@ -100,6 +103,9 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
   _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
   _const_slip_resistance_112_TW(getParam<Real>("const_slip_resistance_112_TW")),
   _const_slip_resistance_112_AT(getParam<Real>("const_slip_resistance_112_AT")),
+  _K_self(getParam<Real>("K_self")),
+  _K_forest(getParam<Real>("K_forest")),
+  _y_drag(getParam<Real>("y_drag")),
 
 	// Initial values of the state variables
   _init_rho_ssd(getParam<Real>("init_rho_ssd")),
@@ -199,9 +205,15 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
 	// according to equation (2)
 	_drag_slip_increment(_number_slip_systems, 0.0),
 
+  // and its derivative with respect to the RSS
+  _ddrag_slip_increment_dtau(_number_slip_systems, 0.0),
+
 	// Lattice friction contribution to the slip increment
 	// according to equation (3)
 	_lattice_friction_slip_increment(_number_slip_systems, 0.0),
+
+  // and its derivative with respect to the RSS
+  _dlattice_friction_slip_increment_dtau(_number_slip_systems, 0.0),
 
 	// Lambda^s in equation (18)
 	_dislocation_mean_free_path(_number_slip_systems, 0.0),
@@ -225,6 +237,10 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
   // average length of screw dislocations l_{sc}^s
   // in equation (10)
   _avg_length_screw(_number_slip_systems, 0.0),
+
+  // Constant slip resistance \tau_0
+  // for the different slip systems in equation (3)
+  _const_slip_resistance(_number_slip_systems, 0.0),
 
 	// Reference interaction matrix between slip systems
 	_a_ref(_number_slip_systems, _number_slip_systems),
@@ -278,6 +294,9 @@ CrystalPlasticityIrradiatedRPVSteel::initQpStatefulProperties()
 
   // Initialize constant reference interaction matrix between slip systems
   initializeReferenceInteractionMatrix();
+
+  // Initialize the constant slip resistance \tau_0 in equation (3)
+  intializeConstSlipResistance();
 
   // Function to calculate slip resistance can be called
   // here because the state variables are already assigned
@@ -352,6 +371,36 @@ CrystalPlasticityIrradiatedRPVSteel::initializeReferenceInteractionMatrix()
   _a_ref(23,10) = _a_col;
   _a_ref(21,11) = _a_col;
 
+}
+
+// Initialize the constant slip resistance \tau_0 in equation (3)
+// for the order of the slip systems see Table 1 in:
+// BCC single crystal plasticity modeling and its
+// experimental identification
+// T Yalcinkaya et al 2008 Modelling Simul. Mater. Sci. Eng. 16 085007
+// https://iopscience.iop.org/article/10.1088/0965-0393/16/8/085007/pdf
+void
+CrystalPlasticityIrradiatedRPVSteel::intializeConstSlipResistance() {
+
+  // 110 slip planes
+  for (const auto i : make_range(_number_slip_systems/2)) {
+
+    _const_slip_resistance[i] = _const_slip_resistance_110;
+
+  }
+
+  _const_slip_resistance[12] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[13] = _const_slip_resistance_112_TW;
+  _const_slip_resistance[14] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[15] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[16] = _const_slip_resistance_112_TW;
+  _const_slip_resistance[17] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[18] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[19] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[20] = _const_slip_resistance_112_TW;
+  _const_slip_resistance[21] = _const_slip_resistance_112_AT;
+  _const_slip_resistance[22] = _const_slip_resistance_112_TW;
+  _const_slip_resistance[23] = _const_slip_resistance_112_AT;
 }
 
 // Logarithmic correction to the interaction matrix in equation (7)
@@ -492,6 +541,12 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipRate()
   // calculate and store _slip_resistance[_qp][i]
   calculateSlipResistance();
 
+  // calculate other quantities needed for the two slip rates
+  calculateEffectiveRSS();
+  calculateCurvatureDiameter();
+  calculateObstaclesSpacing();
+  calculateAvgLengthScrew();
+
   if(calculateDragSlipRate()) {
     if (calculateLatticeFrictionSlipRate()) {
 
@@ -599,7 +654,7 @@ CrystalPlasticityIrradiatedRPVSteel::calculateObstaclesDensity()
 
 }
 
-// Calculate average obstacle strength based on equation (6)
+// Calculate average obstacle strength \alpha^s based on equation (6)
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateObstaclesStrength()
 {
@@ -688,13 +743,14 @@ CrystalPlasticityIrradiatedRPVSteel::calculateDragSlipRate()
   {
     _drag_slip_increment[i] =
         _ao * std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm);
+
     if (_tau[_qp][i] < 0.0)
       _drag_slip_increment[i] *= -1.0;
 
     if (std::abs(_drag_slip_increment[i]) * _substep_dt > _slip_incr_tol)
     {
       if (_print_convergence_message)
-        mooseWarning("Maximum allowable slip increment exceeded ",
+        mooseWarning("Maximum allowable slip increment exceeded in calculateDragSlipRate ",
                      std::abs(_drag_slip_increment[i]) * _substep_dt);
 
       return false;
@@ -719,7 +775,7 @@ CrystalPlasticityIrradiatedRPVSteel::calculateLatticeFrictionSlipRate()
   for (const auto i : make_range(_number_slip_systems)) {
 
     exp_argument = (-1.0) * _Gibbs_free_energy_slip / (_k * _temperature[_qp]);
-    exp_argument *= (1.0 - std::sqrt(_effective_RSS[i] / ));
+    exp_argument *= (1.0 - std::sqrt(_effective_RSS[i] / _const_slip_resistance[i]));
 
     _lattice_friction_slip_increment[i] = _init_rho_ssd * _burgers_vector_mag
                                         * _attack_frequency * _avg_length_screw[i]
@@ -728,9 +784,16 @@ CrystalPlasticityIrradiatedRPVSteel::calculateLatticeFrictionSlipRate()
     if (_tau[_qp][i] < 0.0)
       _lattice_friction_slip_increment[i] *= -1.0;
 
+    if (std::abs(_lattice_friction_slip_increment[i]) * _substep_dt > _slip_incr_tol)
+    {
+      if (_print_convergence_message)
+        mooseWarning("Maximum allowable slip increment exceeded in calculateLatticeFrictionSlipRate ",
+                      std::abs(_lattice_friction_slip_increment[i]) * _substep_dt);
+
+      return false;
+    }
   }
 
-  // TO DO: check return carefully
   return true;
 }
 
@@ -821,6 +884,10 @@ void
 CrystalPlasticityIrradiatedRPVSteel::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
 {
+  // calculate the derivatives of the two terms in equations (2) and (3)
+  calculateDragSlipRateDerivative();
+  calculateLatticeFrictionSlipRateDerivative();
+
   // TO DO: implement the correct derivative
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -828,6 +895,42 @@ CrystalPlasticityIrradiatedRPVSteel::calculateConstitutiveSlipDerivative(
       dslip_dtau[i] = 0.0;
     else
       dslip_dtau[i] = _ao / _xm *
+                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
+                      _slip_resistance[_qp][i];
+  }
+}
+
+// Calculate slip derivatives of the drag term in equation (2)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateDragSlipRateDerivative()
+{
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
+      _ddrag_slip_increment_dtau[i] = 0.0;
+    else
+      _ddrag_slip_increment_dtau[i] = _ao / _xm *
+                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
+                      _slip_resistance[_qp][i];
+  }
+}
+
+// Calculate slip derivatives of the lattice friction term in equation (3)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateLatticeFrictionSlipRateDerivative()
+{
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
+      _dlattice_friction_slip_increment_dtau[i] = 0.0;
+    else
+      _dlattice_friction_slip_increment_dtau[i] =
+
+
+
+
+
+      _ao / _xm *
                       std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i];
   }
@@ -865,25 +968,15 @@ CrystalPlasticityIrradiatedRPVSteel::cacheStateVariablesBeforeUpdate()
   _C_SC_before_update = _C_SC[_qp];
 }
 
+// Note that calculateStateVariableEvolutionRateComponent is called in solveStateVariables
+// therefore after calculateSlipResistance
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateStateVariableEvolutionRateComponent()
 {
   // Calculate increment of SSD
   calculateSSDincrement();
 
-  // SSD dislocation density increment
-  //for (const auto i : make_range(_number_slip_systems))
-  //{
-
-    //rho_sum = _rho_ssd[_qp][i] + std::abs(_rho_gnd_edge[_qp][i]) + std::abs(_rho_gnd_screw[_qp][i]);
-
-    // Multiplication and annihilation
-	// note that _slip_increment here is the rate
-	// and the rate equation gets multiplied by time step in updateStateVariables
-    //_rho_ssd_increment[i] = _k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
-    //_rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
-
-  //}
+  // TO DO: add methods calls to calculate irradiation defects time evolution
 
   // GND dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -899,6 +992,10 @@ CrystalPlasticityIrradiatedRPVSteel::calculateStateVariableEvolutionRateComponen
 void
 CrystalPlasticityIrradiatedRPVSteel::calculateSSDincrement()
 {
+  // Calculate mean free path and annihilation distance
+  calculateMeanFreePath();
+  calculateAnnihilationDistance();
+
   // Multiplication and annihilation
   // note that _slip_increment here is the rate
   // and _rho_ssd_increment is also the rate
@@ -912,7 +1009,46 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSSDincrement()
   }
 }
 
-// TO DO: calculate irradiation defects increment
+// calculate dislocation mean free path in equation (19)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateMeanFreePath()
+{
+  // temporary variable representing the inverse
+  // of the mean free path for the current slip system
+  Real inverse_argument;
+
+  for (const auto i : make_range(_number_slip_systems)) {
+
+    inverse_argument = std::sqrt(_a_self * _rho_tot[i]) / _K_self;
+    inverse_argument += _obstacles_strength[i] * _obstacles_spacing[i] * _rho_obstacles[i] / _K_forest;
+    inverse_argument *= (1.0 - _effective_RSS[i] / _const_slip_resistance[i]);
+    inverse_argument += 1.0 / _d_grain;
+
+    _dislocation_mean_free_path[i] = 1.0 / inverse_argument;
+
+  }
+}
+
+// calculate annihilation distance in equation (20)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateAnnihilationDistance()
+{
+  // temporary variable representing the inverse
+  // of the annihilation distance for the current slip system
+  Real inverse_argument;
+
+  for (const auto i : make_range(_number_slip_systems)) {
+
+    inverse_argument = 6.28318 * _effective_RSS[i]
+                     / (_burgers_vector_mag * _shear_modulus);
+
+    inverse_argument += 1.0 / _y_drag;
+
+    _annihilation_distance[i] = 1.0 / inverse_argument;
+  }
+}
+
+// TO DO: add methods to calculate irradiation defects time evolution
 
 bool
 CrystalPlasticityIrradiatedRPVSteel::updateStateVariables()
@@ -947,7 +1083,19 @@ CrystalPlasticityIrradiatedRPVSteel::updateStateVariables()
     _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i] + _rho_gnd_screw_increment[i];
   }
 
-  // TO DO: add increment of the irradiation defects
+  // irradiation dislocation loops
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    _C_DL_increment[i] *= _substep_dt;
+    _C_DL[_qp][i] = _previous_substep_C_DL[i] + _C_DL_increment[i];
+  }
+
+  // solute clusters induced by irradiation
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    _C_SC_increment[i] *= _substep_dt;
+    _C_SC[_qp][i] = _previous_substep_C_SC[i] + _C_SC_increment[i];
+  }
 
   return true;
 }
