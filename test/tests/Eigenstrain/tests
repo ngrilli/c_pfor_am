@@ -1,0 +1,8 @@
+[Tests]
+  [./constant_eigenstrain]
+    type = 'Exodiff'
+    input = 'constant_eigenstrain.i'
+    exodiff = 'constant_eigenstrain_out.e'
+	  heavy = false
+  [../]
+[]
