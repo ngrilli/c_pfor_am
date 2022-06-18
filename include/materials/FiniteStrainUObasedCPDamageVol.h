@@ -23,6 +23,13 @@ public:
   FiniteStrainUObasedCPDamageVol(const InputParameters & parameters);
 
 protected:
+
+  /**
+   * update stress and internal variable after solve.
+   * Adding the calculation of the time derivative of the plastic
+   * deformation gradient that is necessary to calculate the plastic work
+   */
+  virtual void postSolveQp();
   
   /**
    * calculate stress residual.
@@ -100,6 +107,10 @@ protected:
 
   /// Second-order derivative of degradation w.r.t damage variable
   const MaterialProperty<Real> & _d2Dd2c;
+  
+  /// time derivative of the plastic deformation gradient
+  /// it is necessary to update the plastic work
+  MaterialProperty<RankTwoTensor> & _fpdot;
   
   const Real _bulk_modulus_ref; // reference bulk modulus for vol/non-vol decomposition
 

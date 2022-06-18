@@ -50,6 +50,7 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
     _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
     _d2Dd2c(getMaterialPropertyDerivative<Real>(
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
+    _fpdot(declareProperty<RankTwoTensor>("Fpdot")), // time derivative of Fp
     _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
 {
   _err_tol = false;
@@ -115,6 +116,34 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
   }
 
   _substep_dt = 0.0;
+}
+
+// Adding the calculation of the time derivative of the plastic
+// deformation gradient that is necessary to calculate the plastic work
+// postSolveQp() is after the end of the substepping algorithm
+// therefore, _fp[_qp] at that point is the one at the end of the time step
+// and _fpdot[_qp] is simply given by (_fp[_qp] - _fp_old[_qp]) / _dt
+// and there is no need to consider _substep_dt to calculate _fpdot[_qp]
+void
+FiniteStrainUObasedCPDamageVol::postSolveQp()
+{
+  _stress[_qp] = _fe * _pk2[_qp] * _fe.transpose() / _fe.det();
+  
+  // Calculate time derivative of Fp
+  _fpdot[_qp] = (_fp[_qp] - _fp_old[_qp]) / _dt;
+
+  // Calculate jacobian for preconditioner
+  calcTangentModuli();
+
+  RankTwoTensor iden(RankTwoTensor::initIdentity);
+
+  _lag_e[_qp] = _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] - iden;
+  _lag_e[_qp] = _lag_e[_qp] * 0.5;
+
+  RankTwoTensor rot;
+  // Calculate material rotation
+  _deformation_gradient[_qp].getRUDecompositionRotation(rot);
+  _update_rot[_qp] = rot * _crysrot[_qp];
 }
 
 void
@@ -412,5 +441,3 @@ FiniteStrainUObasedCPDamageVol::elasticTangentModuli()
 
   }
 }
-
-
