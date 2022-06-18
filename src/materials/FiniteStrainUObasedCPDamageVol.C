@@ -51,6 +51,7 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
     _d2Dd2c(getMaterialPropertyDerivative<Real>(
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
     _fpdot(declareProperty<RankTwoTensor>("Fpdot")), // time derivative of Fp
+	_elastic_deformation_grad(declareProperty<RankTwoTensor>("elastic_deformation_grad")), // Fe
     _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
 {
   _err_tol = false;
@@ -118,6 +119,44 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
   _substep_dt = 0.0;
 }
 
+// adding initialization of _elastic_deformation_grad
+void
+FiniteStrainUObasedCPDamageVol::initQpStatefulProperties()
+{
+  for (unsigned int i = 0; i < _num_uo_slip_rates; ++i)
+  {
+    (*_mat_prop_slip_rates[i])[_qp].resize(_uo_slip_rates[i]->variableSize());
+    (*_flow_direction[i])[_qp].resize(_uo_slip_rates[i]->variableSize());
+  }
+
+  for (unsigned int i = 0; i < _num_uo_slip_resistances; ++i)
+    (*_mat_prop_slip_resistances[i])[_qp].resize(_uo_slip_resistances[i]->variableSize());
+
+  for (unsigned int i = 0; i < _num_uo_state_vars; ++i)
+  {
+    (*_mat_prop_state_vars[i])[_qp].resize(_uo_state_vars[i]->variableSize());
+    _state_vars_old[i].resize(_uo_state_vars[i]->variableSize());
+    _state_vars_old_stored[i].resize(_uo_state_vars[i]->variableSize());
+    _state_vars_prev[i].resize(_uo_state_vars[i]->variableSize());
+  }
+
+  for (unsigned int i = 0; i < _num_uo_state_var_evol_rate_comps; ++i)
+    (*_mat_prop_state_var_evol_rate_comps[i])[_qp].resize(
+        _uo_state_var_evol_rate_comps[i]->variableSize());
+
+  _stress[_qp].zero();
+  _pk2[_qp].zero();
+  _lag_e[_qp].zero();
+
+  _fp[_qp].setToIdentity();
+  _elastic_deformation_grad[_qp].setToIdentity();
+  _update_rot[_qp].setToIdentity();
+
+  for (unsigned int i = 0; i < _num_uo_state_vars; ++i)
+    // Initializes slip system related properties
+    _uo_state_vars[i]->initSlipSysProps((*_mat_prop_state_vars[i])[_qp], _q_point[_qp]);
+}
+
 // Adding the calculation of the time derivative of the plastic
 // deformation gradient that is necessary to calculate the plastic work
 // postSolveQp() is after the end of the substepping algorithm
@@ -131,6 +170,9 @@ FiniteStrainUObasedCPDamageVol::postSolveQp()
   
   // Calculate time derivative of Fp
   _fpdot[_qp] = (_fp[_qp] - _fp_old[_qp]) / _dt;
+  
+  // Store elastic deformation gradient in a material property
+  _elastic_deformation_grad[_qp] = _fe;
 
   // Calculate jacobian for preconditioner
   calcTangentModuli();

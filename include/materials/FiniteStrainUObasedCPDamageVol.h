@@ -25,6 +25,13 @@ public:
 protected:
 
   /**
+   * initializes the stateful properties such as
+   * stress, plastic deformation gradient, slip system resistances, etc.
+   * adding initialization of _elastic_deformation_grad
+   */
+  virtual void initQpStatefulProperties();
+
+  /**
    * update stress and internal variable after solve.
    * Adding the calculation of the time derivative of the plastic
    * deformation gradient that is necessary to calculate the plastic work
@@ -111,6 +118,10 @@ protected:
   /// time derivative of the plastic deformation gradient
   /// it is necessary to update the plastic work
   MaterialProperty<RankTwoTensor> & _fpdot;
+  
+  /// Elastic deformation gradient needed by the user object
+  /// PlasticWorkRate to calculate the plastic work
+  MaterialProperty<RankTwoTensor> & _elastic_deformation_grad;
   
   const Real _bulk_modulus_ref; // reference bulk modulus for vol/non-vol decomposition
 
