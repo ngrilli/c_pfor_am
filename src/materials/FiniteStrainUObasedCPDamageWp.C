@@ -1,17 +1,17 @@
 // Nicolò Grilli
 // University of Bristol
-// 23 Ottobre 2021
+// 19 Giugno 2022
 
-#include "FiniteStrainUObasedCPDamageVol.h"
+#include "FiniteStrainUObasedCPDamageWp.h"
 
 #include "petscblaslapack.h"
 #include "MooseException.h"
 #include "MathUtils.h"
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamageVol);
+registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamageWp);
 
 InputParameters
-FiniteStrainUObasedCPDamageVol::validParams()
+FiniteStrainUObasedCPDamageWp::validParams()
 {
   InputParameters params = FiniteStrainUObasedCP::validParams();
   params.addClassDescription("UserObject based Crystal Plasticity system with damage. "
@@ -20,7 +20,9 @@ FiniteStrainUObasedCPDamageVol::validParams()
 							 "Nicolo Grilli and Marisol Koslowski "
 							 "The effect of crystal anisotropy and plastic response "
 							 "on the dynamic fracture of energetic materials "
-							 "Journal of Applied Physics 126, 155101 (2019).");
+							 "Journal of Applied Physics 126, 155101 (2019). "
+							 "Plastic work is added to the positive part of the free energy "
+							 "that induces damage, so that plastic damage can be included. ");
   params.addRequiredCoupledVar("c", "Order parameter for damage");
   params.addParam<bool>(
       "use_current_history_variable", false, "Use the current value of the history variable.");
@@ -28,11 +30,13 @@ FiniteStrainUObasedCPDamageVol::validParams()
       "E_name", "elastic_energy", "Name of material property for elastic energy");
   params.addParam<MaterialPropertyName>(
       "D_name", "degradation", "Name of material property for energetic degradation function.");
-  params.addParam<Real>("bulk_modulus_ref",0.0,"reference bulk modulus for vol/non-vol decomposition");
+  params.addParam<Real>("plastic_damage_prefactor",0.0,
+                        "prefactor applied to the plastic work to determine the fraction "
+						"of plastic energy that contributes to damage. ");
   return params;
 }
 
-FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParameters & parameters)
+FiniteStrainUObasedCPDamageWp::FiniteStrainUObasedCPDamageWp(const InputParameters & parameters)
   : FiniteStrainUObasedCP(parameters),
     _c(coupledValue("c")),
     _use_current_hist(getParam<bool>("use_current_history_variable")),
@@ -50,9 +54,11 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
     _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
     _d2Dd2c(getMaterialPropertyDerivative<Real>(
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
-    _fpdot(declareProperty<RankTwoTensor>("Fpdot")), // time derivative of Fp
+    _fp_increment(declareProperty<RankTwoTensor>("Fp_increment")), // increment of Fp over _dt
+	_plastic_work(declareProperty<Real>("plastic_work")), // scalar plastic work
+	_plastic_work_old(getMaterialPropertyOld<Real>("plastic_work")), // and value at previous time step
 	_elastic_deformation_grad(declareProperty<RankTwoTensor>("elastic_deformation_grad")), // Fe
-    _bulk_modulus_ref(getParam<Real>("bulk_modulus_ref")) // reference bulk modulus for vol/non-vol decomposition
+    _plastic_damage_prefactor(getParam<Real>("plastic_damage_prefactor"))
 {
   _err_tol = false;
 
@@ -120,8 +126,9 @@ FiniteStrainUObasedCPDamageVol::FiniteStrainUObasedCPDamageVol(const InputParame
 }
 
 // adding initialization of _elastic_deformation_grad and _fpdot
+// and _plastic_work
 void
-FiniteStrainUObasedCPDamageVol::initQpStatefulProperties()
+FiniteStrainUObasedCPDamageWp::initQpStatefulProperties()
 {
   for (unsigned int i = 0; i < _num_uo_slip_rates; ++i)
   {
@@ -147,11 +154,13 @@ FiniteStrainUObasedCPDamageVol::initQpStatefulProperties()
   _stress[_qp].zero();
   _pk2[_qp].zero();
   _lag_e[_qp].zero();
-  _fpdot[_qp].zero();
+  _fp_increment[_qp].zero();
 
   _fp[_qp].setToIdentity();
   _elastic_deformation_grad[_qp].setToIdentity();
   _update_rot[_qp].setToIdentity();
+  
+  _plastic_work[_qp] = 0.0;
 
   for (unsigned int i = 0; i < _num_uo_state_vars; ++i)
     // Initializes slip system related properties
@@ -165,15 +174,18 @@ FiniteStrainUObasedCPDamageVol::initQpStatefulProperties()
 // and _fpdot[_qp] is simply given by (_fp[_qp] - _fp_old[_qp]) / _dt
 // and there is no need to consider _substep_dt to calculate _fpdot[_qp]
 void
-FiniteStrainUObasedCPDamageVol::postSolveQp()
+FiniteStrainUObasedCPDamageWp::postSolveQp()
 {
   _stress[_qp] = _fe * _pk2[_qp] * _fe.transpose() / _fe.det();
   
-  // Calculate time derivative of Fp
-  _fpdot[_qp] = (_fp[_qp] - _fp_old[_qp]) / _dt;
+  // Calculate increment of Fp over _dt
+  _fp_increment[_qp] = _fp[_qp] - _fp_old[_qp];
   
   // Store elastic deformation gradient in a material property
   _elastic_deformation_grad[_qp] = _fe;
+  
+  // update plastic work
+  updatePlasticWork();
 
   // Calculate jacobian for preconditioner
   calcTangentModuli();
@@ -189,8 +201,29 @@ FiniteStrainUObasedCPDamageVol::postSolveQp()
   _update_rot[_qp] = rot * _crysrot[_qp];
 }
 
+// Plastic work updated according to
+// equation (17) in:
+// Elastic plastic deformation at finite strains
+// E. H. Lee 1968,
+// Stanford University technical report AD678483
 void
-FiniteStrainUObasedCPDamageVol::calcResidual()
+FiniteStrainUObasedCPDamageWp::updatePlasticWork()
+{
+  // Temporary variable to store the tensor plastic work
+  // the trace of this tensor is the scalar plastic work
+  RankTwoTensor plastic_work_rate;
+  
+  Real Je; // Je is relative elastic volume change
+  
+  Je = _fe.det();
+  
+  plastic_work_rate = Je * _stress[_qp] * _fe * _fp_increment[_qp] * _fp_inv * _fe.inverse();
+	
+  _plastic_work[_qp] = _plastic_work_old[_qp] + std::abs(plastic_work_rate.trace());
+}
+
+void
+FiniteStrainUObasedCPDamageWp::calcResidual()
 {
   RankTwoTensor iden(RankTwoTensor::initIdentity), ce, ee, ce_pk2, eqv_slip_incr, pk2_new;
   
@@ -231,7 +264,7 @@ FiniteStrainUObasedCPDamageVol::calcResidual()
 // Jacobian for the Newton-Raphson crystal plasticity algorithm
 // includes damage
 void
-FiniteStrainUObasedCPDamageVol::calcJacobian()
+FiniteStrainUObasedCPDamageWp::calcJacobian()
 {
   RankFourTensor dfedfpinv, deedfe, dfpinvdpk2;
   Real Je; // Je is relative elastic volume change
@@ -280,7 +313,7 @@ FiniteStrainUObasedCPDamageVol::calcJacobian()
 }
 
 void
-FiniteStrainUObasedCPDamageVol::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
+FiniteStrainUObasedCPDamageWp::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
                                                         RankTwoTensor & ee, RankTwoTensor & ce, 
 														RankTwoTensor & pk2_new)
 {
@@ -366,7 +399,8 @@ FiniteStrainUObasedCPDamageVol::computeStrainVolumetric(Real & F_pos, Real & F_n
   
   // Positive and negative parts of the free energy
   // Equations 13 and 14 in Grilli, Koslowski, 2019
-  F_pos = a_pos_vol + a_pos_cpl;
+  // additionally, plastic work is included for damage
+  F_pos = a_pos_vol + a_pos_cpl + _plastic_damage_prefactor * _plastic_work[_qp];
   F_neg = a_neg_vol;
   
   // Used in StressDivergencePFFracTensors off-diagonal Jacobian
@@ -384,7 +418,7 @@ FiniteStrainUObasedCPDamageVol::computeStrainVolumetric(Real & F_pos, Real & F_n
 // which is used by the fracture model for damage growth
 // Damage grows only because of the positive part of the elastic energy F_pos
 void
-FiniteStrainUObasedCPDamageVol::computeHistoryVariable(Real & F_pos, Real & F_neg)
+FiniteStrainUObasedCPDamageWp::computeHistoryVariable(Real & F_pos, Real & F_neg)
 {
   // Assign history variable
   Real hist_variable = _H_old[_qp];
@@ -411,7 +445,7 @@ FiniteStrainUObasedCPDamageVol::computeHistoryVariable(Real & F_pos, Real & F_ne
 // update jacobian_mult by taking into account of the exact elasto-plastic tangent moduli
 // it includes damage
 void
-FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
+FiniteStrainUObasedCPDamageWp::elastoPlasticTangentModuli()
 {
   RankFourTensor tan_mod;
   RankTwoTensor pk2fet, fepk2;
@@ -468,7 +502,7 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
 // These are approximated tangent moduli
 // but damage is included to make it more precise
 void
-FiniteStrainUObasedCPDamageVol::elasticTangentModuli()
+FiniteStrainUObasedCPDamageWp::elasticTangentModuli()
 {
   // This equation is approximated:
   // The term Je23 * Kb * delta * invce is considered the same as

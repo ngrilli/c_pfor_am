@@ -1,6 +1,6 @@
 // Nicolò Grilli
 // University of Bristol
-// 23 Ottobre 2021
+// 19 Giugno 2022
 
 #pragma once
 
@@ -14,13 +14,15 @@
  * The effect of crystal anisotropy and plastic response 
  * on the dynamic fracture of energetic materials
  * Journal of Applied Physics 126, 155101 (2019)
+ * Plastic work is added to the positive part of the free energy
+ * that induces damage, so that plastic damage can be included
  */
-class FiniteStrainUObasedCPDamageVol : public FiniteStrainUObasedCP
+class FiniteStrainUObasedCPDamageWp : public FiniteStrainUObasedCP
 {
 public:
   static InputParameters validParams();
 
-  FiniteStrainUObasedCPDamageVol(const InputParameters & parameters);
+  FiniteStrainUObasedCPDamageWp(const InputParameters & parameters);
 
 protected:
 
@@ -28,6 +30,7 @@ protected:
    * initializes the stateful properties such as
    * stress, plastic deformation gradient, slip system resistances, etc.
    * adding initialization of _elastic_deformation_grad and _fpdot
+   * and _plastic_work
    */
   virtual void initQpStatefulProperties();
 
@@ -37,6 +40,9 @@ protected:
    * deformation gradient that is necessary to calculate the plastic work
    */
   virtual void postSolveQp();
+  
+  // update plastic work
+  virtual void updatePlasticWork();
   
   /**
    * calculate stress residual.
@@ -115,14 +121,26 @@ protected:
   /// Second-order derivative of degradation w.r.t damage variable
   const MaterialProperty<Real> & _d2Dd2c;
   
-  /// time derivative of the plastic deformation gradient
+  /// increment of the plastic deformation gradient over _dt
   /// it is necessary to update the plastic work
-  MaterialProperty<RankTwoTensor> & _fpdot;
+  MaterialProperty<RankTwoTensor> & _fp_increment;
+  
+  // Plastic work calculated according to
+  // equation (17) in:
+  // Elastic plastic deformation at finite strains
+  // E. H. Lee 1968,
+  // Stanford University technical report AD678483
+  MaterialProperty<Real> & _plastic_work;
+  
+  // and the value at previous time step
+  const MaterialProperty<Real> & _plastic_work_old;
   
   /// Elastic deformation gradient needed by the user object
   /// PlasticWorkRate to calculate the plastic work
   MaterialProperty<RankTwoTensor> & _elastic_deformation_grad;
   
-  const Real _bulk_modulus_ref; // reference bulk modulus for vol/non-vol decomposition
+  // prefactor applied to the plastic work to determine the fraction
+  // of plastic energy that contributes to damage.
+  const Real _plastic_damage_prefactor;
 
 };
