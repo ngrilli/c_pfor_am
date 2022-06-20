@@ -6,6 +6,7 @@
 
 #include "ComputeCrystalPlasticityEigenstrainBase.h"
 #include "DerivativeMaterialInterface.h"
+#include "ElementPropertyReadFile.h"
 
 /**
  * Compute eigenstrain representing residual deformation
@@ -46,6 +47,11 @@ protected:
   ///the input file should contain the wanted eigenstrain deformation gradient
   ///minus identity, because identity is added in computeQpDeformationGradient() 
   const RankTwoTensor _residual_def_components;
+  
+  /**
+   * UserObject to read the components of the initial residual deformation from file
+   */
+  const ElementPropertyReadFile * const _read_initial_residual_def;
 
   ///Residual deformation tensor in the global reference frame
   ///This contains the identity matrix factor

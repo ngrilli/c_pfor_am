@@ -23,7 +23,7 @@ ComputeCrystalPlasticityResidualEigenstrain::validParams()
   params.addCoupledVar("residual_def_level", "Residual deformation level from 0 to 1");
 
   // Let's check the range of the parameter here
-  params.addRequiredRangeCheckedParam<std::vector<Real>>(
+  params.addRangeCheckedParam<std::vector<Real>>(
       "residual_def_components",
       "residual_def_components_size=9",
       "Vector of values defining the maximum magnitude of the components" 
@@ -32,6 +32,11 @@ ComputeCrystalPlasticityResidualEigenstrain::validParams()
 	  " deformation gradient will be: I+beta."
 	  " Note the matrix is filled in the following order:"
 	  " 00, 10, 20, 01, 11, 21, 02, 12, 22");
+	  
+  params.addParam<UserObjectName>("read_initial_residual_def",
+                                  "The ElementReadPropertyFile "
+                                  "GeneralUserObject to read element value "
+                                  "of the components of the initial residual deformation. ");
 
   return params;
 }
@@ -43,6 +48,12 @@ ComputeCrystalPlasticityResidualEigenstrain::ComputeCrystalPlasticityResidualEig
     _ddeformation_gradient_dlevel(declarePropertyDerivative<RankTwoTensor>(
         _deformation_gradient_name, getVar("residual_def_level", 0)->name())),
     _residual_def_components(getParam<std::vector<Real>>("residual_def_components")),
+	
+    // UserObject to read the components of the initial residual deformation from file						
+    _read_initial_residual_def(isParamValid("read_initial_residual_def")
+                               ? &getUserObject<ElementPropertyReadFile>("read_initial_residual_def")
+                               : nullptr),
+							   
     _residual_def(declareProperty<RankTwoTensor>(
         _eigenstrain_name +
         "_residual_def")) // avoid duplicated material name by including the eigenstrain name 
@@ -58,7 +69,25 @@ ComputeCrystalPlasticityResidualEigenstrain::initQpStatefulProperties()
   // here identity is added to residual_def_components
   // therefore, the input file should contain the wanted eigenstrain deformation gradient
   // minus identity
-  _residual_def[_qp] = _residual_def_components;
+  // note the matrix is filled in the following order
+  // 00, 10, 20, 01, 11, 21, 02, 12, 22
+  if (_read_initial_residual_def) {
+	
+    // read from file element by element
+    for (const auto i : make_range(LIBMESH_DIM)) {
+      for (const auto j : make_range(LIBMESH_DIM)) {
+		  
+        _residual_def[_qp](i,j) = 
+		_read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i);
+		
+      }
+	}
+  } else {
+	  
+	// homogeneous value through the geometry
+    _residual_def[_qp] = _residual_def_components; 
+	
+  }
 }
 
 void
