@@ -47,7 +47,10 @@ ComputeCrystalPlasticityResidualEigenstrain::ComputeCrystalPlasticityResidualEig
     _residual_def_level(coupledValue("residual_def_level")),
     _ddeformation_gradient_dlevel(declarePropertyDerivative<RankTwoTensor>(
         _deformation_gradient_name, getVar("residual_def_level", 0)->name())),
-    _residual_def_components(getParam<std::vector<Real>>("residual_def_components")),
+
+    _residual_def_components(isParamValid("residual_def_components")
+                             ? getParam<std::vector<Real>>("residual_def_components")
+                             : std::vector<Real>(9, 0.0)),
 
     // UserObject to read the components of the initial residual deformation from file
     _read_initial_residual_def(isParamValid("read_initial_residual_def")
@@ -73,15 +76,23 @@ ComputeCrystalPlasticityResidualEigenstrain::initQpStatefulProperties()
   // 00, 10, 20, 01, 11, 21, 02, 12, 22
   if (_read_initial_residual_def) {
 
+    std::cout << _current_elem->id() << std::endl;
+
     // read from file element by element
     for (const auto i : make_range(LIBMESH_DIM)) {
       for (const auto j : make_range(LIBMESH_DIM)) {
 
+      // note that this is a DerivativeMaterialInterface
+      // therefore the element index is found using _current_elem->id()
+      // and not with _current_elem like in standard material classes
         _residual_def[_qp](i,j) =
-		_read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i);
+		    _read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i);
+
+
+        std::cout << _read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i) << std::endl;
 
       }
-	}
+	  }
   } else {
 
 	// homogeneous value through the geometry
