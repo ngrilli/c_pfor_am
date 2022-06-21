@@ -57,6 +57,7 @@ ComputeCrystalPlasticityResidualEigenstrain::ComputeCrystalPlasticityResidualEig
                                ? &getUserObject<ElementPropertyReadFile>("read_initial_residual_def")
                                : nullptr),
 
+    // residual deformation gradient minus identity
     _residual_def(declareProperty<RankTwoTensor>(
         _eigenstrain_name +
         "_residual_def")) // avoid duplicated material name by including the eigenstrain name
@@ -66,6 +67,8 @@ ComputeCrystalPlasticityResidualEigenstrain::ComputeCrystalPlasticityResidualEig
 void
 ComputeCrystalPlasticityResidualEigenstrain::initQpStatefulProperties()
 {
+  RankTwoTensor prova;
+
   ComputeCrystalPlasticityEigenstrainBase::initQpStatefulProperties();
   // Assign the constant read residual deformation tensor in the global
   // reference frame to the corresponding material property
@@ -76,34 +79,37 @@ ComputeCrystalPlasticityResidualEigenstrain::initQpStatefulProperties()
   // 00, 10, 20, 01, 11, 21, 02, 12, 22
   if (_read_initial_residual_def) {
 
-    std::cout << _current_elem->id() << std::endl;
+    // it is read from file, so assign zero here
+    _residual_def[_qp].zero();
 
-    // read from file element by element
-    for (const auto i : make_range(LIBMESH_DIM)) {
-      for (const auto j : make_range(LIBMESH_DIM)) {
-
-      // note that this is a DerivativeMaterialInterface
-      // therefore the element index is found using _current_elem->id()
-      // and not with _current_elem like in standard material classes
-        _residual_def[_qp](i,j) =
-		    _read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i);
-
-
-        std::cout << _read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i) << std::endl;
-
-      }
-	  }
   } else {
 
-	// homogeneous value through the geometry
+    // homogeneous value through the geometry
     _residual_def[_qp] = _residual_def_components;
 
   }
+
+  // it seems that _read_initial_residual_def cannot be assigned to _residual_def here
+  // otherwise _residual_def remains homogeneous
+  // Therefore I use _read_initial_residual_def in computeQpDeformationGradient instead
 }
 
 void
 ComputeCrystalPlasticityResidualEigenstrain::computeQpDeformationGradient()
 {
+  if (_read_initial_residual_def) {
+
+    // read from file element by element
+    for (const auto i : make_range(LIBMESH_DIM)) {
+      for (const auto j : make_range(LIBMESH_DIM)) {
+
+        _residual_def[_qp](i,j) =
+        _read_initial_residual_def->getData(_current_elem, LIBMESH_DIM*j+i);
+
+      }
+    }
+  }
+
   // compute the residual deformation gradient based on _residual_def_level
   // this is homogeneous in the geometry
   // when _residual_def_level[_qp] = 1.0

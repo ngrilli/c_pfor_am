@@ -12,7 +12,7 @@
  * Compute eigenstrain representing residual deformation
  * that induces residual stress in a sample
  * Eigenstrain grows to the maximum value based on a coupled variable
- * called residual_def_level that grows from 0 to 1 
+ * called residual_def_level that grows from 0 to 1
  * The maximum residual deformation can be homogeneous in space
  * or can be read from file to apply a non-homogeneous distribution
  * The residual deformation is represented by 9 numbers
@@ -45,16 +45,16 @@ protected:
   ///provided in the input file, note the matrix is filled in the following order
   ///00, 10, 20, 01, 11, 21, 02, 12, 22
   ///the input file should contain the wanted eigenstrain deformation gradient
-  ///minus identity, because identity is added in computeQpDeformationGradient() 
+  ///minus identity, because identity is added in computeQpDeformationGradient()
   const RankTwoTensor _residual_def_components;
-  
+
   /**
    * UserObject to read the components of the initial residual deformation from file
    */
   const ElementPropertyReadFile * const _read_initial_residual_def;
 
   ///Residual deformation tensor in the global reference frame
-  ///This contains the identity matrix factor
-  ///Therefore it is the full eigenstrain deformation gradient
+  ///minus identity matrix
   MaterialProperty<RankTwoTensor> & _residual_def;
+
 };

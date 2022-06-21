@@ -325,7 +325,7 @@
 
   # AuxVariables can be introduced to visualize the components
   # of the residual deformation gradient
-  [./residual_deformation_gradient_1_yy]
+  [./residual_deformation_gradient_1yy]
     order = CONSTANT
     family = MONOMIAL
   [../]
@@ -836,12 +836,12 @@
 
   # AuxVariables can be introduced to visualize the components
   # of the residual deformation gradient
-  [./residual_deformation_gradient_1_yy]
+  [./residual_deformation_gradient_1yy]
     type = RankTwoAux
-    variable = residual_deformation_gradient_1_yy
+    variable = residual_deformation_gradient_1yy
     rank_two_tensor = residual_deformation_gradient_1
-    index_i = 2
-    index_j = 2
+    index_i = 1
+    index_j = 1
     execute_on = timestep_end
   [../]
 
