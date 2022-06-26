@@ -136,6 +136,9 @@ protected:
   // calculate annihilation distance in equation (20)
   virtual void calculateAnnihilationDistance();
 
+  // calculate the irradiation solute cluster increment based on equation (23)
+  virtual void calculateSCincrement();
+
   /*
    * Finalizes the values of the state variables and slip system resistance
    * for the current timestep after convergence has been reached.

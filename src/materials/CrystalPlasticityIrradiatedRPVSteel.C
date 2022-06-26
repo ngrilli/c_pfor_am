@@ -986,7 +986,9 @@ CrystalPlasticityIrradiatedRPVSteel::calculateStateVariableEvolutionRateComponen
   // Calculate increment of SSD
   calculateSSDincrement();
 
-  // TO DO: add methods calls to calculate irradiation defects time evolution
+  // TO DO: add methods calls to calculate irradiation loops time evolution
+
+  calculateSCincrement();
 
   // GND dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -1058,7 +1060,19 @@ CrystalPlasticityIrradiatedRPVSteel::calculateAnnihilationDistance()
   }
 }
 
-// TO DO: add methods to calculate irradiation defects time evolution
+// TO DO: add methods to calculate irradiation loops time evolution
+
+// calculate the irradiation solute cluster increment based on equation (23)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateSCincrement() {
+
+  // note that _slip_increment here is the rate
+  for (const auto i : make_range(_number_slip_systems)) {
+
+    _C_SC_increment[i] = - std::abs(_slip_increment[_qp][i]);
+
+  }
+}
 
 bool
 CrystalPlasticityIrradiatedRPVSteel::updateStateVariables()
