@@ -254,6 +254,9 @@ protected:
   // in equation (20)
   const Real _y_drag;
 
+  // prefactor of the irradiation solute cluster evolution law (adimensional)
+  const Real _lambda_SC;
+
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
   const Real _init_rho_gnd_edge;

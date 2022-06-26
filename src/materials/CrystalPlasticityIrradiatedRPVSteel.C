@@ -42,7 +42,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("a_SC",0.0,"Solute clusters interaction coefficient");
   params.addParam<Real>("rho_ref",1.0,"Reference dislocation density at which the interaction "
                                       "matrix between slip system is the reference matrix "
-									  "(1 / micron^2)");
+									                    "(1 / micron^2)");
   params.addParam<Real>("ao", 0.00001, "slip rate coefficient (s^{-1})");
   params.addParam<Real>("xm", 0.01, "exponent for slip rate");
   params.addParam<Real>("attack_frequency", 2.0e11, "attack frequency for the lattice friction slip rate (1/s)");
@@ -55,6 +55,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("K_self", 17.0, "number of intersections with primary dislocations before immobilization (adimensional)");
   params.addParam<Real>("K_forest", 5.666, "number of intersections with forest dislocations before immobilization (adimensional)");
   params.addParam<Real>("y_drag", 0.002, "annihilation distance that prevails at high temperature in the drag regime (micron)");
+  params.addParam<Real>("lambda_SC", 1.0,"prefactor of the irradiation solute cluster evolution law (adimensional)");
 
   params.addParam<Real>("init_rho_ssd",10.0,"Initial dislocation density (micron)^{-2}");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density (micron)^{-2}");
@@ -106,6 +107,7 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
   _K_self(getParam<Real>("K_self")),
   _K_forest(getParam<Real>("K_forest")),
   _y_drag(getParam<Real>("y_drag")),
+  _lambda_SC(getParam<Real>("lambda_SC")),
 
 	// Initial values of the state variables
   _init_rho_ssd(getParam<Real>("init_rho_ssd")),
@@ -1069,7 +1071,8 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSCincrement() {
   // note that _slip_increment here is the rate
   for (const auto i : make_range(_number_slip_systems)) {
 
-    _C_SC_increment[i] = - std::abs(_slip_increment[_qp][i]);
+    _C_SC_increment[i] = - _lambda_SC * std::abs(_slip_increment[_qp][i])
+                       * _C_SC[_qp][i];
 
   }
 }
