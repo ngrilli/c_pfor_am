@@ -37,9 +37,9 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("rho_carbide",0.0608,"Carbide planar density (micron)^{-2}");
   params.addParam<Real>("a_carbide",0.0,"Carbide interaction coefficient");
   params.addParam<Real>("C_DL_diameter",0.0256,"Average diameter of irradiation dislocation loops (micron)");
-  params.addParam<Real>("a_DL",0.0,"Irradiation dislocation loops interaction coefficient");
+  params.addParam<Real>("a_DL",0.25,"Irradiation dislocation loops interaction coefficient");
   params.addParam<Real>("C_SC_diameter",0.0256,"Average diameter of irradiation solute clusters (micron)");
-  params.addParam<Real>("a_SC",0.0,"Solute clusters interaction coefficient");
+  params.addParam<Real>("a_SC",0.04,"Solute clusters interaction coefficient");
   params.addParam<Real>("rho_ref",1.0,"Reference dislocation density at which the interaction "
                                       "matrix between slip system is the reference matrix "
 									                    "(1 / micron^2)");
