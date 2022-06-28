@@ -136,6 +136,9 @@ protected:
   // calculate annihilation distance in equation (20)
   virtual void calculateAnnihilationDistance();
 
+  // calculate the irradiation dislocation loops increment based on equation (21)
+  virtual void calculateDLincrement();
+
   // calculate the irradiation solute cluster increment based on equation (23)
   virtual void calculateSCincrement();
 
@@ -254,7 +257,12 @@ protected:
   // in equation (20)
   const Real _y_drag;
 
+  // prefactor of the irradiation dislocation loops evolution law (adimensional)
+  // in equation (21)
+  const Real _lambda_DL;
+
   // prefactor of the irradiation solute cluster evolution law (adimensional)
+  // in equation (23)
   const Real _lambda_SC;
 
   // Initial values of the dislocation density

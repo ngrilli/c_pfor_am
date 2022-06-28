@@ -55,6 +55,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addParam<Real>("K_self", 17.0, "number of intersections with primary dislocations before immobilization (adimensional)");
   params.addParam<Real>("K_forest", 5.666, "number of intersections with forest dislocations before immobilization (adimensional)");
   params.addParam<Real>("y_drag", 0.002, "annihilation distance that prevails at high temperature in the drag regime (micron)");
+  params.addParam<Real>("lambda_DL", 1.0,"prefactor of the irradiation dislocation loops evolution law (adimensional)");
   params.addParam<Real>("lambda_SC", 1.0,"prefactor of the irradiation solute cluster evolution law (adimensional)");
 
   params.addParam<Real>("init_rho_ssd",10.0,"Initial dislocation density (micron)^{-2}");
@@ -107,6 +108,7 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
   _K_self(getParam<Real>("K_self")),
   _K_forest(getParam<Real>("K_forest")),
   _y_drag(getParam<Real>("y_drag")),
+  _lambda_DL(getParam<Real>("lambda_DL")),
   _lambda_SC(getParam<Real>("lambda_SC")),
 
 	// Initial values of the state variables
@@ -988,8 +990,8 @@ CrystalPlasticityIrradiatedRPVSteel::calculateStateVariableEvolutionRateComponen
   // Calculate increment of SSD
   calculateSSDincrement();
 
-  // TO DO: add methods calls to calculate irradiation loops time evolution
-
+  // Calculate increment of irradiation defects
+  calculateDLincrement();
   calculateSCincrement();
 
   // GND dislocation density increment
@@ -1062,7 +1064,19 @@ CrystalPlasticityIrradiatedRPVSteel::calculateAnnihilationDistance()
   }
 }
 
-// TO DO: add methods to calculate irradiation loops time evolution
+// calculate the irradiation dislocation loops increment based on equation (21)
+void
+CrystalPlasticityIrradiatedRPVSteel::calculateDLincrement()
+{
+
+  // note that _slip_increment here is the rate
+  for (const auto i : make_range(_number_slip_systems)) {
+
+    _C_DL_increment[i] = (-1.0) * _lambda_DL * std::abs(_slip_increment[_qp][i])
+                       * _C_DL[_qp][i] * _C_DL_diameter / _burgers_vector_mag;
+
+  }
+}
 
 // calculate the irradiation solute cluster increment based on equation (23)
 void
@@ -1071,7 +1085,7 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSCincrement() {
   // note that _slip_increment here is the rate
   for (const auto i : make_range(_number_slip_systems)) {
 
-    _C_SC_increment[i] = - _lambda_SC * std::abs(_slip_increment[_qp][i])
+    _C_SC_increment[i] = (-1.0) * _lambda_SC * std::abs(_slip_increment[_qp][i])
                        * _C_SC[_qp][i];
 
   }
