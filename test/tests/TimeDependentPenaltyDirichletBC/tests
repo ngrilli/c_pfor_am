@@ -1,0 +1,8 @@
+[Tests]
+  [./TimeDepPenaltyDirichletBC]
+    type = 'Exodiff'
+    input = 'TimeDepPenaltyDirichletBC.i'
+    exodiff = 'TimeDepPenaltyDirichletBC_out.e'
+	  heavy = false
+  [../]
+[]
