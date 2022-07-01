@@ -9,7 +9,6 @@ c
 c Kaldindi-Anand semi-implicit two-level time integration scheme is implemented by Eralp Demir.
 c
 c
-c Aug. 12th, 2021 - 1st working version
 c
 c      
       include "globalvars.f"

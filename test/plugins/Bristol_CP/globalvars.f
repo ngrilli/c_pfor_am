@@ -81,6 +81,8 @@ c	  which is degraded by damage
 c     tensile part of the second Piola-Kirchoff stress
 c     this is needed for calculating _dstress_dc
       real(8), allocatable, public :: global_pk2_pos(:,:,:,:)	  
+c     plastic work in finite strain formulation
+	  real(8), allocatable, public :: global_Wp(:,:)
 	  
 c	Constants used everywhere
 c     ______________________________________________________
