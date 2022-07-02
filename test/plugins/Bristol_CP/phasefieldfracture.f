@@ -114,7 +114,7 @@
     ! 1 = full contribution
     ! 0 = no contribution
       real(8) :: plastic_work_contribution_to_damage
-      
+
       cpl_contribution_to_damage = 1.0
       plastic_work_contribution_to_damage = 1.0
 
@@ -294,5 +294,58 @@
 
 	  return
       end subroutine moose_interface_output
+
+
+      ! update plastic work according to equation (17) in
+      ! Elastic plastic deformation at finite strains
+      ! E. H. Lee 1968,
+      ! Stanford University technical report AD678483
+
+      subroutine update_plastic_work(Fp,Fp_t,Fe,S,Wp)
+
+      use globalsubs, only: trace, convert6to3x3, invert3x3
+
+      real(8), intent(in) :: Fp(3,3), Fp_t(3,3), Fe(3,3)
+
+      ! Cauchy stress in Voigt notation
+      real(8), intent(in) :: S(6)
+
+      ! scalar plastic work to be updated
+      real(8), intent(out) :: Wp
+
+      real(8) :: invFp(3,3), invFe(3,3)
+
+      ! Cauchy stress as 3x3 tensor
+      real(8) :: S33(3,3)
+
+      real(8) :: detFp, Je
+
+      ! tensor increment of plastic work
+      real(8) :: Wp_increment(3,3)
+
+      ! scalar plastic increment
+      real(8) :: Wp_increment_trace
+
+      ! Calculate inverse of elastic and plastic deformation gradients
+      call invert3x3(Fp,invFp,detFp)
+      call invert3x3(Fe,invFe,Je)
+
+      ! Convert vector form of stress to 2nd order tensor form
+      call convert6to3x3(S,S33)
+
+      ! Calculate plastic work energy increment
+      ! Fp - Fp_t is the plastic deformation gradient increment
+      Wp_increment = Je * S33 * Fe * (Fp - Fp_t) * invFp * invFe
+
+      ! Calculate scalar plastic work increment using trace
+      call trace(Wp_increment, 3, Wp_increment_trace)
+
+      ! Sum increment to calculate the plastic work
+      ! at the end of the timestep
+      Wp = Wp + dabs(Wp_increment_trace)
+
+      return
+
+      end subroutine update_plastic_work
 
       end module phasefieldfracture

@@ -614,10 +614,14 @@ c	    Store the important variables
 	    global_pk2_pos(el_no,ip_no,1:3,1:3) =
      & pk2_pos_mat(1:3,1:3)
 
+        if (phasefielddamage.eq.1d+0) then
 
+				  call update_plastic_work(Fp,Fp_t,Fe,S,Wp)
 
+        endif
 
-
+        ! Store updated plastic work to global variables
+        global_Wp(el_no,ip_no) = Wp
 
       endif
 
@@ -630,20 +634,6 @@ c     Store the important results
 
 c     Assign the value of jacobian even if there is no convergence
       global_jacob(el_no,ip_no,:,:)=jacob
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
       return
       end subroutine calcs
