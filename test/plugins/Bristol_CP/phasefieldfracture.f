@@ -301,7 +301,7 @@
       ! E. H. Lee 1968,
       ! Stanford University technical report AD678483
 
-      subroutine update_plastic_work(Fp,Fp_t,Fe,S,Wp)
+      subroutine update_plastic_work(Fp,Fp_t,Fe,S,Wp_t,Wp)
 
       use globalsubs, only: trace, convert6to3x3, invert3x3
 
@@ -309,6 +309,9 @@
 
       ! Cauchy stress in Voigt notation
       real(8), intent(in) :: S(6)
+
+      ! scalar plastic work at the previous time step
+      real(8), intent(in) :: Wp_t
 
       ! scalar plastic work to be updated
       real(8), intent(out) :: Wp
@@ -342,7 +345,7 @@
 
       ! Sum increment to calculate the plastic work
       ! at the end of the timestep
-      Wp = Wp + dabs(Wp_increment_trace)
+      Wp = Wp_t + dabs(Wp_increment_trace)
 
       return
 

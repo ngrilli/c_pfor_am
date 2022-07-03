@@ -27,6 +27,7 @@ c	This subroutine calculates the two main variables: Stress and Consistent tange
      &phasefielddamage,global_Wp
       use initialization, only: initialize_grainsize,
      &initialize_gndslipgradel
+      use phasefieldfracture, only: update_plastic_work
 	implicit none
 c	Inputs
       integer inc
@@ -52,7 +53,7 @@ c     J2-model inputs
 c     Variables related with phase field damage
       real(8) F_pos, F_neg, dam, pk2_pos_mat(3,3)
       integer damflag
-      real(8) Wp
+      real(8) Wp, Wp_t
 
 
 c     - The step update is indicated with the change of time
@@ -402,7 +403,8 @@ c         Fr is scaled with time: i.e. tres = 1 seconds
           endif
 
 
-      Wp = global_Wp(el_no,ip_no)
+      Wp_t = global_Wp(el_no,ip_no)
+			Wp = Wp_t
 
 c
 c	    Calculate stress and shear resistance
@@ -411,7 +413,8 @@ c	    elasticity tensor from the global variables
 
           call SC_main(dt,F,Fp_t,Fr,S_t,state_t,gsum_t,gint_t,temp,
      & state0,Xdist,dam,damflag,C,S,Lp,Fp,Fe,sigma,gammadot,
-     & dgammadot_dtau,state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,Wp)
+     & dgammadot_dtau,state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,
+     & Wp_t)
 
 
 
@@ -589,15 +592,15 @@ c                 Note this also works when inc=1 since it is elasticity matrix
 
 
 c
+            if (phasefielddamage.eq.1d+0) then
 
+	            call update_plastic_work(Fp,Fp_t,Fe,S,Wp_t,Wp)
+	            write(*,*) Wp_t
 
+            endif
 
-          endif
+          endif ! end of Regular time stepping
 
-
-
-
-c
 
 c	    Store the important variables
           global_Fp(el_no,ip_no,:,:) = Fp
@@ -613,12 +616,6 @@ c	    Store the important variables
           global_F_neg(el_no,ip_no) = F_neg
 	    global_pk2_pos(el_no,ip_no,1:3,1:3) =
      & pk2_pos_mat(1:3,1:3)
-
-        if (phasefielddamage.eq.1d+0) then
-
-				  call update_plastic_work(Fp,Fp_t,Fe,S,Wp)
-
-        endif
 
         ! Store updated plastic work to global variables
         global_Wp(el_no,ip_no) = Wp
