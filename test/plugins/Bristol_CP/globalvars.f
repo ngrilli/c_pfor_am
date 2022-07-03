@@ -8,7 +8,7 @@ c
 c Aug. 12th, 2021 - 1st working version
 c
 c     This module contains all the global variables stored in the code
-      module globalvars    
+      module globalvars
       implicit none
 
 c
@@ -21,7 +21,7 @@ c	Total number of elements in the mesh
 c	Number of integration points per element
       integer, public :: numip
 c     Number of nodes per element
-      integer, public :: nnpe      
+      integer, public :: nnpe
 c     Number of grains in the mesh (computed from materials.dat file)
       integer, public :: numgrain
 c     ______________________________________________________
@@ -45,10 +45,10 @@ c	Residual deformations (inverse) defined at the beginning of deformation
 c	Slip resistance at 't'
       real(8), allocatable, public ::  global_state0(:,:,:,:)
 	real(8), allocatable, public ::  global_state(:,:,:,:)
-	real(8), allocatable, public ::  global_state_t(:,:,:,:)     
+	real(8), allocatable, public ::  global_state_t(:,:,:,:)
 c     2nd Piola-Kirchoff stress at 't' (vectorized)
 	real(8), allocatable, public ::  global_S(:,:,:)
-	real(8), allocatable, public ::  global_S_t(:,:,:)  
+	real(8), allocatable, public ::  global_S_t(:,:,:)
 c	Global orientation matrix
 	real(8), allocatable, public ::  global_ori(:,:,:,:)
 c	Global total slip per slip system (-) --- output
@@ -63,13 +63,13 @@ c	Global total sliprate per slip system (-) --- output
 c	Global old jacobian matrix
 	real(8), allocatable, public ::	 global_jacob_t(:,:,:,:)
 c	Global current jacobian matrix
-	real(8), allocatable, public ::	 global_jacob(:,:,:,:) 
+	real(8), allocatable, public ::	 global_jacob(:,:,:,:)
 c	Global current stress vector - Cauchy
       real(8), allocatable, public ::	 global_sigma(:,:,:)
       real(8), allocatable, public ::	 global_sigma_t(:,:,:)
-c     Global IP coordinates      
+c     Global IP coordinates
       real(8), allocatable, public ::	 global_coords(:,:,:)
-	  
+
 c     Damage variable
       real(8), allocatable, public :: global_damage(:,:)
 c     tensile part of the Helmholtz free energy
@@ -80,10 +80,11 @@ c	  which is degraded by damage
       real(8), allocatable, public :: global_F_neg(:,:)
 c     tensile part of the second Piola-Kirchoff stress
 c     this is needed for calculating _dstress_dc
-      real(8), allocatable, public :: global_pk2_pos(:,:,:,:)	  
+      real(8), allocatable, public :: global_pk2_pos(:,:,:,:)
 c     plastic work in finite strain formulation
-	  real(8), allocatable, public :: global_Wp(:,:)
-	  
+      real(8), allocatable, public :: global_Wp(:,:)
+      real(8), allocatable, public :: global_Wp_t(:,:)
+
 c	Constants used everywhere
 c     ______________________________________________________
 c	Constant pi
@@ -115,32 +116,32 @@ c	Vector product of Burgers vector with slip plane normals
 c
 C	CRYSTAL ORIENTATION ANGLES
 c     ______________________________________________________
-c   
+c
 c	Euler angles (deg)
 	real(8)	, allocatable, public :: Euler(:,:)
-c      
+c
 C	CONSTITUTIVE PARAMETERS
 c     ______________________________________________________
-c         
-c      
+c
+c
 c     Flag to indicate the existing material types
 c     FCC/BCC/HCP (1/2/3)
       integer, public ::	mattyp
-c      
+c
 c	Total number of state variables
 	integer, public :: numstvar
-c      
+c
 c	Residual deformation defined or not
-      integer, public :: resdef 
+      integer, public :: resdef
 c	Total amount of time for residual deformation
       integer, public :: tres
-c      
+c
 c	Thermally-coupled or mechanical problem
       integer, public :: thermo
-	  
+
 c     Flag indicating coupling with fracture is active
       integer, public :: phasefielddamage
-    
+
 c	Temperature (K) - initial temperature
       real(8), public :: temp0
 c
@@ -148,54 +149,54 @@ c	Temperature dependent properties
 c     "0": no temperature dependence
 c     "1": linear temperature depedence
       integer, public :: tempdep
-c      
-c      
+c
+c
 c     Flag to indicate material type
       integer, allocatable, public ::  phaseID(:)
-c      
+c
 c     Flag to indicate grain number
-      integer, allocatable, public ::  grainID(:)      
+      integer, allocatable, public ::  grainID(:)
 c
 c	Elasticity constants (MPa)
       real(8), allocatable, public ::  elas_param(:)
-      
+
 c
 c	Global variables that store the single crystal elasticity matrices
-c	Elasticity tensor at the reference frame 
+c	Elasticity tensor at the reference frame
 	real(8), public :: elas3333(3,3,3,3)
-      
+
 c	Work-conjugate elasticity matrix to stress at the reference frame
 	real(8), public :: elas66(6,6)
-c      
+c
 c	Work-conjugate elasticity matrix for isotropic phase
 	real(8), public :: elas66_iso(6,6)
-c      
+c
 c	modelno: 1/2/3/4/5/6
 	integer, public :: modelno
-      
+
 c	interno: 0/1/2/3/4
 	integer, public :: interno
-      
+
 C	LENGTHSCALE PARAMETERS
-c     ______________________________________________________      
-c      
+c     ______________________________________________________
+c
 c	Strain hardening interaction: 0 (OFF) /1 (ON)
 	integer, public :: GSeffect
-      
+
 c	Strain rate parameters (1:param)
 	real(8), allocatable, public :: sliprate_param(:)
-c      
+c
 c	Strain hardening parameters (1:param)
       real(8), allocatable, public :: sliphard_param(:)
-c      
+c
 c	Strain hardening parameters (1:param)
       real(8), allocatable, public :: slipint_param(:)
-c      
+c
 c	Hardening interaction matrix
 	real(8), allocatable, public :: intmat(:,:)
-c	Irradiated Hardening matrices for gnds and DLs	
-      real(8), allocatable, public :: intmatI(:,:)        
-      
+c	Irradiated Hardening matrices for gnds and DLs
+      real(8), allocatable, public :: intmatI(:,:)
+
 c	Length scale parameters (1:3)
       real(8), public :: grainsize_param(3)
       integer, allocatable, public :: grainsize_init(:,:)
@@ -215,48 +216,48 @@ c      real(8), allocatable, public :: oriensh(:,:)
 
 c     Size to indicate the grain morphology
       real(8), allocatable, public :: grainmorph(:,:,:)
-      
-c     ______________________________________________________  
+
+c     ______________________________________________________
 
 
 C     STRAIN GRADIENT PARAMETERS
-c     ______________________________________________________  
-          
+c     ______________________________________________________
+
 c	Strain gradient: 0 (OFF) / 1 (slip gradients)
-	integer, public :: GNDeffect     
+	integer, public :: GNDeffect
 
 c     Global initialization flag for IP coordinates
       integer, allocatable, public ::	 coords_init(:,:)
-c      
-c     Initialiation of elemental GND calculations 
+c
+c     Initialiation of elemental GND calculations
       integer GND_init
 	data    GND_init     /0/
 c     Integration point coordinates in the iso-parametric space
 c     Parameters are consistent with ABAQUS - g, h, r
       real(8), allocatable, public :: IPghr(:,:)
-c     Integration weights            
+c     Integration weights
       real(8), allocatable, public :: wtghr(:)
 c     Inverse of Nmat: IP to node mapping
       real(8), allocatable, public :: invNmat(:,:)
 c     Interpolation function derivatives
       real(8), allocatable, public :: dNmat(:,:,:)
 c     Gradient mapping
-      real(8), allocatable, public :: Gmat(:,:,:)      
-c     
+      real(8), allocatable, public :: Gmat(:,:,:)
+c
 c     Gradient map for elements
       real(8), allocatable, public :: gradIP2IP(:,:,:,:)
-c     ______________________________________________________  
-      
+c     ______________________________________________________
+
 
 c     Equivalent isotropic Young's modulus
       real(8), public :: E
-      
+
 c     Equivalent isotropic Poisson's ratio
       real(8), public :: nu
 
 c     Equivalent isotropic Shear modulus
       real(8), public :: G
-c      
+c
 
 c --- ED HORTON EDIT
 c	OUTPUT VARIABLE CHECKS
@@ -266,9 +267,9 @@ c     3: average of state variables over slip systems
 c     4: slip rates per slip system
 c     5: state variables per slip system
 	integer, public :: output_vars(5)
-c --- ED HORTON EDIT END          
-      
-      
+c --- ED HORTON EDIT END
+
+
 c
 C	NUMERICAL CONSTANTS
 c     ______________________________________________________
@@ -284,41 +285,41 @@ c	Maximum number of iterations allowed for inner loop
 c	Maximum number of iterations allowed for outer loop
 	integer, public :: ounoitmax
 c	Constant for the jacobian calculation
-	real(8), public :: deps 
+	real(8), public :: deps
 c	Method of jacobian calculation (1: perturbation, 2: analytical)
-	integer, public :: mtdjaco      
+	integer, public :: mtdjaco
 c	Number of increments skipped for the jacobian calculation
 	integer, public :: njaco
-      
+
 c     Critical threshold value for stress-update algorithm
       real(8), public :: dS_cr
-c      
+c
 c     Factor for critical threshold stress calculation
       real(8), public :: dSratio_cr
 
 c     Specified amount of slip for time-stepping algorithm
       real(8), public :: dgamma_s
-      
+
 c     Upper bound for time-stepping
       real(8), public :: ratio_ub
 
 
 c     Lower bound for time-stepping
-      real(8), public :: ratio_lb      
-      
-      
+      real(8), public :: ratio_lb
+
+
 c     Forward fraction of time
       real(8), public :: tstep_forw
 
 
 c     Backward fraction of time
-      real(8), public :: tstep_back      
+      real(8), public :: tstep_back
 
 c	Small real number
 	real(8), parameter, public :: smallnum = 1.0d-20
-      
+
 c	Large real number
-	real(8), parameter, public :: largenum = 1.0d+20      
+	real(8), parameter, public :: largenum = 1.0d+20
 c     ______________________________________________________
 c
 c
@@ -327,10 +328,10 @@ c     ______________________________________________________
 c
 c	Increment number that is stored
 	integer, allocatable, public :: inc_old(:,:)
-c      
-c     time step - used as a flag for state update      
+c
+c     time step - used as a flag for state update
 	real(8), allocatable, public :: t_old(:,:)
-c      
+c
 c
 c     ______________________________________________________
 c
@@ -349,7 +350,7 @@ c	11-22-33-12-21-13-31-23-32
 	data order9x9(7,:)		/3, 1/
 	data order9x9(8,:)		/3, 2/
 	data order9x9(9,:)		/3, 3/
-c      
+c
 c    Order for 4th rank tensor components (symmetric)
 c	11-22-33-12-13-23
 	integer, public :: order6x6(6,2)
@@ -367,7 +368,7 @@ c	Identity tensors used
 	real(8), public :: I9(9,9)
 	real(8), public :: eijk(3,3,3)
       real(8), public :: I3333(3,3,3,3)
-c	
+c
 c
 c	BH stress states
 	real(8), public :: BHstress(28,6)
@@ -552,7 +553,7 @@ c	6-2 symmetry
 	data hcpsym(3,3,:) /0, 0, 1/
 	data hcpsym(4,1,:) /0.5, 0.866025403d+0, 0/
 	data hcpsym(4,2,:) /-0.866025403d+0, 0.5 , 0/
-	data hcpsym(4,3,:) /0, 0, 1/	
+	data hcpsym(4,3,:) /0, 0, 1/
 	data hcpsym(5,1,:) /-1, 0, 0/
 	data hcpsym(5,2,:) /0, -1 , 0/
 	data hcpsym(5,3,:) /0, 0, 1/
@@ -582,7 +583,7 @@ c
 c     ______________________________________________________
 c
 c
-c	
+c
 c
 c
       end module globalvars

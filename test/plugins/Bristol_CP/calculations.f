@@ -24,7 +24,7 @@ c	This subroutine calculates the two main variables: Stress and Consistent tange
      &GSeffect,grainID,grainsize_init,global_state0,tstep_forw,GND_init,
      &tstep_back,numel,numip,global_Fr0,tres,resdef,mtdjaco,coords_init,
      &grainmorph,global_damage,global_F_pos,global_F_neg,global_pk2_pos,
-     &phasefielddamage,global_Wp
+     &phasefielddamage,global_Wp,global_Wp_t
       use initialization, only: initialize_grainsize,
      &initialize_gndslipgradel
       use phasefieldfracture, only: update_plastic_work
@@ -74,6 +74,7 @@ c         write(6,*) 'Updated the state variables'
          global_state_t(el_no,ip_no,:,:)=global_state(el_no,ip_no,:,:)
          global_jacob_t(el_no,ip_no,:,:)=global_jacob(el_no,ip_no,:,:)
          global_sigma_t(el_no,ip_no,:)=global_sigma(el_no,ip_no,:)
+				 global_Wp_t(el_no,ip_no) = global_Wp(el_no,ip_no)
       endif
 
 
@@ -382,6 +383,7 @@ c	    Assign the globally stored variables
           gint_t = global_gamma_t(el_no,ip_no,:)
           gsum_t = global_gamma_sum_t(el_no,ip_no)
           Xdist = grainmorph(el_no,ip_no,:)
+					Wp_t = global_Wp_t(el_no,ip_no)
 
           ! assign local damage phase field variable
           dam = global_damage(el_no,ip_no)
@@ -401,10 +403,6 @@ c         Fr is scaled with time: i.e. tres = 1 seconds
                   Fr = I3
                   Fr_t = I3
           endif
-
-
-      Wp_t = global_Wp(el_no,ip_no)
-			Wp = Wp_t
 
 c
 c	    Calculate stress and shear resistance
@@ -484,6 +482,7 @@ c             Assign the former values
               state=state_t
               gsum=gsum_t
               gint=gint_t
+							Wp = Wp_t
 
 
 
@@ -595,7 +594,6 @@ c
             if (phasefielddamage.eq.1d+0) then
 
 	            call update_plastic_work(Fp,Fp_t,Fe,S,Wp_t,Wp)
-	            write(*,*) Wp_t
 
             endif
 

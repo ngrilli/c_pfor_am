@@ -2807,6 +2807,7 @@ c	INPUTS: Element number; el, integration point number; ip
       use globalvars, only: global_F_neg
       use globalvars, only: global_pk2_pos
       use globalvars, only: global_Wp
+      use globalvars, only: global_Wp_t
 
 	implicit none
 	integer i
@@ -2902,6 +2903,9 @@ c
 
       allocate(global_Wp(numel,numip))
       global_Wp = 0.0d+0
+
+      allocate(global_Wp_t(numel,numip))
+      global_Wp_t = 0.0d+0
 
       allocate(global_F_neg(numel,numip))
       global_F_neg = 0.0d+0
