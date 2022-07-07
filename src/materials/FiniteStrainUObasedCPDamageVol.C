@@ -418,34 +418,35 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
   RankFourTensor deedfe, dsigdpk2dfe, dfedf;
 
   // Fill in the matrix stiffness material property
-  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+  for (const auto i : make_range(Moose::dim))
+    for (const auto j : make_range(Moose::dim))
+      for (const auto k : make_range(Moose::dim))
       {
         deedfe(i, j, k, i) = deedfe(i, j, k, i) + _fe(k, j) * 0.5;
         deedfe(i, j, k, j) = deedfe(i, j, k, j) + _fe(k, i) * 0.5;
       }
-
+	  
+  usingTensorIndices(i_, j_, k_, l_);
   // This equation is approximated:
   // The term Je23 * Kb * delta * invce is considered the same as
   // _elasticity_tensor[_qp] * ee
   Real je = _fe.det();
   if (je >= 1.0) { // expansion
   
-    dsigdpk2dfe = _fe.mixedProductIkJl(_fe) * _D[_qp] * _elasticity_tensor[_qp] * deedfe;
+    dsigdpk2dfe = _fe.times<i_, k_, j_, l_>(_fe) * _D[_qp] * _elasticity_tensor[_qp] * deedfe;
 
   } else { // compression
 	  
-    dsigdpk2dfe = _fe.mixedProductIkJl(_fe) * _elasticity_tensor[_qp] * deedfe;
+    dsigdpk2dfe = _fe.times<i_, k_, j_, l_>(_fe) * _elasticity_tensor[_qp] * deedfe;
 
   }
 
   pk2fet = _pk2[_qp] * _fe.transpose();
   fepk2 = _fe * _pk2[_qp];
 
-  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-      for (unsigned int l = 0; l < LIBMESH_DIM; ++l)
+  for (const auto i : make_range(Moose::dim))
+    for (const auto j : make_range(Moose::dim))
+      for (const auto l : make_range(Moose::dim))
       {
         tan_mod(i, j, i, l) += pk2fet(l, j);
         tan_mod(i, j, j, l) += fepk2(i, l);
@@ -456,9 +457,9 @@ FiniteStrainUObasedCPDamageVol::elastoPlasticTangentModuli()
   if (je > 0.0)
     tan_mod /= je;
 
-  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-      for (unsigned int l = 0; l < LIBMESH_DIM; ++l)
+  for (const auto i : make_range(Moose::dim))
+    for (const auto j : make_range(Moose::dim))
+      for (const auto l : make_range(Moose::dim))
         dfedf(i, j, i, l) = _fp_inv(l, j);
 
   _Jacobian_mult[_qp] = tan_mod * dfedf;
