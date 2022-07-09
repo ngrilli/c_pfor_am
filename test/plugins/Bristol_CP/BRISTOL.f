@@ -91,7 +91,7 @@ c
 c         At the end of each increment
 c         Update and calculate GNDs (nonlocal calculations)
 c         This is done at the end of calculations.
-c         GNDs that belong to the PREVOUS time step are used.
+c         GNDs that belong to the PREVIOUS time step are used.
 c         Initially GNDs are assumed to have "0" values.
           if (LOP.eq.2) then
 c
