@@ -93,6 +93,8 @@ c	Taylor factor for a isotropic polycrytal aggregte
 	real(8), parameter, public :: TF = 3.1d+0
 c     Universal gas contant [J/mol/K]
       real(8), parameter, public :: Rgas = 8.31d+0
+c     Boltzman contant [m2 kg s-2 K-1 ]
+      real(8), parameter, public :: KB = 1.380649d-23
 c     Number of slip systems
       integer, public :: numslip
 c	Schmid tensor
@@ -105,6 +107,8 @@ c	Vectorized Schmid tensor
 	real(8)	, allocatable, public :: Schmid_vec(:,:)
 c	Vectorized Climb tensor
 	real(8)	, allocatable, public :: Climb_vec(:,:)
+c     Backstress tensor
+      real(8) , allocatable, public :: BS_dyad(:,:,:,:)
 c	Dyadic product of Schmid tensor with Schmid tensor
 	real(8)	, allocatable, public :: SchxSch(:,:,:,:,:)
 c	Normalized slip directions
@@ -173,7 +177,10 @@ c	Work-conjugate elasticity matrix for isotropic phase
 c
 c	modelno: 1/2/3/4/5/6
 	integer, public :: modelno
-
+c
+c	modelno: 0/1/2/3/4
+      integer, public :: creepno
+c
 c	interno: 0/1/2/3/4
 	integer, public :: interno
 
@@ -186,6 +193,9 @@ c	Strain hardening interaction: 0 (OFF) /1 (ON)
 c	Strain rate parameters (1:param)
 	real(8), allocatable, public :: sliprate_param(:)
 c
+c	Creep parameters (1:param)
+      real(8), allocatable, public :: creep_param(:)
+
 c	Strain hardening parameters (1:param)
       real(8), allocatable, public :: sliphard_param(:)
 c
@@ -257,9 +267,11 @@ c     Equivalent isotropic Poisson's ratio
 
 c     Equivalent isotropic Shear modulus
       real(8), public :: G
-c
 
-c --- ED HORTON EDIT
+c     Equivalent isotropic Bulk modulus
+      real(8), public :: kappa
+
+
 c	OUTPUT VARIABLE CHECKS
 c     1: misorientation angle
 c     2: cumulative slip
@@ -267,7 +279,6 @@ c     3: average of state variables over slip systems
 c     4: slip rates per slip system
 c     5: state variables per slip system
 	integer, public :: output_vars(5)
-c --- ED HORTON EDIT END
 
 
 c

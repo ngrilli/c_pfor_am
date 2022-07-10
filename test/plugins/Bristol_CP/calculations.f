@@ -37,7 +37,7 @@ c	Outputs
 c	Variables used within this subroutine
 	real(8) Fp_t(3,3),Fe_t(3,3),tauc_t(numslip), Fr(3,3),Fr_t(3,3)
 	real(8) Fp(3,3),Fe(3,3),tauc(numslip),Cauchy(3,3)
-	real(8) S(6),S_t(6),det,C(3,3,numslip),epsdot
+	real(8) S(6),S_t(6),det,C(3,3,numslip)
 	real(8) Lp(3,3),R(3,3),U(3,3),gammadot(numslip)
 	real(8) dgammadot_dtau(numslip)
 	integer is,el_no,ip_no,gr_no
@@ -46,10 +46,11 @@ c	Variables used within this subroutine
       integer sconv, jconv, i, j, flag
 c     SC-model inputs
       real(8)	state(numslip,numstvar),state_t(numslip,numstvar),
-     &state0(numslip,numstvar),sgint_t,sgint,Xdist(numslip)
+     &state0(numslip,numstvar),Xdist(numslip)
 c     J2-model inputs
       real(8)	sstate(numstvar),sstate_t(numstvar),sstate0(numstvar),
-     &sXdist
+     & sXdist,sgint_t,sgint,sgsum,sgsum_t,Np(3,3),eta,depsdot_dsigma,
+     & epsdot
 c     Variables related with phase field damage
       real(8) F_pos, F_neg, dam, pk2_pos_mat(3,3)
       integer damflag
@@ -129,53 +130,40 @@ c          write(6,*) 'coordinates: ', coords
       endif
 
 
+c     Not yet initialized (done only once)
+      if (GND_init.eq.0d+0) then
 
-c     Initialize GND calculation from slip gradients
-      if (GNDeffect.eq.1d+0) then
+c       Once the calculations are complete
+        flag=0d+0
+        do i=1, numel
+          do j=1,numip
+            flag = flag + coords_init(i,j)
+          enddo
+        enddo
 
+c       Once the coordinates are computed
+        if (flag.eq.numel*numip) then
 
-c         Not yet initialized (done only once)
-          if (GND_init.eq.0d+0) then
+          GND_init = 1d+0
 
+c         Initialize GND calculation from slip gradients
+          if ((GNDeffect.eq.1d+0).or.(GNDeffect.eq.2d+0)) then
 
-c             Once the calculations are complete
-              flag=0d+0
-              do i=1, numel
-                  do j=1,numip
-                      flag = flag + coords_init(i,j)
-                  enddo
-              enddo
-
-c             Once the coordinates are computed
-              if (flag.eq.numel*numip) then
-
-                  GND_init = 1d+0
-
-c                 initialize calculations for GND mapping after all the element information is complete!
-c                 This is done ONCE!
-                  call initialize_gndslipgradel
-              endif
+c           Initialize calculations for GND mapping after all the element information is complete!
+c           This is done ONCE!
+            call initialize_gndslipgradel
 
           endif
 
+        endif
+
       endif
-
-
-
-
 
 
 c     In case of mechanical solver only, use initial temperatures
       if (thermo.eq.0d+0) then
           temp = temp0
       endif
-
-
-
-
-
-c
-
 
 
 c     J2-model
@@ -190,7 +178,8 @@ c          write(6,*) 'J2 CALCULATIONS'
 
           Fp_t=global_Fp_t(el_no,ip_no,:,:)
           Fe_t=global_Fe_t(el_no,ip_no,:,:)
-          gsum_t=global_gamma_sum_t(el_no,ip_no)
+					S_t=global_S_t(el_no,ip_no,:)
+          sgsum_t=global_gamma_sum_t(el_no,ip_no)
           sgint_t=global_gamma_t(el_no,ip_no,1)
           sstate0=global_state0(el_no,ip_no,1,:)
           sstate_t=global_state_t(el_no,ip_no,1,:)
@@ -200,9 +189,9 @@ c         Average slip distance
 
 
 c	    Calculate stress and flow stress using J2 plasticity
-          call J2_main(dt,F,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
-     &	sstate0,sXdist,Fp,Fe,epsdot,sstate,gsum,sgint,sigma,sconv)
-
+      call J2_main(dt,F,Fp_t,S_t,sstate_t,sgsum_t,sgint_t,
+     & temp,sstate0,sXdist,Fp,Fe,S,Np,eta,epsdot,
+     & depsdot_dsigma,sstate,sgsum,sgint,sigma,sconv)
 
 
 c         Calculate the time factor
@@ -213,22 +202,28 @@ c         If not converged
      	    if (sconv.eq.0d+0) then
 		    write(6,*) 'Inner/Outer loop during stress calculation
      &	did not converge!'
-		    write(6,*) 'el_no'
-		    write(6,*) el_no
-		    write(6,*) 'ip_no'
-		    write(6,*) ip_no
-		    write(6,*) 'F'
-		    write(6,*) F
-		    write(6,*) 'F_t'
-		    write(6,*) F_t
-		    write(6,*) 'Fp_t'
-		    write(6,*) Fp_t
- 		    write(6,*) 'sigma'
-		    write(6,*) sigma
-		    write(6,*) 'state_t'
-		    write(6,*) state_t
-		    write(6,*) 'dt'
-		    write(6,*) dt
+      write(6,*) 'el_no'
+      write(6,*) el_no
+      write(6,*) 'ip_no'
+      write(6,*) ip_no
+      write(6,*) 'F'
+      write(6,*) F
+      write(6,*) 'F_t'
+      write(6,*) F_t
+      write(6,*) 'Fp_t'
+      write(6,*) Fp_t
+      write(6,*) 'Fp'
+      write(6,*) Fp
+      write(6,*) 'sigma'
+      write(6,*) sigma
+      write(6,*) 'epsdot'
+      write(6,*) epsdot
+      write(6,*) 'sstate_t'
+      write(6,*) sstate_t
+      write(6,*) 'sstate'
+      write(6,*) sstate
+      write(6,*) 'dt'
+      write(6,*) dt
 cc		    QUIT ABAQUS
 c		    call xit
 
@@ -249,10 +244,10 @@ c
 c             Assign former values if not converge
               Fp = Fp_t
               Fe = Fe_t
-              S = 0.0d+0
+              S = S_t
               epsdot = global_gammadot_t(el_no,ip_no,1)/TF
               sstate = sstate_t
-              gsum = gsum_t
+              sgsum = sgsum_t
               sgint = sgint_t
 
 
@@ -308,71 +303,74 @@ c             JACOBIAN CALCULATION FOR ISOTROPIC PHASE
 c	        For a number of increments do the jacobian calculation
 c	        Note, jacobian is needed at the first calculation
 	        if (modulo(inc,njaco).eq.0) then
-c		    Calculate the material tangent (using perturbation)
 
+c           Calculate the material tangent (using perturbation)
+            if (mtdjaco.eq.1d+0) then
 
-      call J2_jacobian(dt,F_t,F,Fe_t,Fp_t,
-     & sstate_t,gsum_t,sgint_t,
-     & temp,sstate0,sXdist,sigma,jacob,jconv)
+      call J2_jacobian_per(dt,F_t,F,Fe_t,Fp_t,S_t,
+     & sstate_t,sgsum_t,sgint_t,temp,sstate0,sXdist,
+     & sigma,jacob,jconv)
 
+c           Calculate the material tangent (using analytical tangent)
+            elseif (mtdjaco.eq.2d+0) then
 
+      call J2_jacobian_ana(dt,eta,Np,depsdot_dsigma,
+     & jacob,jconv)
 
+c           Calculate the material tangent (using elasticity)
+            elseif (mtdjaco.eq.3d+0) then
 
+              jconv = 1d+0
+              jacob = global_jacob_t(el_no,ip_no,:,:)
 
+            endif
 
+c 		      write(6,*) 'jacob'
+c		        write(6,*) jacob
 
 c		        When the jacobian calculation did not converge, assign the old jacobian!
-		        if (jconv.eq.0d+0) then
-c			        Jacobian
-                      write(6,*) 'Jacobian has not converged - J2'
-                      write(6,*) 'el_no',el_no
-                      write(6,*) 'ip_no',ip_no
-			        jacob=global_jacob_t(el_no,ip_no,:,:)
+            if (jconv.eq.0d+0) then
+c			      Jacobian
+              write(6,*) 'Jacobian has not converged - J2'
+              write(6,*) 'el_no',el_no
+              write(6,*) 'ip_no',ip_no
+              jacob=global_jacob_t(el_no,ip_no,:,:)
+
+c             pnewdt=0.5
+              pnewdt=tstep_back
+              write(6,*) 'pnewdt',pnewdt
+
+            endif
 
 
-c                      pnewdt=0.5
-                      pnewdt=tstep_back
-                      write(6,*) 'pnewdt',pnewdt
+          else
 
-		        endif
-              else
-
-c                 Note this also works when inc=1 since it is elasticity matrix
-		        jacob=global_jacob_t(el_no,ip_no,:,:)
-
-              endif
-
-
-
-c          write(6,*) 'jacob', jacob
-
+c         Note this also works when inc=1 since it is elasticity matrix
+            jacob=global_jacob_t(el_no,ip_no,:,:)
 
           endif
 
+c         write(6,*) 'jacob', jacob
 
+        endif
 
-c         Update the state variables
-          global_Fp(el_no,ip_no,:,:) = Fp
-          global_Fe(el_no,ip_no,:,:) = Fe
-          global_S(el_no,ip_no,:) = 0.0d+0
-c         Store the important variables
-c         For J2 model assign the same values for all slip sytems
-          do i=1,numslip
-              global_state(el_no,ip_no,i,1:numstvar)=sstate(1:numstvar)
-              global_gammadot(el_no,ip_no,i) = epsdot*TF
-              global_gamma(el_no,ip_no,i) = sgint
-          enddo
+c       Update the state variables
+        global_Fp(el_no,ip_no,:,:) = Fp
+        global_Fe(el_no,ip_no,:,:) = Fe
+        global_S(el_no,ip_no,:) = S
+c       Store the important variables
+c       For J2 model uses the 1st slip sytem only
+c       do is=1,numslip
+        global_state(el_no,ip_no,1,1:numstvar)=sstate(1:numstvar)
+        global_gammadot(el_no,ip_no,1) = epsdot*TF
+        global_gamma(el_no,ip_no,1) = sgint
+c       enddo
 
-          global_gamma_sum(el_no,ip_no) = gsum
-
-
-
+        global_gamma_sum(el_no,ip_no) = sgsum
 
 
 c     Single crystal calculations
       else
-
-
 
 c	    Assign the globally stored variables
           Fe_t = global_Fe_t(el_no,ip_no,:,:)
@@ -644,27 +642,28 @@ c
 c
 c     Main routine for jacobian calculation for Martensite
 c	This subroutine calculates consistent tangent
-      subroutine J2_jacobian(dt,F_t,F,Fe_t,Fp_t,sstate_t,
-     & gsum_t,sgint_t,temp,sstate0,sXdist,Cauchy_vec,
+      subroutine J2_jacobian_per(dt,F,F_t,Fe_t,Fp_t,S_t,sstate_t,
+     & sgsum_t,sgint_t,temp,sstate0,sXdist,Cauchy_vec,
      & jacob,jconv)
 
-	use globalvars, only : deps,innoitmax,ounoitmax,numslip,numstvar
+	use globalvars, only : deps,numstvar
 	use globalsubs, only : convert3x3to6,convert6to3x3
 	implicit none
 c	Inputs
-      real(8) F_t(3,3),F(3,3),dt,gsum_t,sgint_t,temp,sXdist
-	real(8) Fp_t(3,3),Fe_t(3,3),Cauchy_vec(6)
+      real(8) F_t(3,3),F(3,3),dt,sgsum_t,sgint_t,temp,sXdist
+      real(8) Fp_t(3,3),Fe_t(3,3),Cauchy_vec(6),sstate0(numstvar)
+      real(8) sstate_t(numstvar),S_t(6)
 c	Outputs
 	real(8) jacob(6,6)
 	integer jconv
 c	Variables used within this subroutine
-	real(8) Fp(3,3),Fe(3,3),epsdot,sigc,sgint
-	real(8) Fper(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6),gsum
+	real(8) Fp(3,3),Fe(3,3),S_vec(6),Np(3,3),epsdot,depsdot_dsigma
+	real(8) Fper(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6),sgsum
+      real(8) sstate(numstvar),sgint,eta
 	integer i,iloop,oloop,sconv
-      real(8)	sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
 c
 c	Assign the convergent behavior
-	jconv=1
+	jconv=1d+0
 
 cc	Cauchy stress
 c	call convert6to3x3(Cauchy_t_vec,Cauchy_t)
@@ -674,187 +673,212 @@ c	Increment 6 components of relative deformation gradient
 c		Component-wise pertubation
 		dFrel_vec=0.0d+0
 
-
-
-c         This is TRUE as in Kalididi's study - gives "G" as the shear term
-		if (i.le.3) then
-              dFrel_vec(i)=deps
-          else
-c		Note it is not deps/2 since during conversion only one component is considered
-		    dFrel_vec(i)=deps/2.0d+0
-          endif
+		dFrel_vec(i)=deps
+cc         This is TRUE as in Kalididi's study - gives "G" as the shear term
+c		if (i.le.3) then
+c              dFrel_vec(i)=deps
+c          else
+cc		Note it is not deps/2 since during conversion only one component is considered
+c		    dFrel_vec(i)=deps/2.0d+0
+c          endif
 
 c		Convert the vector to a matrix
-		call convert6to3x3(dFrel_vec,dFrel)
-		Fper=F+matmul(dFrel,F_t)
+      call convert6to3x3(dFrel_vec,dFrel)
+      Fper=F+matmul(dFrel,F_t)
 c		Call the calculation procedure
-          call J2_main(dt,Fper,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
-     &sstate0,sXdist,Fp,Fe,epsdot,sstate,gsum,sgint,
-     &Cauchy_per_vec,sconv)
+      call J2_main(dt,Fper,Fp_t,S_t,sstate_t,sgsum_t,sgint_t,
+     & temp,sstate0,sXdist,Fp,Fe,S_vec,Np,eta,epsdot,depsdot_dsigma,
+     & sstate,sgsum,sgint,Cauchy_per_vec,sconv)
 
 
-           if (sconv.eq.0) jconv=0
+      if (sconv.eq.0) jconv=0d+0
 
-		jacob(1:6,i)=(Cauchy_per_vec-Cauchy_vec)/deps
+      jacob(1:6,i)=(Cauchy_per_vec-Cauchy_vec)/deps
+
       enddo
 
 
 c     Make it symmetric
       jacob=(transpose(jacob)+jacob)/2.0d+0
 
+      return
+      end subroutine J2_jacobian_per
+c
+c
+
+c
+c
+c     Main routine for jacobian calculation for Martensite
+c	This subroutine calculates consistent tangent
+      subroutine J2_jacobian_ana(dt,eta,Np,depsdot_dsigma,
+     & jacob,jconv)
+c
+      use globalvars, only : I3, G, kappa
+      use globalsubs, only : convert3x3x3x3to6x6
+      implicit none
+c	Inputs
+      real(8) dt, eta, Np(3,3),depsdot_dsigma
+c	Outputs
+      real(8) jacob(6,6)
+      integer jconv
+c	Variables used within this subroutine
+      real(8) jacob4(3,3,3,3),dsigma_dsigmatr
+      integer i,j,k,l
+
+c
+c	Assign the convergent behavior
+      jconv=1d+0
+
+
+
+c     dsigma_dsigmatr
+      dsigma_dsigmatr = 1.0d+0/(1.0d+0 + 3.0d+0*G*dt*depsdot_dsigma)
+
+
+      jacob4=0.0d+0
+      do i=1,3
+          do j=1,3
+              do k=1,3
+                  do l=1,3
+
+                      jacob4(i,j,k,l)= 2.0d+0*eta*G*I3(i,k)*I3(j,l) +
+     &                (kappa-2.0d+0/3.0d+0*eta*G)*I3(i,j)*I3(k,l) -
+     &                3.0d+0*G*eta*Np(i,j)*Np(k,l) +
+     &                3.0d+0*dsigma_dsigmatr*Np(i,j)*Np(k,l)
+
+
+                  enddo
+              enddo
+          enddo
+      enddo
+
+
+
+      call convert3x3x3x3to6x6(jacob4,jacob)
+
+
+
+c     Make it symmetric
+      jacob=(transpose(jacob)+jacob)/2.0d+0
+
 	return
-	end subroutine J2_jacobian
+	end subroutine J2_jacobian_ana
 c
 c
-
-
-
-
-
-
 
 c
 c
 c     Main routine for J2-plasticity
-      subroutine J2_main(dt,F,Fp_t,Fe_t,sstate_t,gsum_t,sgint_t,temp,
-     &sstate0,sXdist,Fp,Fe,epsdot,sstate,gsum,sgint,Cauchy_vec,sconv)
-      use globalsubs, only: invert3x3, convert3x3to6, trace, normmat,
-     &convert6to3x3, determinant
+      subroutine J2_main(dt,F,Fp_t,S_t,sstate_t,sgsum_t,sgint_t,
+     & temp,sstate0,sXdist,Fp,Fe,S_vec,Np,eta,epsdot,depsdot_dsigma,
+     & sstate,sgsum,sgint,Cauchy_vec,sconv)
+
+			use globalsubs, only: invert3x3, convert3x3to6, trace, normmat,
+     & convert6to3x3, determinant
       use globalvars, only: elas66_iso, G, E, nu, TF, modelno, largenum,
-     &innertol, outertol, innoitmax, ounoitmax, I3, numstvar, dS_cr,
-     &outerreltol
+     & innertol, outertol, innoitmax, ounoitmax, I3, numstvar, dS_cr,
+     & outerreltol
       use slipratelaws, only: sliprate
       use sliphardlaws, only: sliphard
-	implicit none
+      implicit none
 c	Inputs
       real(8) F(3,3),dt, temp
-	real(8) Fp_t(3,3),Fe_t(3,3),gsum_t,sgint_t,sXdist
+      real(8) Fp_t(3,3),Fe_t(3,3),sgsum_t,sgint_t,sXdist
+      real(8) sstate_t(numstvar),sstate0(numstvar),S_t(6)
 c	Outputs
-	real(8) Fp(3,3),Fe(3,3),epsdot,sigc,Cauchy_vec(6),gsum,sgint
+      real(8) Fp(3,3),Fe(3,3),epsdot,sigc,Cauchy_vec(6),sgsum,sgint
+      real(8) Np(3,3), eta, sstate(numstvar),depsdot_dsigma
       integer sconv
-c	Vairables used
-
-      real(8) invFp_t(3,3),GLS(3,3),GLSvec(6),det
-	real(8) GLStr(3,3),GLStrvec(6)
-	real(8) Cauchytrvec(6),Cauchytr(3,3),Cauchytrdev(3,3)
-      real(8) hyd,sigmatr,Cauchy(3,3)
-	real(8) Nptr(3,3),Cauchydev(3,3),sigma,dR1
-	real(8) gdot,dgdot_dtau,depsdot_dsigma
-	real(8) R1,xx1,xx2,Dp(3,3),invFp(3,3),detFp
-      real(8) tau,tautr,dsigma
-      real(8)	sstate_t(numstvar),sstate(numstvar),sstate0(numstvar)
-      real(8) Rstate(numstvar),sstatedot(numstvar+1)
+c	Variables used
+      real(8) invFp_t(3,3),detFp_t
+      real(8) Eetr(3,3),Eetr_vec(6),Ee(3,3),Ee_vec(6)
+      real(8) Str_vec(6),Str(3,3),Strdev(3,3)
+      real(8) hyd,sigmatr,Cauchy(3,3),S_vec(6)
+      real(8) Cauchydev(3,3),sigma,dRi,S(3,3)
+      real(8) gdot,dgdot_dtau,Sdev(3,3)
+      real(8) Ri,nRi,Dp(3,3),invFp(3,3),detFp
+      real(8) tau,dsigma
+      real(8) Ro(numstvar),sstatedot(numstvar+1)
       integer iloop,oloop,i
       logical notnum, conv
 c	real(8) xx1_old,sigma_old
 
 c
-	call invert3x3(Fp_t,invFp_t,det)
-c	Trial elastic deformation
-	Fe=matmul(F,invFp_t)
-
-
-
-
+      call invert3x3(Fp_t,invFp_t,detFp_t)
+cc	Trial elastic deformation
+      Fe=matmul(F,invFp_t)
 
 c	Trial elastic stretch
-	GLStr=(matmul(transpose(Fe),Fe)-I3)/2.0d+0
-
-
-
+      Eetr=(matmul(transpose(Fe),Fe)-I3)/2.0d+0
 
 c	Vectorize strain
-	call convert3x3to6(GLStr,GLStrvec)
-
+      call convert3x3to6(Eetr,Eetr_vec)
 
 c	Vectorized trial stress
-	Cauchytrvec=matmul(elas66_iso,GLStrvec)
+      Str_vec=matmul(elas66_iso,Eetr_vec)
 
 c	Trial stress
-	call convert6to3x3(Cauchytrvec,Cauchytr)
+      call convert6to3x3(Str_vec,Str)
 c	Hydrostatic component of the trial stress
-	call trace(Cauchytr,3,hyd)
-	hyd=hyd/3.0d+0
+      call trace(Str,3,hyd)
+      hyd=hyd/3.0d+0
 c	Deviatoric component of the trial stress
-	Cauchytrdev=Cauchytr-(I3*hyd)
+      Strdev=Str-(I3*hyd)
 c	Equivalent trial stress
-	call normmat(Cauchytrdev,3,sigmatr)
-	sigmatr=dsqrt(3.0d+0/2.0d+0)*sigmatr
-
-
-cc     Convert to slip system values
-c      tautr = sigmatr/TF
-
+      call normmat(Strdev,3,sigmatr)
+      sigmatr=dsqrt(3.0d+0/2.0d+0)*sigmatr
 
 c	Plastic flow direction (if statement is to correct sigmabar=0 situation which give rise to 1/0 problem)
-	if (sigmatr.ne.0.0d+0) then
-		Nptr=3.0d+0/2.0d+0*Cauchytrdev/sigmatr
-	else
-		Nptr=0.0d+0
-	endif
-
-
+      if (sigmatr.ne.0.0d+0) then
+        Np=3.0d+0/2.0d+0*Strdev/sigmatr
+      else
+        Np=0.0d+0
+      endif
 
 !c     Convert to slip system values
 !      tauc=sigc/TF
 !      tauc_t=sigc_t/TF
 !
 
-
-
-
-c     COMPUTE FORMER STRESS
-c	Former elastic stretch
-	GLS=(matmul(transpose(Fe_t),Fe_t)-I3)/2.0d+0
-c	Vectorize strain
-	call convert3x3to6(GLS,GLSvec)
-c	Vectorized former stress
-	Cauchy_vec=matmul(elas66_iso,GLSvec)
-c     3x3 former stress tensor
-c	Initial guess for the stress
-	call convert6to3x3(Cauchy_vec,Cauchy)
-
-
-
-c	Deviatoric stress
-	call trace(Cauchy,3,hyd)
-	hyd=hyd/3.0d+0
-	Cauchydev=Cauchy-(I3*hyd)
-c	Equivalent stress
-	call normmat(Cauchydev,3,sigma)
-	sigma=dsqrt(3.0d+0/2.0d+0)*sigma
-
-
+c     Assign trial-stress to start iterations
+      sigma = sigmatr
 
 cc     Convert to slip system values
 c      tau = sigma/TF
 
 c	Assign the initial value for the parameters before starting the loop
 c	Initial guess for the shear resistance
-	sstate=sstate_t
+      sstate=sstate_t
 
 c	OUTER loop starts here
-	do oloop=1,ounoitmax
+      do oloop=1,ounoitmax
 c		INNER loop starts here
 cc		Assign a very large value
 c		xx1_old=1.0d+10
-		do iloop=1,innoitmax
+        do iloop=1,innoitmax
 
+c              write(6,*) 'iloop',iloop
+c              write(6,*) 'sigma',sigma
 
-              tau = sigma / TF
+        tau = sigma / TF
 
 c			Plastic strain rate
-              call sliprate(tau, sstate, temp, sXdist, gdot, dgdot_dtau)
+				call sliprate(tau, sstate, temp, sXdist, gdot, dgdot_dtau)
 
-              depsdot_dsigma = dgdot_dtau / TF**2.0d+0
+c             Convert slip rates to strain rates uisng Taylor Factor
+				epsdot = gdot / TF
+				depsdot_dsigma = dgdot_dtau / TF**2.0d+0
 c              write(6,*) 'sstate',sstate
 
 
-c              write(6,*) 'iloop',iloop
+
 c              write(6,*) 'gdot',gdot
 c              write(6,*) 'tau',tau
 
-			epsdot = gdot / TF
+
+
+c      write(6,*) 'sigma_after', sigma
+
 c
 c			if (gammadot.gt.1.0) then
 c				write(6,*) '*******************'
@@ -866,9 +890,9 @@ c			Derivative of shear rate with respect to the stress
 c			depsdot_dsigma=dgdot_dtau/(TF**2.)
 
 c			Residual
-			R1=sigma-sigmatr+(dt*3.0d+0*G*epsdot)
-c              write(6,*) 'R1',R1
-              xx1=dabs(R1)
+      Ri=sigma-sigmatr+(dt*3.0d+0*G*epsdot)
+c              write(6,*) 'Ri',Ri
+				nRi=dabs(Ri)
 cc			Relative norm of the residual
 c			if (taubar.eq.0) then
 c				xx1=0.0
@@ -877,66 +901,65 @@ c
 c			endif
 c			Check the residual
 c			if residual is smaller than the tolerance EXIT
-			if (xx1.lt.innertol) then
-				exit
+      if (nRi.lt.innertol) then
+	      exit
 c			if the residual have a converging behavior
-              endif
+      endif
 c             Calculate tangent for N-R iteration
-              dR1=1.0d+0 + (dt*3.0d+0*G*depsdot_dsigma)
+				dRi=1.0d+0 + (dt*3.0d+0*G*depsdot_dsigma)
 
 c             Stress increment
-              dsigma = -R1/dR1
+				dsigma = -Ri/dRi
 
 c             If the stress increment is larger than the critical value
-              if (dabs(dsigma).gt.dS_cr) then
-                  dsigma = dsign(1.0d+0,dsigma)*dS_cr
-              endif
+				if (dabs(dsigma).gt.dS_cr) then
+						dsigma = dsign(1.0d+0,dsigma)*dS_cr
+				endif
 
 cc            Store the old value of stress to update the guess
 c             sigma_old=sigma
 c             Stress after the iteration
-              sigma=sigma + dsigma
+				sigma=sigma + dsigma
 cc            Assign the old value of the norm for the next iteration
 c             xx1_old=xx1
+c              write(6,*) 'sigma_before', sigma
 
-		enddo
+
+
+
+
+      enddo
 c
 c		End of INNER loop
-          gsum = gsum_t + gdot * dt
+      sgsum = sgsum_t + gdot * dt
 
-          sgint = sgint_t + gdot * dt
+      sgint = sgint_t + gdot * dt
 
 
 c         Strain hardening
-          call sliphard(sstate,gsum,sgint,gdot,temp,sstate0,sXdist,
-     &sstatedot)
-
-
-
+      call sliphard(sstate,sgsum,sgint,gdot,temp,sstate0,sXdist,
+     & sstatedot)
 
 c         Slip hardening law of Dylan
-          if (modelno.eq.2d+0) then
-              sstatedot(1) = sstatedot(1) - sstatedot(3)
-          endif
+		if (modelno.eq.2d+0) then
+				sstatedot(1) = sstatedot(1) - sstatedot(3)
+		endif
 
 
 c          write(6,*) 'statedot',statedot
 c         Assign convergence flag
-          conv = .true.
+		conv = .true.
 c		Residual increments of slip resistance
-          do i=1,numstvar
+		do i=1,numstvar
 
-              Rstate(i)=sstate(i)-sstate_t(i)-sstatedot(i)*dt
+				Ro(i)=sstate(i)-sstate_t(i)-sstatedot(i)*dt
 
 c             Check if it is within the tolerance
-              if (dabs(Rstate(i)).gt.outerreltol(i)) then
-                  conv = .false.
-              endif
+				if (dabs(Ro(i)).gt.outerreltol(i)) then
+						conv = .false.
+				endif
 
-c         Vectorize state variables
-c                  count=count+1
-c             Rstate_vec(count) = Rstate(i,j)
-          enddo
+		enddo
 
 c          write(6,*) 'oloop',oloop
 c          write(6,*) 'gdot',gdot
@@ -946,15 +969,15 @@ c          write(6,*) 'sstatedot',sstatedot
 
 
 c		Check the tolerance
-		if (conv) exit
+      if (conv) exit
 
 c		Update the shear resistance
-          do i=1,numstvar
-		    sstate(i)=sstate_t(i)+sstatedot(i)*dt
-          enddo
+      do i=1,numstvar
+        sstate(i)=sstate_t(i)+sstatedot(i)*dt
+      enddo
 
 
-	enddo
+      enddo
 c
 c
 
@@ -967,10 +990,10 @@ c      sigc = tauc*TF
 
 
 c	Plastic stretch tensor
-	Dp=epsdot*Nptr
+      Dp=epsdot*Np
 
 c	Plastic part of the deformation gradient
-	Fp=matmul(((Dp*dt)+I3),Fp_t)
+      Fp=matmul(((Dp*dt)+I3),Fp_t)
 
 c     Find the determinant and scale it
       call determinant(Fp,detFp)
@@ -978,39 +1001,74 @@ c     Find the determinant and scale it
 c     Plastic part of the deformation gradient
       Fp = Fp / detFp**(1.0d+0/3.0d+0)
 
-c     Invert Fp
-	call invert3x3(Fp,invFp,detFp)
+cc     Invert Fp
+c	call invert3x3(Fp,invFp,detFp)
 
-c	Elastic part of the deformation gradient
-	Fe=matmul(F,invFp)
+cc	Elastic part of the deformation gradient
+c	Fe=matmul(F,invFp)
 
-c	Elastic stretch
-	GLS=(matmul(transpose(Fe),Fe)-I3)/2.0d+0
-
-
-c	Vectorize strain
-	call convert3x3to6(GLS,GLSvec)
+cc	Elastic stretch
+c	Ee=(matmul(transpose(Fe),Fe)-I3)/2.0d+0
 
 
-c	Vectorized stress
-	Cauchy_vec=matmul(elas66_iso,GLSvec)
+cc	Vectorize strain
+c	call convert3x3to6(Ee,Ee_vec)
+
+
+cc	Vectorized stress - 2PK stress
+c	S_vec=matmul(elas66_iso,Ee_vec)
 
 
 
+
+      eta = sigma/sigmatr
+c     This can happen initially
+      if (isnan(eta)) then
+        eta=1.0d+0
+      endif
+
+      S = eta*Strdev + I3*hyd
+
+c	Vectorize stress
+      call convert3x3to6(S,S_vec)
+
+
+cc	Stress recalculation
+c	call convert6to3x3(S_vec,S)
+cc	Hydrostatic component of the trial stress
+c	call trace(S,3,hyd)
+c	hyd=hyd/3.0d+0
+cc	Deviatoric component of the trial stress
+c	Sdev=S-(I3*hyd)
+cc	Equivalent trial stress
+c	call normmat(Sdev,3,sigma)
+c	sigma=dsqrt(3.0d+0/2.0d+0)*sigma
+
+c     Calculate Cauchy stress for large deformations
+      call cauchystress(S_vec,Fe,Cauchy,Cauchy_vec)
+
+
+
+
+
+
+
+
+
+c     Flag for convergence
       sconv=1d+0
 c     Check if the stress value converged
       do i=1,6
-          notnum = isnan(Cauchy_vec(i))
-          if (notnum) sconv=0d+0
+        notnum = isnan(Cauchy_vec(i))
+        if (notnum) sconv=0d+0
       enddo
 
 c     Check if the stress value converged
       do i=1,6
 
-          if (abs(Cauchy_vec(i)).gt.largenum) sconv=0d+0
+        if (abs(Cauchy_vec(i)).gt.largenum) sconv=0d+0
 
       enddo
-
 
 c     Check if the slip rates are infinite
       if (dabs(epsdot).gt.largenum) sconv=0d+0
@@ -1018,19 +1076,18 @@ c     Check if the slip rates are infinite
 
 
 c     Check for the number of iterations
-      if (sconv.eq.1) then
-          if (iloop.eq.innoitmax) sconv=0d+0
+      if (sconv.eq.1d+0) then
+        if (iloop.eq.innoitmax) sconv=0d+0
 
-
-          if (oloop.eq.ounoitmax) sconv=0d+0
+        if (oloop.eq.ounoitmax) sconv=0d+0
 
       endif
 
-
-
-
       return
       end subroutine J2_main
+c
+c
+
 c
 c
 c
@@ -1073,13 +1130,13 @@ c      call determinant(F,detF)
 
 
 c	Assign the convergent behavior
-	jconv=1
+	jconv=1d+0
 c
 c	Increment 6 components of relative deformation gradient
 	do i=1,6
 c		Component-wise pertubation
 		dFrel_vec=0.0d+0
-		!dFrel_vec(i)=deps
+
 		if (i.le.3) then
               dFrel_vec(i)=deps
           else
@@ -1098,7 +1155,7 @@ c		Call the calculation procedure
      & dummy11,dummy12,sconv,dummy13)
 
 c
-          if (sconv.eq.0) jconv=0d+0
+          if (sconv.eq.0d+0) jconv=0d+0
 
 c
 c		Assignment of jacobian components
@@ -1725,7 +1782,14 @@ c	        Residual
 
 
 c              write(6,*) 'state',state
-
+      do i=1,6
+        if (isnan(S_vec(i))) then
+        write(6,*) 'state', state
+        write(6,*) 'S_vec', S_vec
+        write(6,*) 'gammadot', gammadot
+        write(6,*) 'tau', tau
+        endif
+      enddo
 
 
 c              write(6,*) 'tau', tau
@@ -2078,12 +2142,13 @@ c Irradiation model for tauc
           state_(:,5) = matmul(intmatI,dabs(state(:,5)))
 
 
+      elseif (modelno.eq.7d+0) then
+
+          state_(:,1) = matmul(intmat,state(:,1))
+
+          state_(:,2) = state(:,2)
 
       endif
-
-
-
-
 
 
 
@@ -2311,9 +2376,15 @@ c          statedot(:,1) = rhoSSDdot
 
 c          write(6,*) rhoSSDdot
 
+      elseif (modelno.eq.7d+0) then
+
+c          taucdot =  statedot(:,1)
+
+c          taucdot = matmul(intmat,taucdot)
+
+c          statedot(:,1) = taucdot
+
       endif
-
-
 
 
 
@@ -2382,4 +2453,4 @@ c
 c
 c
 c
-	end module calculations
+      end module calculations
