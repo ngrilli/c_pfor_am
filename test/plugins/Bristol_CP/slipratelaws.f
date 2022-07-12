@@ -9,167 +9,176 @@ c
 	module slipratelaws
       implicit none
       contains
-      
-      
-      
-      subroutine sliprate(tau, sstate, temp, sXdist, gdot, dgdot_dtau)
-      use globalvars, only: modelno, sliprate_param, sliphard_param, 
-     &numstvar, G
+
+
+
+      subroutine sliprate(tau,sstate,temp,sXdist,ph_no,gdot,dgdot_dtau)
+      use globalvars, only: modelno, sliprate_param, sliphard_param,
+     &creepno, creep_param, numstvar, G, KB
       implicit none
       real(8) tau, tauc, x, temp, sXdist, gdot, dgdot_dtau
-      real(8)	sstate(numstvar)
-c     model constants for slip/creep     
-      real(8) gdot0_1, m_1, crit_1
-c     model constants for slip&creep with backstress
-      real(8) gdot0s_2, gdot0c_2, ms_2, mc_2, crit_2
+      real(8)	sstate(numstvar), gdotc, dgdotc_dtau
+      integer ph_no
+c     model constants for slip/creep
+      real(8) gdot0, m, crit
 c     model constants for slip with backstress (Code Aster model)
-      real(8) K_3, n_3, pl_3
+      real(8) K, n, pl
 c     model constatns for GND using slip gradients
-      real(8) gdot0_4, m_4, alpha_4, b_4, tauc0_4
+      real(8) alpha, b, tauc0
 c     model constatns for slip/creep with backstress (Power Law)
-      real(8) gdot0_5, m_5, alpha_5, b_5, tauc0_5, C_5
-c     Irradiation hardening law constants	
-      real(8) gdot0_6, m_6, alpha_6, b_6, tauc0_6      
-      
+      real(8) C
+c     Irradiation hardening law constants
+      real(8) lambda
+c     Creep model-1 constants
+      real(8) gdot0c, mc
+c     Creep model-2 constants
+      real(8) A, D
+c     Creep model-3 constants
+      real(8) CD, V
+c     Creep model-4 constants
+      real(8) Qc
+
 c     Slip/Creep  with no kinematic hardening (x = 0), s it has no effect
       if (modelno.eq.1d+0) then
-          
+
 c          write(6,*) 'sliprate'
 c          write(6,*) sstate
-          
-          tauc = sstate(1)          
-          
-          
-          gdot0_1 = sliprate_param(1)
-          
-          m_1 = sliprate_param(2)
-          
-    
-          gdot = gdot0_1 * ((dabs(tau)/tauc)**(1.0d+0/m_1)) 
+
+      tauc = sstate(1)
+
+
+      gdot0 = sliprate_param(ph_no,1)
+
+      m = sliprate_param(ph_no,2)
+
+
+      gdot = gdot0 * ((dabs(tau)/tauc)**(1.0d+0/m))
      &*dsign(1.0d+0,tau)
 
-          dgdot_dtau = gdot0_1/m_1 * ((dabs(tau)/tauc)
-     &**((1.0d+0/m_1) - 1.0d+0)) / tauc
-          
+      dgdot_dtau = gdot0/m * ((dabs(tau)/tauc)
+     &**((1.0d+0/m) - 1.0d+0)) / tauc
+
 
 
 
 c     Slip and Creep with kinematic hardening
       elseif (modelno.eq.2d+0) then
-          
-          
 
-    
-          
-          tauc = sstate(1)
-          x = sstate(2)
-          
-          
-          gdot0s_2 = sliprate_param(1)
-          
-          ms_2 = sliprate_param(2)
-          
-          gdot0c_2 = sliprate_param(3)
-          
-          mc_2 = sliprate_param(4)          
-          
-   
-          gdot=gdot0s_2*((dabs(tau-x)/tauc)**(1.0d+0/ms_2))*
-     &dsign(1.0d+0,tau-x) + gdot0c_2*((dabs(tau-x)/tauc)**(1.0d+0/mc_2))
-     &*dsign(1.0d+0,tau-x)
 
-          dgdot_dtau=gdot0s_2/ms_2*((dabs(tau-x)/tauc)
-     &**(1.0d+0/ms_2-1.0d+0))/tauc + gdot0c_2/mc_2*((dabs(tau-x)/tauc)
-     &**(1.0d+0/mc_2-1.0d+0))/tauc
-              
-              
+
+
+
+      tauc = sstate(1)
+      x = sstate(2)
+
+
+      gdot0 = sliprate_param(ph_no,1)
+
+      m = sliprate_param(ph_no,2)
+
+
+
+
+      gdot=gdot0*((dabs(tau-x)/tauc)**(1.0d+0/m))*
+     &dsign(1.0d+0,tau-x)
+
+      dgdot_dtau=gdot0/m*((dabs(tau-x)/tauc)
+     &**(1.0d+0/m-1.0d+0))/tauc
+
+
 
 c     Slip with  kinematic hardening (Code Aster)
       elseif (modelno.eq.3d+0) then
-          
+
 c          write(6,*) 'sliprate'
 c          write(6,*) sstate
-          
-          tauc = sstate(1)          
-          x = sstate(2)
-          
-          K_3 = sliprate_param(1)
-          
-          n_3 = sliprate_param(2)
-          
-          pl_3 = (dabs(tau-x)-tauc)/K_3
-          
-          
-          if (pl_3.le.0.0) then
-          
-              gdot = 0.0d+0
-              
-              dgdot_dtau = 0.0d+0
-              
-          else
-          
-              gdot=(pl_3**n_3)*dsign(1.0d+0,tau-x)
 
-		    dgdot_dtau = pl_3**(n_3-1.0d+0)/K_3/n_3
-                  
-          
-          endif
-          
-   
+      tauc = sstate(1)
+      x = sstate(2)
+
+      K = sliprate_param(ph_no,1)
+
+      n = sliprate_param(ph_no,2)
+
+      pl = (dabs(tau-x)-tauc)/K
+
+
+      if (pl.le.0.0) then
+
+        gdot = 0.0d+0
+
+        dgdot_dtau = 0.0d+0
+
+      else
+
+        gdot=(pl**n)*dsign(1.0d+0,tau-x)
+
+        dgdot_dtau = pl**(n-1.0d+0)/K/n
+
+
+      endif
+
+
 
 c     Slip/Creep considering GNDs with slip gradients
       elseif (modelno.eq.4d+0) then
-          
+
 c          write(6,*) 'sliprate'
 c          write(6,*) sstate
-          
+
 c         x is not a state but it will be derived from states
-c         calculate backstress here!          
-          x = sstate(4)
+c         calculate backstress here!
+      x = sstate(4)
 
-          
-          gdot0_4 = sliprate_param(1)
-          
-          m_4 = sliprate_param(2)
-          
-          
+
+			gdot0 = sliprate_param(ph_no,1)
+
+			m = sliprate_param(ph_no,2)
+
+
 c         Geometric factor for slip resistance calculation
-          alpha_4 = sliphard_param(4)
-          
+			alpha = sliphard_param(ph_no,4)
 
-          
+
+
 c         Burgers vector for slip resistance calculation
-          b_4 = sliphard_param(3)
-          
-c         Initial slip resistance
-          tauc0_4 = sliphard_param(1)
-          
-          
-c         Calculate slip resistance          
-          tauc = tauc0_4 + alpha_4 * G * b_4 * 
-     & dsqrt(sstate(1) + sstate(2) +sstate(3)) 
-	 
-c         Temperature dependence	 
-          tauc = tauc * (0.53+0.47*exp(-0.008*(temp - 298.0)))
-          
-c          write(6,*) 'tauc', tauc
-          
+			b = sliphard_param(ph_no,3)
 
-          
+c         Initial slip resistance
+			tauc0 = sliphard_param(ph_no,1)
+
+
+c         Calculate slip resistance
+      tauc = tauc0 + alpha * G(ph_no) * b *
+     & dsqrt(sstate(1) + sstate(2) +sstate(3))
+
+c          write(6,*) 'tauc', tauc
+
+
+
 c          write(6,*) 'x', x
-          
-          
+
+
 c          if (dabs(tau).gt.dabs(x)) then
-             gdot=gdot0_4*((dabs(tau-x)/tauc)**(1.0d+0/m_4))*
+      gdot=gdot0*((dabs(tau-x)/tauc)**(1.0d+0/m))*
      &dsign(1.0d+0,tau-x)
 c
-             dgdot_dtau=gdot0_4/m_4*((dabs(tau-x)/tauc)**
-     &((1.0d+0/m_4)-1.0d+0))/tauc 
+      dgdot_dtau=gdot0/m*((dabs(tau-x)/tauc)**
+     &((1.0d+0/m)-1.0d+0))/tauc
 c          else
 c              gdot= 0.0
 c              dgdot_dtau= 0.0
-c          endif              
-              
+c          endif
+
+
+			!if (isnan(gdot)) then
+			!    write(6,*) 'tau', tau
+			!    write(6,*) 'tauc', tauc
+			!    write(6,*) 'x', x
+			!    write(6,*) 'sstate(1)', sstate(1)
+			!    write(6,*) 'sstate(2)', sstate(2)
+			!    write(6,*) 'sstate(3)', sstate(3)
+			!endif
 
 c          write(6,*) 'gdot', gdot
 
@@ -179,94 +188,93 @@ c          write(6,*) 'gdot', gdot
 
 c     Slip/Creep  with kinematic hardening
       elseif (modelno.eq.5d+0) then
-          
+
 c          write(6,*) 'sliprate'
 c          write(6,*) sstate
-          
 
-          x = sstate(2)
-          
-          
+
+			x = sstate(2)
+
+
 c         Geometric factor for slip resistance calculation
-          alpha_5 = sliphard_param(6)
-          
+			alpha = sliphard_param(ph_no,6)
 
-          
+
+
 c         Burgers vector for slip resistance calculation
-          b_5 = sliphard_param(3)
-          
+			b = sliphard_param(ph_no,3)
+
 c         Initial slip resistance
-          tauc0_5 = sliphard_param(1)          
-          
-          
+			tauc0 = sliphard_param(ph_no,1)
+
+
 c         Scaling factor for size dependent hardening
-          C_5 = sliphard_param(9)
-          
-          
-          gdot0_5 = sliprate_param(1)
-          
-          m_5 = sliprate_param(2)
-          
-          
-          
-          
-c         Calculate slip resistance          
-          tauc = tauc0_5 + alpha_5*G*b_5*(dsqrt(sstate(1)) + C_5/sXdist)
-          
-   
-          gdot=gdot0_5*((dabs(tau-x)/tauc)**(1.0d+0/m_5))*
+			C = sliphard_param(ph_no,9)
+
+
+			gdot0 = sliprate_param(ph_no,1)
+
+			m = sliprate_param(ph_no,2)
+
+
+
+
+c         Calculate slip resistance
+			tauc = tauc0 + alpha*G(ph_no)*b*(dsqrt(sstate(1))+C/sXdist)
+
+
+      gdot=gdot0*((dabs(tau-x)/tauc)**(1.0d+0/m))*
      &dsign(1.0d+0,tau-x)
 
-          dgdot_dtau=gdot0_5/m_5*((dabs(tau-x)/tauc)
-     &**((1.0d+0/m_5)-1.0d+0))/tauc
-          
+      dgdot_dtau=gdot0/m*((dabs(tau-x)/tauc)
+     &**((1.0d+0/m)-1.0d+0))/tauc
 
 
 
-c     Irradiation hardening model	
-      elseif (modelno.eq.6d+0) then	
-          	
-c          write(6,*) 'sliprate'	
-c          write(6,*) sstate	
-          	
-c         x is not a state but it will be derived from states	
-c         calculate backstress here!          	
-          	
-          x = sstate(4)
-c         Initial slip rate          	
-          gdot0_6 = sliprate_param(1)
-c         Power law exponent          	
-          m_6 = sliprate_param(2)
-          	
-			
-c         Geometric factor for slip resistance calculation	
-          alpha_6 = sliphard_param(4)	
-          	
-          	
-c         Burgers vector for slip resistance calculation	
-          b_6 = sliphard_param(3)	
-          	
-c         Initial slip resistance	
-          tauc0_6 = sliphard_param(1)	
-          	
-          	
-c         Calculate slip resistance 
-c         This reduces to model 4 in absence of irradiation     	
-          tauc = tauc0_6 + alpha_6 * G * b_6 * 	
-     & dsqrt(sstate(1)+sstate(2)+sstate(3)+sstate(5))	
-          	
+
+c     Irradiation hardening model
+      elseif (modelno.eq.6d+0) then
+
+c          write(6,*) 'sliprate'
+c          write(6,*) sstate
+
+c         x is not a state but it will be derived from states
+c         calculate backstress here!
+
+      x = sstate(4)
+c         Initial slip rate
+      gdot0 = sliprate_param(ph_no,1)
+c         Power law exponent
+      m = sliprate_param(ph_no,2)
+c         Statistical coefficient
+      lambda = sliprate_param(ph_no,3)
 
 
-          	
-          gdot=gdot0_6*((dabs(tau-x)/tauc)**(1.0d+0/m_6))*	
-     & dsign(1.0d+0,tau-x)	
-c	
-          dgdot_dtau=gdot0_6/m_6*((dabs(tau-x)/tauc)**
-     & ((1.0d+0/m_6)-1.0d+0))/tauc             	
-              	
+c         Geometric factor for slip resistance calculation
+      alpha = sliphard_param(ph_no,4)
 
 
- 
+c         Burgers vector for slip resistance calculation
+      b = sliphard_param(ph_no,3)
+
+c         Initial slip resistance
+      tauc0 = sliphard_param(ph_no,1)
+
+
+c         Calculate slip resistance
+      tauc = tauc0+lambda*G(ph_no)*b*
+     & dsqrt(sstate(1)+sstate(2)+sstate(3)+sstate(5))
+
+
+
+
+      gdot=gdot0*((dabs(tau-x)/tauc)**(1.0d+0/m))*
+     & dsign(1.0d+0,tau-x)
+c
+      dgdot_dtau=gdot0/m*((dabs(tau-x)/tauc)**
+     & ((1.0d+0/m)-1.0d+0))/tauc
+
+
 
 
 
@@ -275,29 +283,124 @@ c     Other slip rate laws come here!!!
 
 
       endif
-          
-          
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+c     CREEP LAWS!!!
+      gdotc = 0.0d+0
+      dgdotc_dtau = 0.0d+0
+c     Creep law of Dylan and Abdullah
+      if (creepno.eq.1d+0) then
+
+
+        gdot0c = creep_param(ph_no,1)
+
+        mc = creep_param(ph_no,2)
+
+
+
+        gdotc = gdot0c*((dabs(tau-x)/tauc)**(1.0d+0/mc))
+     & *dsign(1.0d+0,tau-x)
+
+
+        dgdotc_dtau = gdot0c/mc*((dabs(tau-x)/tauc)
+     & **(1.0d+0/mc-1.0d+0))/tauc
+
+
+
+c     Creep law of Takeuchi and Argon
+      elseif (creepno.eq.2d+0) then
+
+
+        A = creep_param(ph_no,1)
+
+        b = creep_param(ph_no,2)
+
+        D = creep_param(ph_no,3)
+
+        n = creep_param(ph_no,4)
+
+
+        gdotc = A*G(ph_no)*b*D/KB/temp*((dabs(tau-x)/G(ph_no))**n)
+     & *dsign(1.0d+0,tau-x)*1.0d+3
+
+
+        dgdotc_dtau = A*b*D/KB/temp/n*((dabs(tau-x)/G(ph_no))
+     & **(n-1.0d+0))*dsign(1.0d+0,tau-x)*1.0d+3
+
+
+
+
+
+c     Sinh law
+      elseif (creepno.eq.3d+0) then
+
+
+        CD = creep_param(ph_no,1)
+
+        n = creep_param(ph_no,2)
+
+        V = creep_param(ph_no,3)
+
+
+        gdotc = CD*(dsinh(dabs(tau-x)*V/KB/temp))**n
+     & *dsign(1.0d+0,tau-x)
+
+        dgdotc_dtau = CD*n*(dsinh(dabs(tau-x)*V/KB/temp))
+     & **(n-1.0d+0)*dcosh(dabs(tau-x)*V/KB/temp)*V/KB/temp
+
+
+
+c    Exponential law
+      elseif (creepno.eq.4d+0) then
+
+
+
+        B = creep_param(ph_no,1)
+
+        Qc = creep_param(ph_no,2)
+
+        V = creep_param(ph_no,3)
+
+
+        gdotc = B*dexp(-Qc/KB/temp)*
+     & dexp(dabs(tau-x)*V/KB/temp)*dsign(1.0d+0,tau-x)
+
+
+        dgdotc_dtau = B*dexp(-Qc/KB/temp)*
+     & dexp(dabs(tau-x)*V/KB/temp)*V/KB/temp
+
+
+
+
+
+
+      endif
+
+
+
+
+
+c     Add creep rates to slip rate
+      gdot = gdot + gdotc
+
+      dgdot_dtau = dgdot_dtau + dgdotc_dtau
+
+
+
+
+
+
       return
       end subroutine sliprate
-      
-      
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
+
+
+
       end module slipratelaws

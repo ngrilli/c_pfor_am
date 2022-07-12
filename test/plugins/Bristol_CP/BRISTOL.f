@@ -26,8 +26,9 @@ c
       SUBROUTINE UEXTERNALDB(LOP,LRESTART,TIME,DTIME,KSTEP,KINC)
 c     Subroutine for initialization
       use initialization, only : initialize_all
-      use globalvars, only: foldername, GNDeffect
-      use gndslipgrad, only: calculategnds, calculatebackstress
+      use globalvars, only: foldername, GND_init, GNDeffect
+      use gndslipgrad, only: calculategnds, calculatebackstress1,
+     &calculatebackstress2
 
 	  ! this is an attempt to
 	  ! add OS switch to make the getcwd command compatible
@@ -84,35 +85,69 @@ c
       endif
 c
 c
-c     GND calculations - if selected
-      if (GNDeffect.eq.1d+0) then
 c
 c
-c         At the end of each increment
-c         Update and calculate GNDs (nonlocal calculations)
-c         This is done at the end of calculations.
-c         GNDs that belong to the PREVIOUS time step are used.
-c         Initially GNDs are assumed to have "0" values.
-          if (LOP.eq.2) then
+c     At the end of each increment
+c     Update and calculate GNDs (nonlocal calculations)
+c     This is done at the end of calculations.
+c     GNDs that belong to the PREVOUS time step are used.
+c     Initially GNDs are assumed to have "0" values.
+      if (LOP.eq.2) then
+c
+c          write(6,*)'LOP=2'
+cc         Reset the flag for cutback
+c          GND_cutback=0d+0
+c         GND calculations - if selected
+          if (GND_init.eq.1d+0) then
+c
+              if (GNDeffect.eq.1d+0) then
+c
+c                 At the end of each increment
+c                 Update and calculate GNDs (nonlocal calculations)
+c                 This is done at the end of calculations.
+c                 GNDs that belong to the PREVOUS time step are used.
+c                 Initially GNDs are assumed to have "0" values.
+
 c
 c
-c             Calculate GNDs
-              call calculategnds(DTIME(1))
+c                 Calculate GNDs
+                  call calculategnds(DTIME(1))
 c
-c             Calculate Backstress from GND gradients
-              call calculatebackstress
-c
-c
-              write(6,*) 'end of increment: ', KINC
-              write(6,*) 'GND & backstress calculations completed!'
-c
-              return
+c                 Calculate Backstress from GND gradients
+                  call calculatebackstress1
 c
 c
+                  write(6,*) 'end of increment: ', KINC
+                  write(6,*) 'GND & backstress calculations completed!'
+c
+c
+c
+c
+c             GND calculations - if selected
+              elseif (GNDeffect.eq.2d+0) then
+c
+c
+c
+c
+c                 Calculate GNDs
+                  call calculategnds(DTIME(1))
+c
+c                 Calculate Backstress from GND gradients
+                  call calculatebackstress2
+c
+c
+                  write(6,*) 'end of increment: ', KINC
+                  write(6,*) 'GND & backstress calculations completed!'
+c
+c
+c
+
+              endif
 c
           endif
 c
       endif
+c
 c
 c
       RETURN
@@ -193,6 +228,8 @@ c
       real(8), dimension(nTens,nTens), intent(out) ::
      & DDSDDE
 c
+      real(8) sigma(6), jacobi(6,6)
+c
 c     To avoid warning messages set the following to zero
       DDSDDT = 0.0d+0
       DRPLDE = 0.0d+0
@@ -218,20 +255,59 @@ c
 c
 c     Perform crystal plasticity/j2 plasticity calculations
       call calcs(DFGRD0,DFGRD1,TIME(2),DTIME,TEMP,KINC,NOEL,NPT,
-     &            STRESS,DDSDDE,PNEWDT,COORDS)
+     &            sigma,jacobi,PNEWDT,COORDS)
 c
 c
+
+c     3D
+      if (NTENS.eq.6) then
+
+          STRESS = sigma
+          DDSDDE = jacobi
+
+c     Plane Strain
+      elseif (NTENS.eq.4) then
+
+          STRESS=0.0
+          STRESS(1:4) = sigma(1:4)
+          DDSDDE=0.0
+          DDSDDE(1,1) = jacobi(1,1)
+          DDSDDE(1,2) = jacobi(1,2)
+          DDSDDE(2,1) = jacobi(2,1)
+          DDSDDE(2,2) = jacobi(2,2)
+          DDSDDE(3,1) = jacobi(3,1)
+          DDSDDE(3,2) = jacobi(3,2)
+          DDSDDE(4,4) = jacobi(4,4)
+
+c     Plane Stress
+      elseif (NTENS.eq.3) then
+
+          STRESS=0.0
+          STRESS(1) = sigma(1)
+          STRESS(2) = sigma(2)
+          STRESS(3) = sigma(4)
+          DDSDDE=0.0
+          DDSDDE(1,1) = jacobi(1,1)
+          DDSDDE(1,2) = jacobi(1,2)
+          DDSDDE(2,1) = jacobi(2,1)
+          DDSDDE(2,2) = jacobi(2,2)
+          DDSDDE(3,3) = jacobi(4,4)
+
+
+      endif
+
+
 c
 c
 c     Phase field damage model is added by Nicolò Grilli.
 c     Send information for moose
 c     Phase field damage model
-c     If damage model is not used all the relevant
-c     variables will remain zero
 c
+      if (phasefielddamage.eq.1d+0) then
 
-      call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
+          call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
 
+      end if
 c
 c
 c
@@ -264,7 +340,8 @@ c
      2 JMAC,JMATYP,MATLAYO,LACCFLA)
       use globalvars, only: global_gammadot,
      & global_state, numslip, numstvar, output_vars, global_gamma_sum,
-     & global_sigma, numel, numip, foldername, grainmorph
+     & global_sigma, numel, numip, foldername, grainmorph, maxnumslip,
+     & phaseind
       use globalsubs, only: convert6to3x3, vonmises_stress
       use calculations, only: calculate_misorientation
       implicit none
@@ -299,11 +376,12 @@ c
      & LACCFLA
       real(8), dimension(NUVARM),     intent(out) ::
      & UVAR
+
 c
 c
 c
 c
-      integer i, j, k, varno
+      integer i, j, k, varno, noph, nss
       real(8) mis
 c      real(8) sigma_av(7), sigma33(3,3), evm
 c
@@ -312,21 +390,26 @@ c     The dimensions of the variables FLGRAY, ARRAY and JARRAY
 c     must be set equal to or greater than 15.
 c
 c
-c --- ED HORTON EDIT ---
+c
 c
       varno=1d+0
 c
+c     Phase index of the element
+      noph=phaseind(NOEL)
+c
+c     Number of slip systems
+      nss=numslip(noph)
 c
 c     Misorientation with respect to the initial orientation
 c     Misorientation is calculated in case it is requested since it is tedious!
       if (output_vars(1).eq.1d+0) then
 c
 c
-          call calculate_misorientation(NOEL,NPT,mis)
+      call calculate_misorientation(NOEL,NPT,mis)
 c
-          UVAR(varno) = mis
+      UVAR(varno) = mis
 c
-          varno=varno + 1d+0
+      varno=varno + 1d+0
 c
 c
       endif
@@ -334,8 +417,8 @@ c
 c
 c     Cumlative slip
       if (output_vars(2) .eq. 1d+0) then
-            UVAR(varno) = global_gamma_sum(NOEL,NPT)
-            varno=varno + 1d+0
+        UVAR(varno) = global_gamma_sum(NOEL,NPT)
+        varno=varno + 1d+0
       endif
 c
 c
@@ -348,13 +431,13 @@ c     on the number of state variables
       if (output_vars(3).eq.1d+0) then
 c
 c         Loop through the number of state variables
-          do i=1,numstvar
+      do i=1,numstvar
 c
 c             Calculate the average of the state variable
-              UVAR(varno)=sum(dabs(global_state(NOEL,NPT,:,i)))/numslip
-              varno=varno + 1d+0
+        UVAR(varno)=sum(dabs(global_state(NOEL,NPT,1:nss,i)))/nss
+        varno=varno + 1d+0
 c
-          enddo
+      enddo
 c
 c
       endif
@@ -362,10 +445,10 @@ c
 c
 c     Slip rates
       if (output_vars(4).eq.1d+0) then
-            do i=1,numslip
-                  UVAR(varno) = global_gammadot(NOEL,NPT,i)
-                  varno=varno + 1d+0
-            enddo
+        do i=1,maxnumslip
+          UVAR(varno) = global_gammadot(NOEL,NPT,i)
+          varno=varno + 1d+0
+        enddo
       endif
 c
 c
@@ -373,15 +456,16 @@ c     State variables per slip system
 c     Note that the number of outpus could be 1 or 2 depending
 c     on the number of state variables
       if (output_vars(5).eq.1d+0) then
-            do i=1,numstvar
-                  do j=1,numslip
-                        UVAR(varno)= dabs(global_state(NOEL,NPT,j,i))
-                        varno=varno + 1d+0
-                  enddo
-            enddo
+        do i=1,numstvar
+          do j=1,maxnumslip
+            UVAR(varno)= dabs(global_state(NOEL,NPT,j,i))
+            varno=varno + 1d+0
+          enddo
+        enddo
       endif
-c ---ED HORTON EDIT END ---
+c
 c
 c
       RETURN
       END
+	  

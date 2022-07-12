@@ -18,7 +18,7 @@
 	    ! on the dynamic fracture of energetic materials
 	    ! Journal of Applied Physics 126, 155101 (2019)
 
-      subroutine computeStrainVolumetric(ee,ce,fe,c,
+      subroutine computeStrainVolumetric(ph_no,ee,ce,fe,c,
      & pk2_vec_new,F_pos,F_neg,pk2_pos_mat,Wp)
 
       use globalvars, only : elas66
@@ -26,11 +26,16 @@
       use globalvars, only : global_F_neg
       use globalvars, only : global_damage
       use globalvars, only : global_pk2_pos
+      use globalvars, only : cpl_contribution_to_damage
+      use globalvars, only : plastic_work_contribution_to_damage
 
       use globalsubs, only : convert3x3to6
 	  use globalsubs, only : convert6to3x3
       use globalsubs, only : invert3x3
       use globalsubs, only : determinant
+
+    ! phase index of the material
+      integer, intent(in) :: ph_no
 
 	  ! Elastic Green-Lagrange strain
       real(8), intent(in) :: ee(3,3)
@@ -105,26 +110,13 @@
       ! Isochoric free energy
       real(8) :: a_pos_cpl
 
-	  ! Hard coded isochoric free energy contribution to damage
-	  ! 1 = full contribution
-	  ! 0 = no contribution
-      real(8) :: cpl_contribution_to_damage
-
-    ! Hard coded plastic work energy contribution to damage
-    ! 1 = full contribution
-    ! 0 = no contribution
-      real(8) :: plastic_work_contribution_to_damage
-
-      cpl_contribution_to_damage = 1.0
-      plastic_work_contribution_to_damage = 1.0
-
       ! Anisotropic elasticity (Luscher 2017)
       ! Kb = K in (Luscher 2017)
       ! Kb = (1/9) I : C : I
       Kb = 0.0
       do i = 1,3
         do j = 1,3
-          Kb = Kb + elas66(i,j)
+          Kb = Kb + elas66(ph_no,i,j)
         end do
       end do
       Kb = Kb / 9.0
@@ -154,7 +146,7 @@
 
 	  ! Calculate second Piola-Kirchhoff stress
 	  ! in vector form, undamaged
-      S_vec = matmul(elas66,ee_vec)
+      S_vec = matmul(elas66(ph_no,:,:),ee_vec)
 
 	  ! calculate undamaged elastic energy
       a_pos_cpl = 0.5 * dot_product(S_vec,ee_vec)
@@ -245,7 +237,7 @@
       use globalvars, only : global_state
       use globalvars, only : Euler
       use globalvars, only : numstvar
-      use globalvars, only : numslip
+      use globalvars, only : maxnumslip
       use globalvars, only : global_Wp
 
       ! element and integration point numbers
@@ -284,13 +276,13 @@
         STATEV(i+9) = Euler(elem,i)
       end do
       do i = 1,numstvar
-        do j = 1,numslip
-          STATEV((i-1)*numslip+12+j) = global_state(elem,ip,j,i)
+        do j = 1,maxnumslip
+          STATEV((i-1)*maxnumslip+12+j) = global_state(elem,ip,j,i)
         end do
       end do
 
       ! output plastic work
-      STATEV(numstvar*numslip+13) = global_Wp(elem,ip)
+      STATEV(numstvar*maxnumslip+13) = global_Wp(elem,ip)
 
 	  return
       end subroutine moose_interface_output
