@@ -25,6 +25,15 @@ ComputeCrystalPlasticityStressDamage::validParams()
 	  "instead of CrystalPlasticityStressUpdateBase. "
 	  "This material model is coupled with phase field damage. ");
   params.addRequiredCoupledVar("c", "Order parameter for damage");
+  params.addParam<bool>(
+      "use_current_history_variable", false, "Use the current value of the history variable.");
+  params.addParam<MaterialPropertyName>(
+      "E_name", "elastic_energy", "Name of material property for elastic energy");
+  params.addParam<MaterialPropertyName>(
+      "D_name", "degradation", "Name of material property for energetic degradation function.");
+  params.addParam<Real>("plastic_damage_prefactor",0.0,
+                        "prefactor applied to the plastic work to determine the fraction "
+						"of plastic energy that contributes to damage. ");
   params.addParam<std::string>(
       "base_name",
       "Optional parameter that allows the user to define multiple mechanics material systems on "
@@ -71,6 +80,26 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     _num_models(getParam<std::vector<MaterialName>>("crystal_plasticity_models").size()),
     _num_eigenstrains(getParam<std::vector<MaterialName>>("eigenstrain_names").size()),
 	_c(coupledValue("c")),
+    _use_current_hist(getParam<bool>("use_current_history_variable")),
+    _H(declareProperty<Real>("hist")), // History variable to avoid damage decrease 
+    _H_old(getMaterialPropertyOld<Real>("hist")),
+    _E(declareProperty<Real>(getParam<MaterialPropertyName>("E_name"))),
+    _dEdc(declarePropertyDerivative<Real>(getParam<MaterialPropertyName>("E_name"),
+                                          getVar("c", 0)->name())),
+    _d2Ed2c(declarePropertyDerivative<Real>(
+        getParam<MaterialPropertyName>("E_name"), getVar("c", 0)->name(), getVar("c", 0)->name())),
+    _dstress_dc(
+        declarePropertyDerivative<RankTwoTensor>(_base_name + "stress", getVar("c", 0)->name())), 
+    _d2Fdcdstrain(declareProperty<RankTwoTensor>("d2Fdcdstrain")),		
+	_D(getMaterialProperty<Real>("D_name")),
+    _dDdc(getMaterialPropertyDerivative<Real>("D_name", getVar("c", 0)->name())),
+    _d2Dd2c(getMaterialPropertyDerivative<Real>(
+        "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
+    _fp_increment(declareProperty<RankTwoTensor>("Fp_increment")), // increment of Fp over _dt
+	_plastic_work(declareProperty<Real>("plastic_work")), // scalar plastic work
+	_plastic_work_old(getMaterialPropertyOld<Real>("plastic_work")), // and value at previous time step
+	_elastic_deformation_grad(declareProperty<RankTwoTensor>("elastic_deformation_grad")), // Fe
+    _plastic_damage_prefactor(getParam<Real>("plastic_damage_prefactor")),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_tensor(getMaterialPropertyByName<RankFourTensor>(_base_name + "elasticity_tensor")),
     _rtol(getParam<Real>("rtol")),
