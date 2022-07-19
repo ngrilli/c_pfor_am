@@ -109,6 +109,18 @@ protected:
    * \frac{d\mathbf{F}^e}{d\mathbf{F}^P^{-1}} \frac{d\mathbf{F}^P^{-1}}{d\mathbf{PK2}}$
    */
   void calculateJacobian();
+  
+  /**
+   * Method to split elastic energy based on strain volumetric/non-volumetric decomposition
+   * @param F_pos tensile part of total elastic energy
+   * @param F_neg compressive part of total elastic energy
+   * @param ee elastic Green-Lagrange strain
+   * @param ce right Cauchy–Green deformation tensor (elastic)
+   * @param pk2_new second Piola-Kirchhoff stress
+   */
+  virtual void computeStrainVolumetric(Real & F_pos, Real & F_neg, 
+                                       RankTwoTensor & ee, RankTwoTensor & ce, 
+									   RankTwoTensor & pk2_new);
 
   ///@{Calculates the tangent moduli for use as a preconditioner, using the elastic or elastic-plastic option as specified by the user
   void calcTangentModuli(RankFourTensor & jacobian_mult);

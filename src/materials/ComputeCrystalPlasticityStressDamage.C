@@ -623,6 +623,106 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
 }
 
 void
+ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
+                                                             RankTwoTensor & ee, RankTwoTensor & ce, 
+														     RankTwoTensor & pk2_new)
+{
+  //Anisotropic elasticity
+  Real Kb = 0.0; // Kb is the reference bulk modulus
+  Real Je; // Je is relative elastic volume change
+  Real Je23; // Je^{2/3}
+  Real delta; // delta is the trace of volumetric part of elastic Green-Lagrange strain
+  
+  // Positive and negative volumetric free energies
+  Real a_pos_vol, a_neg_vol;
+  
+  // Isochoric free energy
+  Real a_pos_cpl;
+  
+  // Undamaged elastic energy tensor
+  RankTwoTensor undamaged_elastic_energy;
+  
+  // Positive and negative part of the Piola-Kirchhoff stress
+  RankTwoTensor pk2_pos;
+  RankTwoTensor pk2_neg;
+  
+  // inverse of the right Cauchy–Green deformation tensor (elastic)
+  RankTwoTensor invce;
+  
+  // Anisotropic elasticity (Luscher 2017)
+  // Kb = K in (Luscher 2017)
+  // Kb = (1/9) I : C : I
+  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+      Kb += _elasticity_tensor[_qp](i, i, j, j);
+  
+  Kb = Kb / 9.0;
+
+  Je = _elastic_deformation_gradient.det();
+  Je23 = std::pow(Je,2.0/3.0);
+  delta = 1.5 * (Je23 - 1.0);
+  
+  // Calculate volumetric free energy
+  // Equations 15 and 16 in Grilli, Koslowski, 2019
+  
+  if (Je >= 1.0) { // expansion
+	  
+    a_pos_vol = 0.5 * Kb * delta * delta;
+    a_neg_vol = 0.0;
+	  
+  } else { // compression
+	  
+    a_pos_vol = 0.0;
+	a_neg_vol = 0.5 * Kb * delta * delta;
+	
+  }
+  
+  // Calculate isochoric free energy
+  // Equation 17 in Grilli, Koslowski, 2019
+
+  undamaged_elastic_energy = _elasticity_tensor[_qp] * ee;
+  undamaged_elastic_energy = 0.5 * ee * undamaged_elastic_energy;
+
+  a_pos_cpl = undamaged_elastic_energy.trace();
+  a_pos_cpl -= 0.5 * Kb * delta * delta;
+
+  // Calculate positive and negative parts of the Piola-Kirchhoff stress
+  // Equation 18 in Grilli, Koslowski, 2019
+  if (Je >= 1.0) { // expansion
+  
+    pk2_pos = _elasticity_tensor[_qp] * ee;
+    pk2_neg = 0.0;
+	
+  } else { // compression
+  
+    invce = ce.inverse();
+	
+	pk2_neg = Je23 * Kb * delta * invce;
+	
+    pk2_pos = (-1.0) * pk2_neg;	
+    pk2_pos += _elasticity_tensor[_qp] * ee;
+
+  }
+
+  // Positive part of the stress is degraded by _D[_qp]
+  pk2_new = (_D[_qp] * pk2_pos) + pk2_neg;
+  
+  // Positive and negative parts of the free energy
+  // Equations 13 and 14 in Grilli, Koslowski, 2019
+  // additionally, plastic work is included for damage
+  F_pos = a_pos_vol + a_pos_cpl + _plastic_damage_prefactor * _plastic_work[_qp];
+  F_neg = a_neg_vol;
+  
+  // Used in StressDivergencePFFracTensors off-diagonal Jacobian
+  _dstress_dc[_qp] = pk2_pos * _dDdc[_qp];
+  
+  // 2nd derivative wrt c and strain = 0.0 if we used the previous step's history variable
+  if (_use_current_hist)
+    _d2Fdcdstrain[_qp] = pk2_pos * _dDdc[_qp];
+  
+}
+
+void
 ComputeCrystalPlasticityStressDamage::calcTangentModuli(RankFourTensor & jacobian_mult)
 {
   switch (_tan_mod_type)
