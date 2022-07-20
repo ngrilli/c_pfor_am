@@ -38,6 +38,7 @@ CrystalPlasticityDislocationUpdate::validParams()
                                   "of the initial GND density");
   params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
   params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
+  params.addCoupledVar("temperature", 303.0,"Temperature, initialize at room temperature");
   return params;
 }
 
@@ -104,6 +105,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     // Directional derivatives of the slip rate
     _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
     _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
+	
+	// Temperature dependent properties
+	_temperature(coupledValue("temperature")),
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
