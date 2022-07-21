@@ -135,6 +135,9 @@ protected:
   const Real _init_rho_gnd_edge;
   const Real _init_rho_gnd_screw;
   
+  // Thermal expansion coefficient
+  const Real _thermal_expansion;
+  
   // Tolerance on dislocation density update
   const Real _rho_tol;
   

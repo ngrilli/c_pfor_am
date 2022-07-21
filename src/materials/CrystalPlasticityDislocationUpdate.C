@@ -29,6 +29,7 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
+  params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
@@ -61,6 +62,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
     _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
+	
+	// Thermal expansion coefficient
+	_thermal_expansion(getParam<Real>("thermal_expansion")),
 	
 	// Tolerance on dislocation density update
 	_rho_tol(getParam<Real>("rho_tol")),
