@@ -140,6 +140,9 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties();
   
   Real taylor_hardening;
+  
+  // Temperature dependence of the CRSS
+  Real temperature_dependence;
 
   // Initialize and dislocation density size
   _rho_ssd[_qp].resize(_number_slip_systems);
@@ -163,6 +166,11 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
 	
 	}
   }
+ 
+  // Critical resolved shear stress decreases exponentially with temperature
+  // A + B exp(- C * (T - T0)) 
+  temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
+                                             * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
   
   // Initialize value of the slip resistance
   // as a function of the dislocation density
@@ -197,7 +205,7 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
     }
 	
 	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening));
+	                          * std::sqrt(taylor_hardening) * temperature_dependence);
 	
   }
 
@@ -340,6 +348,14 @@ void
 CrystalPlasticityDislocationUpdate::calculateSlipResistance()
 {
   Real taylor_hardening;
+  
+  // Temperature dependence of the CRSS
+  Real temperature_dependence;
+  
+  // Critical resolved shear stress decreases exponentially with temperature
+  // A + B exp(- C * (T - T0)) 
+  temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
+                                             * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -374,7 +390,7 @@ CrystalPlasticityDislocationUpdate::calculateSlipResistance()
     }
 	
 	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening));
+	                          * std::sqrt(taylor_hardening) * temperature_dependence);
 	
   }
 
