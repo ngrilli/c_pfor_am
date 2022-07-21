@@ -40,6 +40,14 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
   params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   params.addCoupledVar("temperature", 303.0,"Temperature, initialize at room temperature");
+  params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
+  params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
+  params.addParam<Real>("dCRSS_dT_B",0.0,"B coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
+  params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
+  params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
   return params;
 }
 
@@ -112,6 +120,11 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 	
 	// Temperature dependent properties
 	_temperature(coupledValue("temperature")),
+    _reference_temperature(getParam<Real>("reference_temperature")),
+    _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
+	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
+	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
+    _dCTE_dT(getParam<Real>("dCTE_dT")),
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
