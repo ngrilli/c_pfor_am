@@ -60,8 +60,10 @@ ComputeDislocationCrystalPlasticityStress::validParams()
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element value "
                                   "of the initial plastic deformation gradient");
+  params.addCoupledVar("temperature",303.0,"Temperature");
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
+  params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
   return params;
 }
 
@@ -109,9 +111,11 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
                                ? &getUserObject<ElementPropertyReadFile>("read_initial_Fp")
                                : nullptr),
 							   
-    // Thermal expansion coefficient
+    // Thermal expansion
+	_temperature(coupledValue("temperature")),     
     _thermal_expansion(getParam<Real>("thermal_expansion")),
-    _reference_temperature(getParam<Real>("reference_temperature"))
+    _reference_temperature(getParam<Real>("reference_temperature")),
+	_dCTE_dT(getParam<Real>("dCTE_dT"))
 {
   _convergence_failed = false;
 }
@@ -522,6 +526,9 @@ ComputeDislocationCrystalPlasticityStress::calculateResidual()
 {
   RankTwoTensor ce, elastic_strain, ce_pk2, equivalent_slip_increment_per_model,
       equivalent_slip_increment, pk2_new;
+	  
+  // coefficient of thermal expansion: alpha(T) = dCTE_dT*(T-T0)+alpha_0
+  RankTwoTensor thermal_eigenstrain;
 
   equivalent_slip_increment.zero();
 
@@ -556,8 +563,13 @@ ComputeDislocationCrystalPlasticityStress::calculateResidual()
 
   elastic_strain = ce - RankTwoTensor::Identity();
   elastic_strain *= 0.5;
+  
+  thermal_eigenstrain = 0.5 * (
+                                  std::exp( (1.0 / 3.0) * _dCTE_dT * ( _temperature[_qp] - _reference_temperature ) * ( _temperature[_qp] - _reference_temperature )
+                                               + (2.0 / 3.0) * _thermal_expansion * ( _temperature[_qp] - _reference_temperature ) ) 
+								       - 1.0 ) * RankTwoTensor::Identity();
 
-  pk2_new = _elasticity_tensor[_qp] * elastic_strain;
+  pk2_new = _elasticity_tensor[_qp] * (elastic_strain - thermal_eigenstrain);
   _residual_tensor = _pk2[_qp] - pk2_new;
 }
 

@@ -229,9 +229,15 @@ protected:
   // of the initial plastic deformation gradient
   const ElementPropertyReadFile * const _read_initial_Fp;
   
-  // Thermal expansion coefficient
+  // Thermal expansion
+  // see stress formula, equations (10)-(11) in
+  // N. Grilli, D. Hu, D. Yushu, F. Chen, W. Yan
+  // Crystal plasticity model of residual stress in additive manufacturing using the element elimination and reactivation method
+  // Computational Mechanics, volume 69, pages 825–845 (2022)
+  const VariableValue & _temperature;
   const Real _thermal_expansion;
   const Real _reference_temperature;
+  const Real _dCTE_dT;
 
   /// Flag to check whether convergence is achieved or if substepping is needed
   bool _convergence_failed;
