@@ -60,6 +60,8 @@ ComputeDislocationCrystalPlasticityStress::validParams()
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element value "
                                   "of the initial plastic deformation gradient");
+  params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
+  params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   return params;
 }
 
@@ -105,7 +107,11 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
 	// UserObject to read the initial plastic deformation gradient from file						
     _read_initial_Fp(isParamValid("read_initial_Fp")
                                ? &getUserObject<ElementPropertyReadFile>("read_initial_Fp")
-                               : nullptr)
+                               : nullptr),
+							   
+    // Thermal expansion coefficient
+    _thermal_expansion(getParam<Real>("thermal_expansion")),
+    _reference_temperature(getParam<Real>("reference_temperature"))
 {
   _convergence_failed = false;
 }
