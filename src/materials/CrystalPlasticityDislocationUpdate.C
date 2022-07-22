@@ -29,7 +29,6 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
-  params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
@@ -47,7 +46,6 @@ CrystalPlasticityDislocationUpdate::validParams()
                         "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
   params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
-  params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
   return params;
 }
 
@@ -70,9 +68,6 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
     _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
-	
-	// Thermal expansion coefficient
-	_thermal_expansion(getParam<Real>("thermal_expansion")),
 	
 	// Tolerance on dislocation density update
 	_rho_tol(getParam<Real>("rho_tol")),
@@ -124,7 +119,6 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
-    _dCTE_dT(getParam<Real>("dCTE_dT")),
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	

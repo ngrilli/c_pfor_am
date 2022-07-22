@@ -135,9 +135,6 @@ protected:
   const Real _init_rho_gnd_edge;
   const Real _init_rho_gnd_screw;
   
-  // Thermal expansion coefficient
-  const Real _thermal_expansion;
-  
   // Tolerance on dislocation density update
   const Real _rho_tol;
   
@@ -204,7 +201,6 @@ protected:
   const Real _dCRSS_dT_A;
   const Real _dCRSS_dT_B;
   const Real _dCRSS_dT_C;
-  const Real _dCTE_dT;
   
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
