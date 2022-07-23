@@ -38,6 +38,13 @@ protected:
   const Real _reference_temperature;
   
   bool _degrade_eigenstrain;
+  
+  /// Number of temperature data field in time
+  /// if the variable temperature_step becomes bigger than the
+  /// total number of temperature time steps, the temperature
+  /// is kept constant, element by element, at the last read
+  /// temperature time step
+  const unsigned int _temperature_num_step;
 
   virtual Real computeValue();
 

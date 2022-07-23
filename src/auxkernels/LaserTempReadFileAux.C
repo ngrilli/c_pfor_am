@@ -25,6 +25,7 @@ LaserTempReadFileAux::validParams()
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<bool>("degrade_eigenstrain",false,"If liquid or gas, output room temperature to degrade eigenstrain");
+  params.addParam<unsigned int>("temperature_num_step",0,"Number of temperature data field in time");
   return params;
 }
 
@@ -40,7 +41,8 @@ LaserTempReadFileAux::LaserTempReadFileAux(const InputParameters & parameters)
 	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
 	_gas_temperature_low(getParam<Real>("gas_temperature_low")),
     _reference_temperature(getParam<Real>("reference_temperature")),
-	_degrade_eigenstrain(getParam<bool>("degrade_eigenstrain"))
+	_degrade_eigenstrain(getParam<bool>("degrade_eigenstrain")),
+	_temperature_num_step(getParam<unsigned int>("temperature_num_step"))
 {
 }
 
