@@ -25,7 +25,7 @@ LaserTempReadFileAux::validParams()
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<bool>("degrade_eigenstrain",false,"If liquid or gas, output room temperature to degrade eigenstrain");
-  params.addParam<unsigned int>("temperature_num_step",0,"Number of temperature data field in time");
+  params.addParam<unsigned int>("temperature_num_step",1e9,"Number of temperature data field in time");
   return params;
 }
 
@@ -61,7 +61,17 @@ LaserTempReadFileAux::computeValue()
   
   // determine time step to be used from the CFD simulations
   temperature_step = floor(_t / _temperature_time_step);
+  
+  // if the temperature_step goes above the maximum that is
+  // readable from file, then the temperature is kept constant
+  // as the last temperature time step read from file
+  temperature_step = std::min(temperature_step, _temperature_num_step-2);
+  
+  // Fraction of the temperature time step from 0 to 1
+  // it becomes permanently 1 if the temperature_step goes 
+  // above the maximum that is readable from file
   FracTimeStep = _t / _temperature_time_step - temperature_step;
+  FracTimeStep = std::min(FracTimeStep, 1.0);
 	
   if (_temperature_read_user_object)
   {
