@@ -91,7 +91,17 @@ ComputeElasticityTensorMelting::checkPhase()
 {
   // determine time step to be used from the CFD simulations
   _temperature_step = floor(_t / _temperature_time_step);
+  
+  // if the temperature_step goes above the maximum that is
+  // readable from file, then the temperature is kept constant
+  // as the last temperature time step read from file
+  _temperature_step = std::min(_temperature_step, _temperature_num_step-2);
+  
+  // Fraction of the temperature time step from 0 to 1
+  // it becomes permanently 1 if the temperature_step goes 
+  // above the maximum that is readable from file  
   _FracTimeStep = _t / _temperature_time_step - _temperature_step;
+  _FracTimeStep = std::min(_FracTimeStep, 1.0);
   
   _isSolid = 0;
   _isLiquid = 0;
