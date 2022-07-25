@@ -26,6 +26,7 @@ ComputeElasticityTensorMelting::validParams()
                                   "GeneralUserObject to read element "
                                   "specific temperature values from file");
   params.addParam<Real>("temperature_time_step",1.0,"Time interval between two temperature data field");
+  params.addParam<unsigned int>("temperature_num_step",1e9,"Number of temperature data field in time");
   params.addParam<bool>("activate_elems",false,"Using the element activation user object");
   return params;
 }
@@ -41,6 +42,7 @@ ComputeElasticityTensorMelting::ComputeElasticityTensorMelting(const InputParame
                                   ? &getUserObject<LaserTempReadFile>("temperature_read_user_object")
                                   : nullptr),
     _temperature_time_step(getParam<Real>("temperature_time_step")),
+	_temperature_num_step(getParam<unsigned int>("temperature_num_step")),
     _activate_elems(getParam<bool>("activate_elems"))
 {
 	// _Cijkl is reinizialized to the unrotated state by the base class

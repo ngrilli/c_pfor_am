@@ -44,6 +44,13 @@ protected:
   /// Time interval between two temperature data field
   const Real _temperature_time_step;
   
+  /// Number of temperature data field in time
+  /// if the variable temperature_step becomes bigger than the
+  /// total number of temperature time steps, the temperature
+  /// is kept constant, element by element, at the last read
+  /// temperature time step
+  const unsigned int _temperature_num_step;
+  
   /// Using the element activation feature
   /// Elements must be activated with degraded stiffness
   bool _activate_elems;  
