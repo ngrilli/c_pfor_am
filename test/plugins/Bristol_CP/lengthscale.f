@@ -55,14 +55,14 @@ c     Includes the subroutines that are used to compute the length-scale effects
       real*8, allocatable ::  mindist(:),vect(:,:),     		 
      &sortmindist(:),sortedbgrains(:),uniqu(:),uniindex(:),	      
      &uniqgraindist(:),zrot(:,:),slpdirrotate(:,:),                
-     &grainboundindex(:) ,featureboundsnodes(:,:),		                
+     &featureboundsnodes(:,:),		                
      &bxvalue(:),byvalue(:),bzvalue(:),btotal(:,:),bangle(:,:),      
      &normarray(:),normslp(:),minangleval(:),minangleval180(:),   
      &minangleactual(:),rnodes(:,:),vectr(:,:),			 
      &nodesnot(:,:),lxtotal(:,:,:),lxnormin(:,:),lxnorm(:),        
      &vectrnorm(:),lxangle(:,:),minxval0(:,:),minxval180(:,:),     
-     &minxval0act(:,:),minxval180act(:,:),minxangle(:),            
-     &minxangleact(:),lxnodes(:,:),lxnodesindex(:),                
+     &minxval0act(:,:),minxval180act(:,:),            
+     &minxangleact(:),lxnodes(:,:),                
      &slpdirrotatenorm(:),veca(:,:),vecb(:,:),checkangle(:),       
      &vanorm(:),vbnorm(:),slpplanrotate(:,:),         
      &slpdirrotatea(:,:),slpplanrotatea(:,:),slpplanrotatenorm(:), 
@@ -70,7 +70,8 @@ c     Includes the subroutines that are used to compute the length-scale effects
 	  
 	integer, allocatable :: minindex(:),minang0(:,:),		
      &minang180(:,:),boundnodegrainb(:),nodesnotindex(:), 
-     &minangleactloc(:)
+     &minangleactloc(:),grainboundindex(:),minxangle(:),
+     &lxnodesindex(:)
       
       integer FEATURE
 	  

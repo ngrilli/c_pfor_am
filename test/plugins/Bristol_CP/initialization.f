@@ -626,7 +626,7 @@ c         Latent hardening
               do k = 1, int(numslip(iph)/3.)
 	            do i = 1,3
                       do j = 1,3
-	                    intmat(iph,3d+0*(k-1)+i,3d+0*(k-1)+j)=1.0d+0
+	                    intmat(iph,3*(k-1)+i,3*(k-1)+j)=1.0d+0
                       enddo
                   enddo
               enddo

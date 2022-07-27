@@ -30,13 +30,6 @@ c     Subroutine for initialization
       use gndslipgrad, only: calculategnds, calculatebackstress1,
      &calculatebackstress2
 
-	  ! this is an attempt to
-	  ! add OS switch to make the getcwd command compatible
-	  ! with both ifort and gfortran
-#ifdef _WIN32
-#use ifport
-#endif
-
       implicit none
 c
 c
