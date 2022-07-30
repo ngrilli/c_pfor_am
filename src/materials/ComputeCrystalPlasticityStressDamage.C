@@ -722,6 +722,34 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
   
 }
 
+// compute history variable and assign to _E
+// which is used by the fracture model for damage growth
+// Damage grows only because of the positive part of the elastic energy F_pos
+void
+ComputeCrystalPlasticityStressDamage::computeHistoryVariable(Real & F_pos, Real & F_neg)
+{
+  // Assign history variable
+  Real hist_variable = _H_old[_qp];
+  
+  // _use_snes_vi_solver option not implemented
+
+  if (F_pos > _H_old[_qp])
+    _H[_qp] = F_pos;
+  else
+    _H[_qp] = _H_old[_qp];
+
+  if (_use_current_hist)
+    hist_variable = _H[_qp];
+
+  // _barrier not implemented
+
+  // Elastic free energy density and derivatives
+  _E[_qp] = hist_variable * _D[_qp] + F_neg;
+  _dEdc[_qp] = hist_variable * _dDdc[_qp];
+  _d2Ed2c[_qp] = hist_variable * _d2Dd2c[_qp];
+
+}
+
 void
 ComputeCrystalPlasticityStressDamage::calcTangentModuli(RankFourTensor & jacobian_mult)
 {

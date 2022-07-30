@@ -121,6 +121,11 @@ protected:
   virtual void computeStrainVolumetric(Real & F_pos, Real & F_neg, 
                                        RankTwoTensor & ee, RankTwoTensor & ce, 
 									   RankTwoTensor & pk2_new);
+									   
+  // compute history variable and assign to _E
+  // which is used by the fracture model for damage growth
+  // Damage grows only because of the positive part of the elastic energy F_pos									 
+  virtual void computeHistoryVariable(Real & F_pos, Real & F_neg);
 
   ///@{Calculates the tangent moduli for use as a preconditioner, using the elastic or elastic-plastic option as specified by the user
   void calcTangentModuli(RankFourTensor & jacobian_mult);
