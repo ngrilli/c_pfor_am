@@ -55,7 +55,11 @@ c     Variables related with phase field damage
       real(8) F_pos, F_neg, dam, pk2_pos_mat(3,3)
       integer damflag
       real(8) Wp, Wp_t
-
+      integer nonconv_debug_messages
+	  
+	  ! hard coded flag to activate debug messages when
+	  ! the NR loop does not converge
+	  nonconv_debug_messages = 0
 
 c     - The step update is indicated with the change of time
 c     - Change in INC does not work here!!! Because, during sub time stepping,
@@ -472,6 +476,8 @@ c          pnewdt=1.25
 
 
 	    if (sconv.eq.0d+0) then
+		
+          if (nonconv_debug_messages .eq. 1) then
 		    write(6,*) 'Inner or outer loop during stress calculation
      &	    did not converge!'
 		    write(6,*) 'inc'
@@ -506,6 +512,7 @@ c          pnewdt=1.25
 		    write(6,*) dgammadot_dtau
 		    write(6,*) 'dt'
 		    write(6,*) dt
+        endif
 
 c             Introduce cut-back
 c              pnewdt=0.5
