@@ -13,10 +13,9 @@ TimeDepEllipsoidHeatSource::validParams()
 {
   InputParameters params = FunctionPathEllipsoidHeatSource::validParams();
   params.addParam<FunctionName>(
-      "function_t", "0", "The time function that is a prefactor of the space ellipsoid heat source heat source");
+      "function_t", "0", "The time function that is a prefactor of the space ellipsoid heat source.");
   params.addClassDescription("Double ellipsoid volumetric source heat with function path. "
                                              "A function of time is added for heat source ramp up and ramp down.");
-
   return params;
 }
 
