@@ -36,8 +36,11 @@ TimeDepEllipsoidHeatSource::computeQpProperties()
   Real x_t = _function_x.value(_t);
   Real y_t = _function_y.value(_t);
   Real z_t = _function_z.value(_t);
+  
+  // Time function for ramp up and ramp down
+  Real ramp_up_t = _function_t.value(_t);
 
-  _volumetric_heat[_qp] = 6.0 * std::sqrt(3.0) * _P * _eta * _f /
+  _volumetric_heat[_qp] = 6.0 * ramp_up_t * std::sqrt(3.0) * _P * _eta * _f /
                           (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
                           std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
                                      3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
