@@ -236,6 +236,7 @@ c           pnewdt=1.25
      
 c         If not converged     
      	    if (sconv.eq.0d+0) then
+			if (nonconv_debug_messages.eq.1) then
 		    write(6,*) 'Inner/Outer loop during stress calculation
      &	did not converge!'
 		    write(6,*) 'el_no'
@@ -260,6 +261,7 @@ c         If not converged
 		    write(6,*) sstate              
 		    write(6,*) 'dt'
 		    write(6,*) dt
+			end if
 cc		    QUIT ABAQUS
 c		    call xit
 
@@ -268,7 +270,9 @@ c		    call xit
 c             Introduce cut-back              
 c              pnewdt=0.5
               pnewdt=tstep_back
+			  if (nonconv_debug_messages.eq.1) then
               write(6,*) 'pnewdt',pnewdt
+			  end if
               
 c             Do not calculate the jacobian - assign former value
               jacob=global_jacob_t(el_no,ip_no,:,:)
@@ -370,16 +374,20 @@ c		        write(6,*) jacob
 
 c		        When the jacobian calculation did not converge, assign the old jacobian!
 		        if (jconv.eq.0d+0) then
-c			        Jacobian 			
+c			        Jacobian 	
+                if (nonconv_debug_messages.eq.1) then		
                       write(6,*) 'Jacobian has not converged - J2'
                       write(6,*) 'el_no',el_no
                       write(6,*) 'ip_no',ip_no
+                end if
 			        jacob=global_jacob_t(el_no,ip_no,:,:)
 			        
                       
 c                      pnewdt=0.5
                       pnewdt=tstep_back
+					  if (nonconv_debug_messages.eq.1) then
                       write(6,*) 'pnewdt',pnewdt
+					  end if
                       
                   endif
                   
@@ -517,7 +525,9 @@ c          pnewdt=1.25
 c             Introduce cut-back
 c              pnewdt=0.5
               pnewdt=tstep_back
+			  if (nonconv_debug_messages.eq.1) then
               write(6,*) 'pnewdt',pnewdt
+			  end if
 
 c             Do not calculate the jacobian
               jacob=global_jacob_t(el_no,ip_no,:,:)
@@ -615,15 +625,19 @@ c                 Calculate the material tangent (using elasticity)
 
 c                 When the jacobian calculation did not converge, assign the old jacobian!
                   if (jconv.eq.0) then
+				    if (nonconv_debug_messages.eq.1) then
                       write(6,*) 'Jacobian has not converged - CP!'
                       write(6,*) 'inc'
                       write(6,*) inc
                       write(6,*) 'el_no',el_no
                       write(6,*) 'ip_no',ip_no
+					end if
 
 c                     pnewdt=0.5
                       pnewdt=tstep_back
+					  if (nonconv_debug_messages.eq.1) then
                       write(6,*) 'pnewdt',pnewdt
+					  end if
 
 c                     Jacobian
                       jacob=global_jacob_t(el_no,ip_no,:,:)
@@ -1779,6 +1793,11 @@ c	Variables used within this subroutine
 	integer ounoit,innoit,i,j,is,sconv,nss
       real(8) Je
 			real(8) Wp
+      integer nonconv_debug_messages
+	  
+	  ! hard coded flag to activate debug messages when
+	  ! the NR loop does not converge
+      nonconv_debug_messages = 0
 
 c     Number of slip systems      
       nss = numslip(ph_no)   
@@ -1891,10 +1910,12 @@ c	        Residual
 c              write(6,*) 'state',state
       do i=1,6
         if (isnan(S_vec(i))) then
+		if (nonconv_debug_messages.eq.1) then
         write(6,*) 'state', state
         write(6,*) 'S_vec', S_vec
         write(6,*) 'gammadot', gammadot
         write(6,*) 'tau', tau
+		end if
         endif
       enddo
 
@@ -2106,7 +2127,9 @@ c     Check if the stress value converged
 
               sconv=0d+0
 
+              if (nonconv_debug_messages.eq.1) then
               write(6,*) 'Cauchy stress has NaN!'
+			  end if
 
           endif
 
@@ -2119,7 +2142,9 @@ c     Check if the stress value converged
 
               sconv=0d+0
 
+              if (nonconv_debug_messages.eq.1) then
               write(6,*) 'Cauchy stress overshoots!'
+			  end if
 
           endif
 
@@ -2134,7 +2159,9 @@ c     Check if the slip rates are infinite
 
               sconv=0d+0
 
+              if (nonconv_debug_messages.eq.1) then
               write(6,*) 'slip rates overhoot!'
+			  end if
 
           endif
 
@@ -2147,13 +2174,17 @@ c     Check for the number of iterations
 
           if (innoit.eq.innoitmax) then
               sconv=0d+0
+			  if (nonconv_debug_messages.eq.1) then
               write(6,*) 'inner loop diverges!'
+			  end if
           endif
 
 
           if (ounoit.eq.ounoitmax) then
               sconv=0d+0
+			  if (nonconv_debug_messages.eq.1) then
               write(6,*) 'outer loop diverges!'
+			  end if
           endif
 
 
