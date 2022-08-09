@@ -6,6 +6,8 @@
 
 #include "AuxKernel.h"
 
+class Function;
+
 /**
  * This AuxKernel increases an AuxVariable from 0 to 1 if the qp is inside
  * an ellipsoid that is moving according to a path provided through a function.
@@ -22,15 +24,29 @@ public:
 
 protected:
   virtual Real computeValue() override;
-  Real getIntegralValue();
+  
+  // Level set variable that is being transformed from 0 to 1
+  const VariableValue & _level_set_var;
+  
+  // The default is 0 to 1, but in general the level set will be transformed from
+  // _low_level_set_var to _high_level_set_var
+  const Real _low_level_set_var;
+  const Real _high_level_set_var;
+  
+  /// transverse ellipsoid axe
+  const Real _rx;
+  /// depth ellipsoid axe
+  const Real _ry;
+  /// longitudinal ellipsoid axe
+  const Real _rz;
 
-  std::vector<const VariableValue *> _coupled_vars;
-  Real _coef;
-  unsigned int _order;
-  std::vector<Real> _integration_coef;
+  /// path of the heat source, x, y, z components
+  const Function & _function_x;
+  const Function & _function_y;
+  const Function & _function_z;
+  
+  // Threshold value of the ellipsoid function
+  // that activates the level set.
+  const Real _level_set_activation_threshold;
 
-  /// The old variable value (zero if order == 3)
-  const VariableValue & _u_old;
-  /// The older variable value (zero if order != 3)
-  const VariableValue & _u_older;
 };

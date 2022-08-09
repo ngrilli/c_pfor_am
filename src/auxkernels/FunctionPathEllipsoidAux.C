@@ -4,6 +4,8 @@
 
 #include "FunctionPathEllipsoidAux.h"
 
+#include "Function.h"
+
 registerMooseObject("MooseApp", FunctionPathEllipsoidAux);
 
 InputParameters
@@ -15,84 +17,77 @@ FunctionPathEllipsoidAux::validParams()
 											 "It can be applied to a level set variable "
                                              "to simulate the material deposition during wire arc additive manufacturing "
 											 "together with ActDeactElementsCoupled.");
-  params.addRequiredCoupledVar("variable_to_integrate", "The variable to be integrated");
-  params.addParam<Real>("coefficient", 1.0, "A simple coefficient multiplying the integral");
-  params.addParam<unsigned int>(
-      "order", 2, "The order of global truncation error: midpoint=1, trapezoidal=2, Simpson=3");
+  params.addRequiredCoupledVar("level_set_var", "The AuxVariable representing the level set.");
+  params.addParam<Real>("low_level_set_var", 0.0, "The lowest value of the level set variable.");
+  params.addParam<Real>("high_level_set_var", 1.0, "The highest value of the level set variable.");
+  params.addRequiredParam<Real>("rx", "effective transverse ellipsoid radius");
+  params.addRequiredParam<Real>("ry", "effective longitudinal ellipsoid radius");
+  params.addRequiredParam<Real>("rz", "effective depth ellipsoid radius");
+  params.addParam<FunctionName>(
+      "function_x", "0", "The x component of the center of the heating spot as a function of time");
+  params.addParam<FunctionName>(
+      "function_y", "0", "The y component of the center of the heating spot as a function of time");
+  params.addParam<FunctionName>(
+      "function_z", "0", "The z component of the center of the heating spot as a function of time");
+  params.addParam<Real>("level_set_activation_threshold", 0.5, "Threshold value of the ellipsoid function "
+                                                                                                 "that activates the level set.");	  
   return params;
 }
 
 FunctionPathEllipsoidAux::FunctionPathEllipsoidAux(const InputParameters & parameters)
   : AuxKernel(parameters),
-    _coef(getParam<Real>("coefficient")),
-    _order(getParam<unsigned int>("order")),
-    _u_old(_order != 3 ? uOld() : genericZeroValue<false>()),
-    _u_older(_order == 3 ? uOlder() : genericZeroValue<false>())
+    _level_set_var(coupledValue("level_set_var")),
+    _low_level_set_var(getParam<Real>("low_level_set_var")),
+	_high_level_set_var(getParam<Real>("high_level_set_var")),
+    _rx(getParam<Real>("rx")),
+    _ry(getParam<Real>("ry")),
+    _rz(getParam<Real>("rz")),
+    _function_x(getFunction("function_x")),
+    _function_y(getFunction("function_y")),
+    _function_z(getFunction("function_z")),
+	_level_set_activation_threshold(getParam<Real>("level_set_activation_threshold"))
 {
-  switch (_order)
-  {
-    case 1:
-      _integration_coef.push_back(1.0);
-      _coupled_vars.push_back(&coupledValue("variable_to_integrate"));
-      break;
-    case 2:
-      _integration_coef.push_back(0.5);
-      _integration_coef.push_back(0.5);
-      _coupled_vars.push_back(&coupledValue("variable_to_integrate"));
-      _coupled_vars.push_back(&coupledValueOld("variable_to_integrate"));
-      break;
-    case 3:
-      _integration_coef.push_back(1.0 / 3.0);
-      _integration_coef.push_back(4.0 / 3.0);
-      _integration_coef.push_back(1.0 / 3.0);
-      _coupled_vars.push_back(&coupledValue("variable_to_integrate"));
-      _coupled_vars.push_back(&coupledValueOld("variable_to_integrate"));
-      _coupled_vars.push_back(&coupledValueOlder("variable_to_integrate"));
-      break;
-    default:
-      mooseError("VariableTimeIntegrationAux: unknown time integration order specified");
-  }
 }
 
 Real
 FunctionPathEllipsoidAux::computeValue()
 {
-  Real integral = getIntegralValue();
+  // value of the level set variable at the previous time step
+  Real old_level_set = _level_set_var[_qp];
+  
+  const Real & x = _q_point[_qp](0);
+  const Real & y = _q_point[_qp](1);
+  const Real & z = _q_point[_qp](2);
+  
+  // center of the ellipsoidal heat source
+  Real x_t = _function_x.value(_t);
+  Real y_t = _function_y.value(_t);
+  Real z_t = _function_z.value(_t);
+  
+  // ellipsoid function value
+  Real val;
+  
+  val = 6.0 * std::sqrt(3.0) /
+          (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
+          std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
+                          3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
+                           3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
 
-  if (_order == 3)
-    return _u_older[_qp] + _coef * integral;
+  if (val > _level_set_activation_threshold) { // heat source activating this _qp
+	  
+	  return _high_level_set_var;
+	  
+  } else {
+	  
+    if (old_level_set > _low_level_set_var) { // this was already activated
+		 
+      return _high_level_set_var;
+		 
+    } else { // this remains inactive
 
-  return _u_old[_qp] + _coef * integral;
-}
+      return _low_level_set_var;
 
-Real
-FunctionPathEllipsoidAux::getIntegralValue()
-{
-  Real integral_value = 0.0;
-
-  for (unsigned int i = 0; i < _order; ++i)
-    integral_value += _integration_coef[i] * (*_coupled_vars[i])[_qp] * _dt;
-
-  /**
-   * Subsequent timesteps may be unequal, so the standard Simpson rule
-   * cannot be used. Use a different set of coefficients here.
-   * J. McNAMEE, "A PROGRAM TO INTEGRATE A FUNCTION TABULATED AT
-   * UNEQUAL INTERVALS," Internation Journal for Numerical Methods in
-   * Engineering, Vol. 17, 217-279. (1981).
-   */
-  if (_order == 3 && _dt != _dt_old)
-  {
-    Real x0 = 0.0;
-    Real x1 = _dt_old;
-    Real x2 = _dt + _dt_old;
-    Real y0 = (*_coupled_vars[2])[_qp];
-    Real y1 = (*_coupled_vars[1])[_qp];
-    Real y2 = (*_coupled_vars[0])[_qp];
-    Real term1 = (x2 - x0) * (y0 + (x2 - x0) * (y1 - y0) / (2.0 * (x1 - x0)));
-    Real term2 = (2.0 * x2 * x2 - x0 * x2 - x0 * x0 + 3.0 * x0 * x1 - 3.0 * x1 * x2) / 6.0;
-    Real term3 = (y2 - y1) / (x2 - x1) - (y1 - y0) / (x1 - x0);
-    integral_value = term1 + term2 * term3;
+    }	  
+	
   }
-
-  return integral_value;
 }
