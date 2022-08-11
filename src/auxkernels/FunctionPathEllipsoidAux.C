@@ -17,7 +17,6 @@ FunctionPathEllipsoidAux::validParams()
 											 "It can be applied to a level set variable "
                                              "to simulate the material deposition during wire arc additive manufacturing "
 											 "together with ActDeactElementsCoupled.");
-  params.addRequiredCoupledVar("level_set_var", "The AuxVariable representing the level set.");
   params.addParam<Real>("low_level_set_var", 0.0, "The lowest value of the level set variable.");
   params.addParam<Real>("high_level_set_var", 1.0, "The highest value of the level set variable.");
   params.addRequiredParam<Real>("rx", "effective transverse ellipsoid radius");
@@ -36,7 +35,6 @@ FunctionPathEllipsoidAux::validParams()
 
 FunctionPathEllipsoidAux::FunctionPathEllipsoidAux(const InputParameters & parameters)
   : AuxKernel(parameters),
-    _level_set_var(coupledValue("level_set_var")),
     _low_level_set_var(getParam<Real>("low_level_set_var")),
 	_high_level_set_var(getParam<Real>("high_level_set_var")),
     _rx(getParam<Real>("rx")),
