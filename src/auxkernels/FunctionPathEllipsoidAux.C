@@ -53,7 +53,7 @@ Real
 FunctionPathEllipsoidAux::computeValue()
 {
   // value of the level set variable at the previous time step
-  Real old_level_set = _level_set_var[_qp];
+  Real old_level_set = _u[_qp];
   
   const Real & x = _q_point[_qp](0);
   const Real & y = _q_point[_qp](1);
