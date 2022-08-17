@@ -605,8 +605,10 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipResistance()
   for (const auto i : make_range(_number_slip_systems))
   {
     temp_sqrt_argument = _tau_self[i] * _tau_self[i]
-	                   + _tau_line_tension[i] * _tau_line_tension[i];
+	                   + _tau_line_tension[i] * _tau_line_tension[i];		
+					   
 	_slip_resistance[_qp][i] = _tau_Hall_Petch + std::sqrt(temp_sqrt_argument);
+
   }
 }
 
