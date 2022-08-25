@@ -1,0 +1,8 @@
+[Tests]
+  [./DislocationReadIC]
+    type = 'Exodiff'
+    input = 'DislocationReadIC.i'
+    exodiff = 'DislocationReadIC_out.e'
+	heavy = false
+  [../]
+[]
