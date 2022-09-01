@@ -1,0 +1,8 @@
+[Tests]
+  [./WAAM_material_deposition]
+    type = 'Exodiff'
+    input = 'MaterialDepositionP10kW.i'
+    exodiff = 'MaterialDepositionP10kW_out.e'
+	heavy = true
+  [../]
+[]
