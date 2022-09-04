@@ -17,9 +17,9 @@ GrainMisorientation::validParams()
 
 GrainMisorientation::GrainMisorientation(const InputParameters & parameters)
   : Material(parameters),
-    _read_prop_user_object(isParamValid("read_prop_user_object")
-                               ? &getUserObject<PropertyReadFile>("read_prop_user_object")
-                               : nullptr),
+//    _read_prop_user_object(isParamValid("read_prop_user_object")
+//                               ? &getUserObject<PropertyReadFile>("read_prop_user_object")
+//                               : nullptr),
     _misorientation(declareProperty<Real>("misorientation"))
 {
 }
@@ -27,10 +27,10 @@ GrainMisorientation::GrainMisorientation(const InputParameters & parameters)
 void
 GrainMisorientation::initQpStatefulProperties()
 {
-  if (!_read_prop_user_object)
-  {
-    mooseError("read_prop_user_object not provided in GrainMisorientation");
-  }
+//  if (!_read_prop_user_object)
+//  {
+//    mooseError("read_prop_user_object not provided in GrainMisorientation");
+//  }
 
   // TO DO: need to find a way to cycle over elements
   //_Euler_angles_mat_prop[_qp](0) = _read_prop_user_object->getData(_current_elem, 0);
