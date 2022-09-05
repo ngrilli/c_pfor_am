@@ -361,6 +361,8 @@ ComputeCrystalPlasticityStressDamage::postSolveQp(RankTwoTensor & cauchy_stress,
                   _elastic_deformation_gradient.transpose() / _elastic_deformation_gradient.det();
 
   calcTangentModuli(jacobian_mult);
+  
+  // TO DO: update plastic work
 
   _total_lagrangian_strain[_qp] =
       _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] -
@@ -548,6 +550,8 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
 {
   RankTwoTensor ce, elastic_strain, ce_pk2, equivalent_slip_increment_per_model,
       equivalent_slip_increment, pk2_new;
+      
+  Real F_pos, F_neg; // tensile and compressive part of the elastic strain energy
 
   equivalent_slip_increment.zero();
 
@@ -582,8 +586,16 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
 
   elastic_strain = ce - RankTwoTensor::Identity();
   elastic_strain *= 0.5;
-
-  pk2_new = _elasticity_tensor[_qp] * elastic_strain;
+  
+  // Decompose ee into volumetric and non-volumetric
+  // and calculate elastic energy and stress
+  computeStrainVolumetric(F_pos, F_neg, elastic_strain, ce, pk2_new);
+  
+  // calculate history variable and
+  // assign elastic free energy to _E
+  // for the fracture model
+  computeHistoryVariable(F_pos, F_neg);
+  
   _residual_tensor = _pk2[_qp] - pk2_new;
 }
 
