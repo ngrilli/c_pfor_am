@@ -131,9 +131,9 @@ protected:
                                        RankTwoTensor & ee, RankTwoTensor & ce, 
 									   RankTwoTensor & pk2_new);
 									   
-  // compute history variable and assign to _E
-  // which is used by the fracture model for damage growth
-  // Damage grows only because of the positive part of the elastic energy F_pos									 
+  /// compute history variable and assign to _E
+  /// which is used by the fracture model for damage growth
+  /// Damage grows only because of the positive part of the elastic energy F_pos									 
   virtual void computeHistoryVariable(Real & F_pos, Real & F_neg);
 
   ///@{Calculates the tangent moduli for use as a preconditioner, using the elastic or elastic-plastic option as specified by the user
@@ -154,8 +154,8 @@ protected:
   const unsigned _num_models;
 
   /// The user supplied cyrstal plasticity consititutive models
-  // CrystalPlasticityDislocationUpdateBase is used in which
-  // the method calculateSchmidTensor is virtual
+  /// CrystalPlasticityDislocationUpdateBase is used in which
+  /// the method calculateSchmidTensor is virtual
   std::vector<CrystalPlasticityDislocationUpdateBase *> _models;
 
   /// number of eigenstrains
@@ -205,19 +205,19 @@ protected:
   /// it is necessary to update the plastic work
   MaterialProperty<RankTwoTensor> & _fp_increment;
   
-  // Plastic work calculated according to
-  // equation (17) in:
-  // Elastic plastic deformation at finite strains
-  // E. H. Lee 1968,
-  // Stanford University technical report AD678483
-  MaterialProperty<Real> & _plastic_work;
+  /// Plastic work calculated according to
+  /// equation (17) in:
+  /// Elastic plastic deformation at finite strains
+  /// E. H. Lee 1968,
+  /// Stanford University technical report AD678483
+  //MaterialProperty<Real> & _plastic_work;
   
-  // and the value at previous time step
-  const MaterialProperty<Real> & _plastic_work_old;
+  /// and the value at previous time step
+  //const MaterialProperty<Real> & _plastic_work_old;
   
-  // prefactor applied to the plastic work to determine the fraction
-  // of plastic energy that contributes to damage.
-  const Real _plastic_damage_prefactor;
+  /// prefactor applied to the plastic work to determine the fraction
+  /// of plastic energy that contributes to damage.
+  //const Real _plastic_damage_prefactor;
 
   /// optional parameter to define several mechanical systems on the same block, e.g. multiple phases
   const std::string _base_name;
@@ -310,11 +310,11 @@ protected:
   /// Flag to print to console warning messages on stress, constitutive model convergence
   const bool _print_convergence_message;
   
-  // UserObject to read the initial plastic deformation gradient from file
-  // The file will have one row for each element
-  // each row will contain the components
-  // Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33}
-  // of the initial plastic deformation gradient
+  /// UserObject to read the initial plastic deformation gradient from file
+  /// The file will have one row for each element
+  /// each row will contain the components
+  /// Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33}
+  /// of the initial plastic deformation gradient
   const ElementPropertyReadFile * const _read_initial_Fp;
 
   /// Flag to check whether convergence is achieved or if substepping is needed

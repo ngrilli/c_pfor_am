@@ -21,6 +21,7 @@
   ny = 1
   nz = 1
   elem_type = HEX8
+  displacements = 'ux uy uz'
 []
 
 [Variables]
@@ -35,6 +36,11 @@
   [../]
 
   [./uz]
+    order = FIRST
+    family = LAGRANGE
+  [../]
+  
+  [./c]
     order = FIRST
     family = LAGRANGE
   [../]
@@ -55,19 +61,17 @@
 
 []
 
-[Modules/TensorMechanics/Master]
-  [all]
-    add_variables = true
-    strain = FINITE
-	generate_output = 'strain_xx strain_xy strain_xz strain_yy strain_yz strain_zz stress_xx stress_yy stress_zz stress_xy stress_xz stress_yz'
-  []
+[Modules/TensorMechanics/Master/all]
+  add_variables = true
+  strain = FINITE
+  generate_output = 'strain_xx strain_xy strain_xz strain_yy strain_yz strain_zz stress_xx stress_yy stress_zz stress_xy stress_xz stress_yz'
 []
 
-[Modules/PhaseField/Nonconserved/c]
-  free_energy = F
-  kappa = kappa_op
-  mobility = L
-[]
+#[Modules/PhaseField/Nonconserved/c]
+#  free_energy = F
+#  kappa = kappa_op
+#  mobility = L
+#[]
 
 # initial condition for the damage
 [ICs]
@@ -80,34 +84,41 @@
 
 # off diagonal Jacobian kernels
 [Kernels]
+
+  [./constant_c]
+    type = TimeDerivative
+    variable = c
+  [../]
+
   [./solid_x]
     type = PhaseFieldFractureMechanicsOffDiag
-    variable = u_x
+    variable = ux
     component = 0
     c = c
     use_displaced_mesh = true
   [../]
   [./solid_y]
     type = PhaseFieldFractureMechanicsOffDiag
-    variable = u_y
+    variable = uy
     component = 1
     c = c
     use_displaced_mesh = true
   [../]
   [./solid_z]
     type = PhaseFieldFractureMechanicsOffDiag
-    variable = u_z
+    variable = uz
     component = 2
     c = c
     use_displaced_mesh = true
   [../]
-  [./off_disp]
-    type = AllenCahnElasticEnergyOffDiag
-    variable = c
-    displacements = 'ux uy uz'
-    mob_name = L
-    use_displaced_mesh = true
-  [../]
+  
+#  [./off_disp]
+#    type = AllenCahnElasticEnergyOffDiag
+#    variable = c
+#    displacements = 'ux uy uz'
+#    mob_name = L
+#    use_displaced_mesh = true
+#  [../]
 []
 
 [AuxVariables]
@@ -434,10 +445,10 @@
     family = MONOMIAL
   [../]
 
-  [./plastic_work]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
+#  [./plastic_work]
+#    order = CONSTANT
+#    family = MONOMIAL
+#  [../]
 
   [./bounds_dummy]
   [../]
@@ -959,12 +970,12 @@
     execute_on = timestep_end
   [../]
 
-  [./plastic_work]
-    type = MaterialRealAux
-    variable = plastic_work
-    property = plastic_work
-    execute_on = timestep_end
-  [../]
+#  [./plastic_work]
+#    type = MaterialRealAux
+#    variable = plastic_work
+#    property = plastic_work
+#    execute_on = timestep_end
+#  [../]
 
 []
 
@@ -990,25 +1001,25 @@
 [BCs]
   [y_pull_top]
     type = FunctionDirichletBC
-    variable = disp_y
+    variable = uy
     boundary = top
     function = pull
   []
   [x_left]
     type = DirichletBC
-    variable = disp_x
+    variable = ux
     boundary = left
     value = 0.0
   []
   [y_bottom]
     type = DirichletBC
-    variable = disp_y
+    variable = uy
     boundary = bottom
     value = 0.0
   []
   [z_back]
     type = DirichletBC
-    variable = disp_z
+    variable = uz
     boundary = back
     value = 0.0
   []
@@ -1031,7 +1042,7 @@
 	c = c
     E_name = 'elastic_energy'
     D_name = 'degradation'
-    use_current_history_variable = true
+    use_current_history_variable = false
     plastic_damage_prefactor = 0.0
   [../]
   [./trial_xtalpl]
@@ -1095,13 +1106,13 @@
     function = 'c^2 * gc_prop / 2 / l'
     derivative_order = 2
   [../]
-  [./fracture_driving_energy]
-    type = DerivativeSumMaterial
-    args = c
-    sum_materials = 'elastic_energy local_fracture_energy'
-    derivative_order = 2
-    f_name = F
-  [../]
+#  [./fracture_driving_energy]
+#    type = DerivativeSumMaterial
+#    args = c
+#    sum_materials = 'elastic_energy local_fracture_energy'
+#    derivative_order = 2
+#    f_name = F
+#  [../]
 []
 
 [UserObjects]
@@ -1121,8 +1132,8 @@
   
   solve_type = 'PJFNK'
 
-  petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold -pc_hypre_boomeramg_agg_nl -pc_hypre_boomeramg_agg_num_paths -pc_hypre_boomeramg_max_levels -pc_hypre_boomeramg_coarsen_type -pc_hypre_boomeramg_interp_type -pc_hypre_boomeramg_P_max -pc_hypre_boomeramg_truncfactor -pc_hypre_boomeramg_print_statistics'
-  petsc_options_value = 'hypre boomeramg 51 0.7 4 5 25 PMIS ext+i 2 0.3 0'
+  #petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold -pc_hypre_boomeramg_agg_nl -pc_hypre_boomeramg_agg_num_paths -pc_hypre_boomeramg_max_levels -pc_hypre_boomeramg_coarsen_type -pc_hypre_boomeramg_interp_type -pc_hypre_boomeramg_P_max -pc_hypre_boomeramg_truncfactor -pc_hypre_boomeramg_print_statistics'
+  #petsc_options_value = 'hypre boomeramg 51 0.7 4 5 25 PMIS ext+i 2 0.3 0'
 
   line_search = 'none'
 
