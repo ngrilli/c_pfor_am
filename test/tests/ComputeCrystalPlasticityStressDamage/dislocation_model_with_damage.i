@@ -39,11 +39,6 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  
-  [./c]
-    order = FIRST
-    family = LAGRANGE
-  [../]
 []
 
 [Functions]
@@ -56,7 +51,7 @@
   [./dts]
     type = PiecewiseConstant
     x = '0.0 1.0'
-    y = '0.001 0.001'
+    y = '0.002 0.002'
   [../]
 
 []
@@ -67,11 +62,11 @@
   generate_output = 'strain_xx strain_xy strain_xz strain_yy strain_yz strain_zz stress_xx stress_yy stress_zz stress_xy stress_xz stress_yz'
 []
 
-#[Modules/PhaseField/Nonconserved/c]
-#  free_energy = F
-#  kappa = kappa_op
-#  mobility = L
-#[]
+[Modules/PhaseField/Nonconserved/c]
+  free_energy = F
+  kappa = kappa_op
+  mobility = L
+[]
 
 # initial condition for the damage
 [ICs]
@@ -112,13 +107,13 @@
     use_displaced_mesh = true
   [../]
   
-#  [./off_disp]
-#    type = AllenCahnElasticEnergyOffDiag
-#    variable = c
-#    displacements = 'ux uy uz'
-#    mob_name = L
-#    use_displaced_mesh = true
-#  [../]
+  [./off_disp]
+    type = AllenCahnElasticEnergyOffDiag
+    variable = c
+    displacements = 'ux uy uz'
+    mob_name = L
+    use_displaced_mesh = true
+  [../]
 []
 
 [AuxVariables]
@@ -445,10 +440,10 @@
     family = MONOMIAL
   [../]
 
-#  [./plastic_work]
-#    order = CONSTANT
-#    family = MONOMIAL
-#  [../]
+  [./plastic_work]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
 
   [./bounds_dummy]
   [../]
@@ -970,12 +965,12 @@
     execute_on = timestep_end
   [../]
 
-#  [./plastic_work]
-#    type = MaterialRealAux
-#    variable = plastic_work
-#    property = plastic_work
-#    execute_on = timestep_end
-#  [../]
+  [./plastic_work]
+    type = MaterialRealAux
+    variable = plastic_work
+    property = plastic_work
+    execute_on = timestep_end
+  [../]
 
 []
 
@@ -1084,7 +1079,7 @@
   [./pfbulkmat]
     type = GenericConstantMaterial
     prop_names = 'gc_prop l visco'
-    prop_values = '6200.0 1.0 1e-3'
+    prop_values = '620.0 1.0 1e-3'
   [../]
   [./define_mobility]
     type = ParsedMaterial
@@ -1106,13 +1101,13 @@
     function = 'c^2 * gc_prop / 2 / l'
     derivative_order = 2
   [../]
-#  [./fracture_driving_energy]
-#    type = DerivativeSumMaterial
-#    args = c
-#    sum_materials = 'elastic_energy local_fracture_energy'
-#    derivative_order = 2
-#    f_name = F
-#  [../]
+  [./fracture_driving_energy]
+    type = DerivativeSumMaterial
+    args = c
+    sum_materials = 'elastic_energy local_fracture_energy'
+    derivative_order = 2
+    f_name = F
+  [../]
 []
 
 [UserObjects]
@@ -1132,8 +1127,8 @@
   
   solve_type = 'PJFNK'
 
-  #petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold -pc_hypre_boomeramg_agg_nl -pc_hypre_boomeramg_agg_num_paths -pc_hypre_boomeramg_max_levels -pc_hypre_boomeramg_coarsen_type -pc_hypre_boomeramg_interp_type -pc_hypre_boomeramg_P_max -pc_hypre_boomeramg_truncfactor -pc_hypre_boomeramg_print_statistics'
-  #petsc_options_value = 'hypre boomeramg 51 0.7 4 5 25 PMIS ext+i 2 0.3 0'
+  petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold -pc_hypre_boomeramg_agg_nl -pc_hypre_boomeramg_agg_num_paths -pc_hypre_boomeramg_max_levels -pc_hypre_boomeramg_coarsen_type -pc_hypre_boomeramg_interp_type -pc_hypre_boomeramg_P_max -pc_hypre_boomeramg_truncfactor -pc_hypre_boomeramg_print_statistics'
+  petsc_options_value = 'hypre boomeramg 51 0.7 4 5 25 PMIS ext+i 2 0.3 0'
 
   line_search = 'none'
 
@@ -1149,7 +1144,7 @@
 	growth_factor = 1.01
   [../]
   
-  end_time = 1.0
+  end_time = 4.0
   dtmin = 0.000001
 []
 
@@ -1164,6 +1159,6 @@
   execute_on = 'timestep_end'
   [./out]
     type = Exodus
-    interval = 2
+    interval = 5
   [../]
 []

@@ -31,9 +31,9 @@ ComputeCrystalPlasticityStressDamage::validParams()
       "E_name", "elastic_energy", "Name of material property for elastic energy");
   params.addParam<MaterialPropertyName>(
       "D_name", "degradation", "Name of material property for energetic degradation function.");
-  //params.addParam<Real>("plastic_damage_prefactor",0.0,
-  //                      "prefactor applied to the plastic work to determine the fraction "
-  //						"of plastic energy that contributes to damage. ");
+  params.addParam<Real>("plastic_damage_prefactor", 0.0,
+                        "prefactor applied to the plastic work to determine the fraction "
+  						"of plastic energy that contributes to damage. ");
   params.addParam<std::string>(
       "base_name",
       "Optional parameter that allows the user to define multiple mechanics material systems on "
@@ -96,9 +96,9 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     _d2Dd2c(getMaterialPropertyDerivative<Real>(
         "D_name", getVar("c", 0)->name(), getVar("c", 0)->name())),
     _fp_increment(declareProperty<RankTwoTensor>("Fp_increment")), // increment of Fp over _dt
-	//_plastic_work(declareProperty<Real>("plastic_work")), // scalar plastic work
-	//_plastic_work_old(getMaterialPropertyOld<Real>("plastic_work")), // and value at previous time step
-    //_plastic_damage_prefactor(getParam<Real>("plastic_damage_prefactor")),
+	_plastic_work(declareProperty<Real>("plastic_work")), // scalar plastic work
+	_plastic_work_old(getMaterialPropertyOld<Real>("plastic_work")), // and value at previous time step
+    _plastic_damage_prefactor(getParam<Real>("plastic_damage_prefactor")),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_tensor(getMaterialPropertyByName<RankFourTensor>(_base_name + "elasticity_tensor")),
     _rtol(getParam<Real>("rtol")),
@@ -139,8 +139,6 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
                                : nullptr)
 {
   _convergence_failed = false;
-  
-  std::cout << "in constructor" << std::endl;
 }
 
 void
@@ -149,8 +147,6 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
   // temporary variable to store the initial plastic deformation gradient
   // read from file and then assign it to _plastic_deformation_gradient
   RankTwoTensor initial_Fp;	
-
-  std::cout << "begin initQpStatefulProperties" << std::endl;
 	
   // Initialize Fp
   if (_read_initial_Fp) { // Read initial plastic deformation gradient from file
@@ -206,12 +202,10 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
   }
   
   // Initialize plastic work
-  //_plastic_work[_qp] = 0.0;
+  _plastic_work[_qp] = 0.0;
   
   // Initialize increment of plastic deformation gradient
   _fp_increment[_qp].zero();
-  
-  std::cout << "end initQpStatefulProperties" << std::endl;
 }
 
 void
@@ -377,7 +371,7 @@ ComputeCrystalPlasticityStressDamage::postSolveQp(RankTwoTensor & cauchy_stress,
   _fp_increment[_qp] = _plastic_deformation_gradient[_qp] - _plastic_deformation_gradient_old[_qp];
   
   // update plastic work
-  //updatePlasticWork();
+  updatePlasticWork();
 
   _total_lagrangian_strain[_qp] =
       _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] -
@@ -409,7 +403,7 @@ ComputeCrystalPlasticityStressDamage::updatePlasticWork()
   plastic_work_rate = Je * _stress[_qp] * _elastic_deformation_gradient 
   * _fp_increment[_qp] * _inverse_plastic_deformation_grad * _elastic_deformation_gradient.inverse();
 	
-  //_plastic_work[_qp] = _plastic_work_old[_qp] + std::abs(plastic_work_rate.trace());
+  _plastic_work[_qp] = _plastic_work_old[_qp] + std::abs(plastic_work_rate.trace());
 }
 
 void
@@ -667,6 +661,8 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
     dfpinvdpk2 += dfpinvdpk2_per_model;
   }
 
+  // TO DO: degrade _elasticity_tensor in Jacobian
+
   _jacobian =
       RankFourTensor::IdentityFour() - (_elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);
 }
@@ -759,7 +755,7 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
   // Positive and negative parts of the free energy
   // Equations 13 and 14 in Grilli, Koslowski, 2019
   // additionally, plastic work is included for damage
-  F_pos = a_pos_vol + a_pos_cpl; //+ _plastic_damage_prefactor * _plastic_work[_qp];
+  F_pos = a_pos_vol + a_pos_cpl + _plastic_damage_prefactor * _plastic_work[_qp];
   F_neg = a_neg_vol;
   
   // Used in StressDivergencePFFracTensors off-diagonal Jacobian
@@ -827,6 +823,8 @@ ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor 
         deedfe(i, j, k, i) = deedfe(i, j, k, i) + _elastic_deformation_gradient(k, j) * 0.5;
         deedfe(i, j, k, j) = deedfe(i, j, k, j) + _elastic_deformation_gradient(k, i) * 0.5;
       }
+
+  // TO DO: degrade _elasticity_tensor for elasto-plastic tangent modulus
 
   usingTensorIndices(i_, j_, k_, l_);
   dsigdpk2dfe = _elastic_deformation_gradient.times<i_, k_, j_, l_>(_elastic_deformation_gradient) *

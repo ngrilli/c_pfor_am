@@ -210,14 +210,14 @@ protected:
   /// Elastic plastic deformation at finite strains
   /// E. H. Lee 1968,
   /// Stanford University technical report AD678483
-  //MaterialProperty<Real> & _plastic_work;
+  MaterialProperty<Real> & _plastic_work;
   
   /// and the value at previous time step
-  //const MaterialProperty<Real> & _plastic_work_old;
+  const MaterialProperty<Real> & _plastic_work_old;
   
   /// prefactor applied to the plastic work to determine the fraction
   /// of plastic energy that contributes to damage.
-  //const Real _plastic_damage_prefactor;
+  const Real _plastic_damage_prefactor;
 
   /// optional parameter to define several mechanical systems on the same block, e.g. multiple phases
   const std::string _base_name;
