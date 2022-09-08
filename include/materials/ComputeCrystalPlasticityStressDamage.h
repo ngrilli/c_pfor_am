@@ -215,10 +215,6 @@ protected:
   // and the value at previous time step
   const MaterialProperty<Real> & _plastic_work_old;
   
-  /// Elastic deformation gradient needed by the user object
-  /// PlasticWorkRate to calculate the plastic work
-  MaterialProperty<RankTwoTensor> & _elastic_deformation_grad;
-  
   // prefactor applied to the plastic work to determine the fraction
   // of plastic energy that contributes to damage.
   const Real _plastic_damage_prefactor;

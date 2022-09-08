@@ -98,7 +98,6 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     _fp_increment(declareProperty<RankTwoTensor>("Fp_increment")), // increment of Fp over _dt
 	_plastic_work(declareProperty<Real>("plastic_work")), // scalar plastic work
 	_plastic_work_old(getMaterialPropertyOld<Real>("plastic_work")), // and value at previous time step
-	_elastic_deformation_grad(declareProperty<RankTwoTensor>("elastic_deformation_grad")), // Fe
     _plastic_damage_prefactor(getParam<Real>("plastic_damage_prefactor")),
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _elasticity_tensor(getMaterialPropertyByName<RankFourTensor>(_base_name + "elasticity_tensor")),
@@ -201,6 +200,11 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
     _eigenstrains[i]->setQp(_qp);
     _eigenstrains[i]->initQpStatefulProperties();
   }
+  
+  // Initialize plastic work
+  _plastic_work[_qp] = 0.0;
+  
+  _fp_increment[_qp].zero();
 }
 
 void
