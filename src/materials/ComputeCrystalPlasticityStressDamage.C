@@ -362,7 +362,11 @@ ComputeCrystalPlasticityStressDamage::postSolveQp(RankTwoTensor & cauchy_stress,
 
   calcTangentModuli(jacobian_mult);
   
-  // TO DO: update plastic work
+  // Calculate increment of Fp over _dt
+  _fp_increment[_qp] = _plastic_deformation_gradient[_qp] - _plastic_deformation_gradient_old[_qp];
+  
+  // update plastic work
+  updatePlasticWork();
 
   _total_lagrangian_strain[_qp] =
       _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] -
@@ -373,6 +377,28 @@ ComputeCrystalPlasticityStressDamage::postSolveQp(RankTwoTensor & cauchy_stress,
   RankTwoTensor rot;
   _elastic_deformation_gradient.getRUDecompositionRotation(rot);
   _updated_rotation[_qp] = rot * _crysrot[_qp];
+}
+
+// Plastic work updated according to
+// equation (17) in:
+// Elastic plastic deformation at finite strains
+// E. H. Lee 1968,
+// Stanford University technical report AD678483
+void
+ComputeCrystalPlasticityStressDamage::updatePlasticWork()
+{
+  // Temporary variable to store the tensor plastic work
+  // the trace of this tensor is the scalar plastic work
+  RankTwoTensor plastic_work_rate;
+  
+  Real Je; // Je is relative elastic volume change
+  
+  Je = _elastic_deformation_gradient.det();
+  
+  plastic_work_rate = Je * _stress[_qp] * _elastic_deformation_gradient 
+  * _fp_increment[_qp] * _inverse_plastic_deformation_grad * _elastic_deformation_gradient.inverse();
+	
+  _plastic_work[_qp] = _plastic_work_old[_qp] + std::abs(plastic_work_rate.trace());
 }
 
 void

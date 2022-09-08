@@ -83,6 +83,15 @@ protected:
    * Save the final stress and internal variable values after the iterative solve.
    */
   void postSolveQp(RankTwoTensor & stress_new, RankFourTensor & jacobian_mult);
+  
+  /**
+   * Plastic work updated according to
+   * equation (17) in:
+   * Elastic plastic deformation at finite strains
+   * E. H. Lee 1968,
+   * Stanford University technical report AD678483
+   */
+  void updatePlasticWork();
 
   /**
    * Solves the internal variables stress as a function of the slip specified
