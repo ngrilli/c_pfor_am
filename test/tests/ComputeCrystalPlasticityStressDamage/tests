@@ -1,0 +1,8 @@
+[Tests]
+  [./dislocation_model_with_damage]
+    type = 'Exodiff'
+    input = 'dislocation_model_with_damage.i'
+    exodiff = 'dislocation_model_with_damage_out.e'
+	heavy = false
+  [../]
+[]

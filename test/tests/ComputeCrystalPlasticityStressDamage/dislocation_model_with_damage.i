@@ -447,6 +447,12 @@
 
   [./bounds_dummy]
   [../]
+  
+  # free energy terms that contribute to damage
+  [./elastic_energy]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
 
 []
 
@@ -971,6 +977,13 @@
     property = plastic_work
     execute_on = timestep_end
   [../]
+  
+  [./elastic_energy]
+    type = MaterialRealAux
+    variable = elastic_energy
+    property = elastic_energy
+    execute_on = timestep_end
+  [../]
 
 []
 
@@ -1027,6 +1040,9 @@
     fill_method = symmetric9
     read_prop_user_object = prop_read
   [../]
+  
+  # plastic_damage_prefactor from 0 to 1
+  # set the fraction of plastic work that contributes to damage
   [./stress]
     type = ComputeCrystalPlasticityStressDamage
     crystal_plasticity_models = 'trial_xtalpl'
@@ -1040,6 +1056,7 @@
     use_current_history_variable = false
     plastic_damage_prefactor = 0.0
   [../]
+  
   [./trial_xtalpl]
     type = CrystalPlasticityDislocationUpdate
     number_slip_systems = 12
@@ -1076,11 +1093,18 @@
     constant_expressions = '1.0e-3'
     derivative_order = 2
   [../]
+  
+  # gc_prop is the fracture energy
+  # if plastic work is included
+  # fracture takes place at lower strain
+  # l is the characteristic crack diffusion length
+  # ideally element size should be about one fourth of l
   [./pfbulkmat]
     type = GenericConstantMaterial
     prop_names = 'gc_prop l visco'
-    prop_values = '620.0 1.0 1e-3'
+    prop_values = '28.5 1.0 1e-3'
   [../]
+  
   [./define_mobility]
     type = ParsedMaterial
     material_property_names = 'gc_prop visco'
@@ -1144,7 +1168,7 @@
 	growth_factor = 1.01
   [../]
   
-  end_time = 4.0
+  end_time = 0.002 # run until 1.0 to see fracture
   dtmin = 0.000001
 []
 
@@ -1159,6 +1183,6 @@
   execute_on = 'timestep_end'
   [./out]
     type = Exodus
-    interval = 5
+    interval = 1
   [../]
 []
