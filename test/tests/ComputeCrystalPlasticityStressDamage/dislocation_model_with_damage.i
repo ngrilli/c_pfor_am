@@ -1044,7 +1044,7 @@
   # plastic_damage_prefactor from 0 to 1
   # set the fraction of plastic work that contributes to damage
   [./stress]
-    type = ComputeCrystalPlasticityStressDamage2
+    type = ComputeCrystalPlasticityStressDamage
     crystal_plasticity_models = 'trial_xtalpl'
     tan_mod_type = exact
     maximum_substep_iteration = 2
@@ -1053,7 +1053,7 @@
 	c = c
     E_name = 'elastic_energy'
     D_name = 'degradation'
-    use_current_history_variable = false
+    use_current_history_variable = true
     plastic_damage_prefactor = 0.0
   [../]
   

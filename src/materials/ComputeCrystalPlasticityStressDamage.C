@@ -1,6 +1,6 @@
 // Nicolò Grilli
 // University of Bristol
-// 17 Luglio 2022
+// 9 Settembre 2022
 
 #include "ComputeCrystalPlasticityStressDamage.h"
 
@@ -15,14 +15,13 @@ registerMooseObject("TensorMechanicsApp", ComputeCrystalPlasticityStressDamage);
 InputParameters
 ComputeCrystalPlasticityStressDamage::validParams()
 {
-  InputParameters params = ComputeFiniteStrainElasticStress::validParams();
-
+  InputParameters params = ComputeMultipleCrystalPlasticityStress::validParams();
   params.addClassDescription(
       "Crystal Plasticity base class: handles the Newton iteration over the stress residual and "
       "calculates the Jacobian based on constitutive laws from multiple material classes "
       "that are inherited from CrystalPlasticityDislocationUpdateBase."
 	  "The difference between this class and ComputeMultipleCrystalPlasticityStress "
-	  "is that the _models variable here is an array of CrystalPlasticityDislocationUpdateBase "
+	  "is that the _dislocation_models variable here is an array of CrystalPlasticityDislocationUpdateBase "
 	  "instead of CrystalPlasticityStressUpdateBase. "
 	  "This material model is coupled with phase field damage. ");
   params.addCoupledVar("c", 0.0, "Order parameter for damage");
@@ -35,39 +34,6 @@ ComputeCrystalPlasticityStressDamage::validParams()
   params.addParam<Real>("plastic_damage_prefactor", 0.0,
                         "prefactor applied to the plastic work to determine the fraction "
   						"of plastic energy that contributes to damage. ");
-  params.addParam<std::string>(
-      "base_name",
-      "Optional parameter that allows the user to define multiple mechanics material systems on "
-      "the same block, i.e. for multiple phases");
-
-  params.addRequiredParam<std::vector<MaterialName>>(
-      "crystal_plasticity_models",
-      "The material objects to use to calculate crystal plasticity stress and strains.");
-  params.addParam<std::vector<MaterialName>>("eigenstrain_names",
-                                             "The material objects to calculate eigenstrains.");
-  params.addParam<MooseEnum>("tan_mod_type",
-                             MooseEnum("exact none", "none"),
-                             "Type of tangent moduli for preconditioner: default elastic");
-  params.addParam<Real>("rtol", 1e-6, "Constitutive stress residual relative tolerance");
-  params.addParam<Real>("abs_tol", 1e-6, "Constitutive stress residual absolute tolerance");
-  params.addParam<unsigned int>("maxiter", 100, "Maximum number of iterations for stress update");
-  params.addParam<unsigned int>(
-      "maxiter_state_variable", 100, "Maximum number of iterations for state variable update");
-  params.addParam<unsigned int>(
-      "maximum_substep_iteration", 1, "Maximum number of substep iteration");
-  params.addParam<bool>("use_line_search", false, "Use line search in constitutive update");
-  params.addParam<Real>("min_line_search_step_size", 0.01, "Minimum line search step size");
-  params.addParam<Real>("line_search_tol", 0.5, "Line search bisection method tolerance");
-  params.addParam<unsigned int>(
-      "line_search_maxiter", 20, "Line search bisection method maximum number of iteration");
-  params.addParam<MooseEnum>("line_search_method",
-                             MooseEnum("CUT_HALF BISECTION", "CUT_HALF"),
-                             "The method used in line search");
-  params.addParam<bool>(
-      "print_state_variable_convergence_error_messages",
-      false,
-      "Whether or not to print warning messages from the crystal plasticity specific convergence "
-      "checks on the stress measure and general constitutive model quantinties.");
   params.addParam<UserObjectName>("read_initial_Fp",
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element value "
@@ -77,9 +43,7 @@ ComputeCrystalPlasticityStressDamage::validParams()
 
 ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     const InputParameters & parameters)
-  : ComputeFiniteStrainElasticStress(parameters),
-    _num_models(getParam<std::vector<MaterialName>>("crystal_plasticity_models").size()),
-    _num_eigenstrains(getParam<std::vector<MaterialName>>("eigenstrain_names").size()),
+  : ComputeMultipleCrystalPlasticityStress(parameters),
 	_c(coupledValue("c")),
     _use_current_hist(getParam<bool>("use_current_history_variable")),
     _H(declareProperty<Real>("hist")), // History variable to avoid damage decrease 
@@ -100,46 +64,14 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
 	_plastic_work(declareProperty<Real>("plastic_work")), // scalar plastic work
 	_plastic_work_old(getMaterialPropertyOld<Real>("plastic_work")), // and value at previous time step
     _plastic_damage_prefactor(getParam<Real>("plastic_damage_prefactor")),
-    _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
-    _elasticity_tensor(getMaterialPropertyByName<RankFourTensor>(_base_name + "elasticity_tensor")),
-    _rtol(getParam<Real>("rtol")),
-    _abs_tol(getParam<Real>("abs_tol")),
-    _maxiter(getParam<unsigned int>("maxiter")),
-    _maxiterg(getParam<unsigned int>("maxiter_state_variable")),
-    _tan_mod_type(getParam<MooseEnum>("tan_mod_type").getEnum<TangentModuliType>()),
-    _max_substep_iter(getParam<unsigned int>("maximum_substep_iteration")),
-    _use_line_search(getParam<bool>("use_line_search")),
-    _min_line_search_step_size(getParam<Real>("min_line_search_step_size")),
-    _line_search_tolerance(getParam<Real>("line_search_tol")),
-    _line_search_max_iterations(getParam<unsigned int>("line_search_maxiter")),
-    _line_search_method(getParam<MooseEnum>("line_search_method").getEnum<LineSearchMethod>()),
-    _plastic_deformation_gradient(declareProperty<RankTwoTensor>("plastic_deformation_gradient")),
-    _plastic_deformation_gradient_old(
-        getMaterialPropertyOld<RankTwoTensor>("plastic_deformation_gradient")),
-    _eigenstrain_deformation_gradient(
-        _num_eigenstrains ? &declareProperty<RankTwoTensor>("eigenstrain_deformation_gradient")
-                          : nullptr),
-    _eigenstrain_deformation_gradient_old(
-        _num_eigenstrains
-            ? &getMaterialPropertyOld<RankTwoTensor>("eigenstrain_deformation_gradient")
-            : nullptr),
-    _deformation_gradient(getMaterialProperty<RankTwoTensor>("deformation_gradient")),
-    _deformation_gradient_old(getMaterialPropertyOld<RankTwoTensor>("deformation_gradient")),
-    _pk2(declareProperty<RankTwoTensor>("second_piola_kirchhoff_stress")),
-    _pk2_old(getMaterialPropertyOld<RankTwoTensor>("second_piola_kirchhoff_stress")),
-    _total_lagrangian_strain(
-        declareProperty<RankTwoTensor>("total_lagrangian_strain")), // Lagrangian strain
-    _updated_rotation(declareProperty<RankTwoTensor>("updated_rotation")),
-    _crysrot(getMaterialProperty<RankTwoTensor>(
-        "crysrot")), // defined in the elasticity tensor classes for crystal plasticity
-    _print_convergence_message(getParam<bool>("print_state_variable_convergence_error_messages")),
-    
+
 	// UserObject to read the initial plastic deformation gradient from file						
     _read_initial_Fp(isParamValid("read_initial_Fp")
                                ? &getUserObject<ElementPropertyReadFile>("read_initial_Fp")
                                : nullptr)
 {
   _convergence_failed = false;
+  std::cout << "constructor" << std::endl;
 }
 
 void
@@ -147,7 +79,7 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
 {
   // temporary variable to store the initial plastic deformation gradient
   // read from file and then assign it to _plastic_deformation_gradient
-  RankTwoTensor initial_Fp;	
+  RankTwoTensor initial_Fp;
 	
   // Initialize Fp
   if (_read_initial_Fp) { // Read initial plastic deformation gradient from file
@@ -192,8 +124,8 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
 
   for (unsigned int i = 0; i < _num_models; ++i)
   {
-    _models[i]->setQp(_qp);
-    _models[i]->initQpStatefulProperties();
+    _dislocation_models[i]->setQp(_qp);
+    _dislocation_models[i]->initQpStatefulProperties();
   }
 
   for (unsigned int i = 0; i < _num_eigenstrains; ++i)
@@ -201,12 +133,15 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
     _eigenstrains[i]->setQp(_qp);
     _eigenstrains[i]->initQpStatefulProperties();
   }
-  
+
   // Initialize plastic work
   _plastic_work[_qp] = 0.0;
   
   // Initialize increment of plastic deformation gradient
   _fp_increment[_qp].zero();
+  
+  // Initialize history variable
+  _H[_qp] = 0.0;
 }
 
 void
@@ -223,7 +158,7 @@ ComputeCrystalPlasticityStressDamage::initialSetup()
 
     if (model)
     {
-      _models.push_back(model);
+      _dislocation_models.push_back(model);
       // TODO: check to make sure that the material model is compatible with this class
     }
     else
@@ -253,7 +188,7 @@ void
 ComputeCrystalPlasticityStressDamage::computeQpStress()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
-    _models[i]->setQp(_qp);
+    _dislocation_models[i]->setQp(_qp);
 
   for (unsigned int i = 0; i < _num_eigenstrains; ++i)
     _eigenstrains[i]->setQp(_qp);
@@ -284,7 +219,7 @@ ComputeCrystalPlasticityStressDamage::updateStress(RankTwoTensor & cauchy_stress
   // Not sure if we should pass in the updated or the original rotation here
   // If not, then we should not need to compute the flow direction every iteration here
   for (unsigned int i = 0; i < _num_models; ++i)
-    _models[i]->calculateFlowDirection(_crysrot[_qp]);
+    _dislocation_models[i]->calculateFlowDirection(_crysrot[_qp]);
 
   do
   {
@@ -293,7 +228,7 @@ ComputeCrystalPlasticityStressDamage::updateStress(RankTwoTensor & cauchy_stress
 
     _substep_dt = _dt / num_substep;
     for (unsigned int i = 0; i < _num_models; ++i)
-      _models[i]->setSubstepDt(_substep_dt);
+      _dislocation_models[i]->setSubstepDt(_substep_dt);
 
     // calculate F^{eigen} only when we have eigenstrain
     if (_num_eigenstrains)
@@ -321,7 +256,7 @@ ComputeCrystalPlasticityStressDamage::updateStress(RankTwoTensor & cauchy_stress
     }
 
     if (substep_iter > _max_substep_iter && _convergence_failed)
-      mooseException("ComputeCrystalPlasticityStressDamage: Constitutive failure");
+      mooseException("ComputeMultipleCrystalPlasticityStress: Constitutive failure");
   } while (_convergence_failed);
 
   postSolveQp(cauchy_stress, jacobian_mult);
@@ -331,7 +266,7 @@ void
 ComputeCrystalPlasticityStressDamage::preSolveQp()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
-    _models[i]->setInitialConstitutiveVariableValues();
+    _dislocation_models[i]->setInitialConstitutiveVariableValues();
 
   _pk2[_qp] = _pk2_old[_qp];
   _inverse_plastic_deformation_grad_old = _plastic_deformation_gradient_old[_qp].inverse();
@@ -342,8 +277,8 @@ ComputeCrystalPlasticityStressDamage::solveQp()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
   {
-    _models[i]->setSubstepConstitutiveVariableValues();
-    _models[i]->calculateSlipResistance();
+    _dislocation_models[i]->setSubstepConstitutiveVariableValues();
+    _dislocation_models[i]->calculateSlipResistance();
   }
 
   _inverse_plastic_deformation_grad = _inverse_plastic_deformation_grad_old;
@@ -353,10 +288,11 @@ ComputeCrystalPlasticityStressDamage::solveQp()
     return; // pop back up and take a smaller substep
 
   for (unsigned int i = 0; i < _num_models; ++i)
-    _models[i]->updateSubstepConstitutiveVariableValues();
+    _dislocation_models[i]->updateSubstepConstitutiveVariableValues();
 
   // save off the old F^{p} inverse now that have converged on the stress and state variables
   _inverse_plastic_deformation_grad_old = _inverse_plastic_deformation_grad;
+  
 }
 
 void
@@ -422,24 +358,24 @@ ComputeCrystalPlasticityStressDamage::solveStateVariables()
       return;
 
     _plastic_deformation_gradient[_qp] =
-        _inverse_plastic_deformation_grad.inverse(); // the postSolveStress
+        _inverse_plastic_deformation_grad.inverse(); // the postSoveStress
 
     // Update slip system resistance and state variable after the stress has been finalized
     // We loop through all the models for each calculation
     // in order to make sure that when coupling appears, the state variables are updated based on
     // the same components
     for (unsigned int i = 0; i < _num_models; ++i)
-      _models[i]->cacheStateVariablesBeforeUpdate();
+      _dislocation_models[i]->cacheStateVariablesBeforeUpdate();
 
     for (unsigned int i = 0; i < _num_models; ++i)
-      _models[i]->calculateStateVariableEvolutionRateComponent();
+      _dislocation_models[i]->calculateStateVariableEvolutionRateComponent();
 
     for (unsigned int i = 0; i < _num_models; ++i)
-      if (!_models[i]->updateStateVariables())
+      if (!_dislocation_models[i]->updateStateVariables())
         _convergence_failed = true;
 
     for (unsigned int i = 0; i < _num_models; ++i)
-      _models[i]->calculateSlipResistance();
+      _dislocation_models[i]->calculateSlipResistance();
 
     if (_convergence_failed)
       return;
@@ -448,7 +384,7 @@ ComputeCrystalPlasticityStressDamage::solveStateVariables()
     {
       // iter_flag = false, stop iteration if all values are converged and good to go
       // iter_flag = true, continue iteration if any value is not converged
-      if (!_models[i]->areConstitutiveStateVariablesConverged())
+      if (!_dislocation_models[i]->areConstitutiveStateVariablesConverged())
       {
         iter_flag = true;
         break;
@@ -460,7 +396,7 @@ ComputeCrystalPlasticityStressDamage::solveStateVariables()
     if (iter_flag)
     {
       if (_print_convergence_message)
-        mooseWarning("ComputeCrystalPlasticityStressDamage: State variables (or the system "
+        mooseWarning("ComputeMultipleCrystalPlasticityStress: State variables (or the system "
                      "resistance) did not converge at element ",
                      _current_elem->id(),
                      " and qp ",
@@ -474,7 +410,7 @@ ComputeCrystalPlasticityStressDamage::solveStateVariables()
   {
     if (_print_convergence_message)
       mooseWarning(
-          "ComputeCrystalPlasticityStressDamage: Hardness Integration error. Reached the "
+          "ComputeMultipleCrystalPlasticityStress: Hardness Integration error. Reached the "
           "maximum number of iterations to solve for the state variables at element ",
           _current_elem->id(),
           " and qp ",
@@ -494,6 +430,7 @@ ComputeCrystalPlasticityStressDamage::solveStress()
 
   // Calculate stress residual
   calculateResidualAndJacobian();
+
   if (_convergence_failed)
   {
     if (_print_convergence_message)
@@ -593,15 +530,15 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
     equivalent_slip_increment_per_model.zero();
 
     // calculate shear stress with consideration of contribution from other physics
-    _models[i]->calculateShearStress(
+    _dislocation_models[i]->calculateShearStress(
         _pk2[_qp], _inverse_eigenstrain_deformation_grad, _num_eigenstrains);
 
-    _convergence_failed = !_models[i]->calculateSlipRate();
+    _convergence_failed = !_dislocation_models[i]->calculateSlipRate();
 
     if (_convergence_failed)
       return;
 
-    _models[i]->calculateEquivalentSlipIncrement(equivalent_slip_increment_per_model);
+    _dislocation_models[i]->calculateEquivalentSlipIncrement(equivalent_slip_increment_per_model);
     equivalent_slip_increment += equivalent_slip_increment_per_model;
   }
 
@@ -639,14 +576,14 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
 
   RankTwoTensor ffeiginv = _temporary_deformation_gradient * _inverse_eigenstrain_deformation_grad;
 
-  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+  for (const auto i : make_range(Moose::dim))
+    for (const auto j : make_range(Moose::dim))
+      for (const auto k : make_range(Moose::dim))
         dfedfpinv(i, j, k, j) = ffeiginv(i, k);
 
-  for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
-    for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
-      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+  for (const auto i : make_range(Moose::dim))
+    for (const auto j : make_range(Moose::dim))
+      for (const auto k : make_range(Moose::dim))
       {
         deedfe(i, j, k, i) = deedfe(i, j, k, i) + _elastic_deformation_gradient(k, j) * 0.5;
         deedfe(i, j, k, j) = deedfe(i, j, k, j) + _elastic_deformation_gradient(k, i) * 0.5;
@@ -654,7 +591,7 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
 
   for (unsigned int i = 0; i < _num_models; ++i)
   {
-    _models[i]->calculateTotalPlasticDeformationGradientDerivative(
+    _dislocation_models[i]->calculateTotalPlasticDeformationGradientDerivative(
         dfpinvdpk2_per_model,
         _inverse_plastic_deformation_grad_old,
         _inverse_eigenstrain_deformation_grad,
@@ -662,11 +599,10 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
     dfpinvdpk2 += dfpinvdpk2_per_model;
   }
 
-  // TO DO: degrade _elasticity_tensor in Jacobian
-
   _jacobian =
       RankFourTensor::IdentityFour() - (_elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);
 }
+
 
 void
 ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
@@ -797,19 +733,6 @@ ComputeCrystalPlasticityStressDamage::computeHistoryVariable(Real & F_pos, Real 
 }
 
 void
-ComputeCrystalPlasticityStressDamage::calcTangentModuli(RankFourTensor & jacobian_mult)
-{
-  switch (_tan_mod_type)
-  {
-    case TangentModuliType::EXACT:
-      elastoPlasticTangentModuli(jacobian_mult);
-      break;
-    default:
-      elasticTangentModuli(jacobian_mult);
-  }
-}
-
-void
 ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor & jacobian_mult)
 {
   RankFourTensor tan_mod;
@@ -824,8 +747,6 @@ ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor 
         deedfe(i, j, k, i) = deedfe(i, j, k, i) + _elastic_deformation_gradient(k, j) * 0.5;
         deedfe(i, j, k, j) = deedfe(i, j, k, j) + _elastic_deformation_gradient(k, i) * 0.5;
       }
-
-  // TO DO: degrade _elasticity_tensor for elasto-plastic tangent modulus
 
   usingTensorIndices(i_, j_, k_, l_);
   dsigdpk2dfe = _elastic_deformation_gradient.times<i_, k_, j_, l_>(_elastic_deformation_gradient) *
@@ -855,101 +776,4 @@ ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor 
         dfedf(i, j, i, l) = feiginvfpinv(l, j);
 
   jacobian_mult = tan_mod * dfedf;
-}
-
-void
-ComputeCrystalPlasticityStressDamage::elasticTangentModuli(RankFourTensor & jacobian_mult)
-{
-  // update jacobian_mult
-  jacobian_mult = _elasticity_tensor[_qp];
-}
-
-bool
-ComputeCrystalPlasticityStressDamage::lineSearchUpdate(const Real & rnorm_prev,
-                                                         const RankTwoTensor & dpk2)
-{
-  if (_line_search_method == LineSearchMethod::CutHalf)
-  {
-    Real rnorm;
-    Real step = 1.0;
-
-    do
-    {
-      _pk2[_qp] = _pk2[_qp] - step * dpk2;
-      step /= 2.0;
-      _pk2[_qp] = _pk2[_qp] + step * dpk2;
-
-      calculateResidual();
-      rnorm = _residual_tensor.L2norm();
-    } while (rnorm > rnorm_prev && step > _min_line_search_step_size);
-
-    // has norm improved or is the step still above minumum search step size?
-    return (rnorm <= rnorm_prev || step > _min_line_search_step_size);
-  }
-  else if (_line_search_method == LineSearchMethod::Bisection)
-  {
-    unsigned int count = 0;
-    Real step_a = 0.0;
-    Real step_b = 1.0;
-    Real step = 1.0;
-    Real s_m = 1000.0;
-    Real rnorm = 1000.0;
-
-    calculateResidual();
-    auto s_b = _residual_tensor.doubleContraction(dpk2);
-    const auto rnorm1 = _residual_tensor.L2norm();
-    _pk2[_qp] = _pk2[_qp] - dpk2;
-    calculateResidual();
-    auto s_a = _residual_tensor.doubleContraction(dpk2);
-    const auto rnorm0 = _residual_tensor.L2norm();
-    _pk2[_qp] = _pk2[_qp] + dpk2;
-
-    if ((rnorm1 / rnorm0) < _line_search_tolerance || s_a * s_b > 0)
-    {
-      calculateResidual();
-      return true;
-    }
-
-    while ((rnorm / rnorm0) > _line_search_tolerance && count < _line_search_max_iterations)
-    {
-      _pk2[_qp] = _pk2[_qp] - step * dpk2;
-      step = 0.5 * (step_b + step_a);
-      _pk2[_qp] = _pk2[_qp] + step * dpk2;
-      calculateResidual();
-      s_m = _residual_tensor.doubleContraction(dpk2);
-      rnorm = _residual_tensor.L2norm();
-
-      if (s_m * s_a < 0.0)
-      {
-        step_b = step;
-        s_b = s_m;
-      }
-      if (s_m * s_b < 0.0)
-      {
-        step_a = step;
-        s_a = s_m;
-      }
-      count++;
-    }
-
-    // below tolerance and max iterations?
-    return ((rnorm / rnorm0) < _line_search_tolerance && count < _line_search_max_iterations);
-  }
-  else
-    mooseError("Line search method is not provided.");
-}
-
-void
-ComputeCrystalPlasticityStressDamage::calculateEigenstrainDeformationGrad()
-{
-  _inverse_eigenstrain_deformation_grad.zero();
-  _inverse_eigenstrain_deformation_grad.addIa(1.0);
-
-  for (unsigned int i = 0; i < _num_eigenstrains; ++i)
-  {
-    _eigenstrains[i]->setSubstepDt(_substep_dt);
-    _eigenstrains[i]->computeQpProperties();
-    _inverse_eigenstrain_deformation_grad *= _eigenstrains[i]->getDeformationGradientInverse();
-  }
-  (*_eigenstrain_deformation_gradient)[_qp] = _inverse_eigenstrain_deformation_grad.inverse();
 }
