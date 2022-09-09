@@ -76,6 +76,7 @@ ComputeCrystalPlasticityStressDamage2::ComputeCrystalPlasticityStressDamage2(
                                : nullptr)
 {
   _convergence_failed = false;
+  std::cout << "constructor" << std::endl;
 }
 
 void
@@ -83,7 +84,7 @@ ComputeCrystalPlasticityStressDamage2::initQpStatefulProperties()
 {
   // temporary variable to store the initial plastic deformation gradient
   // read from file and then assign it to _plastic_deformation_gradient
-  RankTwoTensor initial_Fp;	
+  RankTwoTensor initial_Fp;
 	
   // Initialize Fp
   if (_read_initial_Fp) { // Read initial plastic deformation gradient from file
@@ -143,6 +144,9 @@ ComputeCrystalPlasticityStressDamage2::initQpStatefulProperties()
   
   // Initialize increment of plastic deformation gradient
   _fp_increment[_qp].zero();
+  
+  // Initialize history variable
+  _H[_qp] = 0.0;
 }
 
 void
@@ -150,7 +154,7 @@ ComputeCrystalPlasticityStressDamage2::initialSetup()
 {
   // get crystal plasticity models
   std::vector<MaterialName> model_names =
-      getParam<std::vector<MaterialName>>("crystal_plasticity_dislocation_models");
+      getParam<std::vector<MaterialName>>("crystal_plasticity_models");
 
   for (unsigned int i = 0; i < _num_models; ++i)
   {
@@ -293,6 +297,7 @@ ComputeCrystalPlasticityStressDamage2::solveQp()
 
   // save off the old F^{p} inverse now that have converged on the stress and state variables
   _inverse_plastic_deformation_grad_old = _inverse_plastic_deformation_grad;
+  
 }
 
 void
@@ -419,6 +424,99 @@ ComputeCrystalPlasticityStressDamage2::solveStateVariables()
 
     _convergence_failed = true;
   }
+}
+
+void
+ComputeCrystalPlasticityStressDamage2::solveStress()
+{
+  unsigned int iteration = 0;
+  RankTwoTensor dpk2;
+  Real rnorm, rnorm0, rnorm_prev;
+
+  // Calculate stress residual
+  calculateResidualAndJacobian();
+
+  if (_convergence_failed)
+  {
+    if (_print_convergence_message)
+      mooseWarning("ComputeCrystalPlasticityStressDamage2: the slip increment exceeds tolerance "
+                   "at element ",
+                   _current_elem->id(),
+                   " and Gauss point ",
+                   _qp);
+
+    return;
+  }
+
+  rnorm = _residual_tensor.L2norm();
+  rnorm0 = rnorm;
+
+  // Check for stress residual tolerance; different from user object version which
+  // compares the absolute tolerance of only the original rnorm value
+  while (rnorm > _rtol * rnorm0 && rnorm > _abs_tol && iteration < _maxiter)
+  {
+    // Calculate stress increment
+    dpk2 = -_jacobian.invSymm() * _residual_tensor;
+    _pk2[_qp] = _pk2[_qp] + dpk2;
+
+    calculateResidualAndJacobian();
+
+    if (_convergence_failed)
+    {
+      if (_print_convergence_message)
+        mooseWarning("ComputeCrystalPlasticityStressDamage2: the slip increment exceeds tolerance "
+                     "at element ",
+                     _current_elem->id(),
+                     " and Gauss point ",
+                     _qp);
+
+      return;
+    }
+
+    rnorm_prev = rnorm;
+    rnorm = _residual_tensor.L2norm();
+
+    if (_use_line_search && rnorm > rnorm_prev && !lineSearchUpdate(rnorm_prev, dpk2))
+    {
+      if (_print_convergence_message)
+        mooseWarning("ComputeCrystalPlasticityStressDamage2: Failed with line search");
+
+      _convergence_failed = true;
+      return;
+    }
+
+    if (_use_line_search)
+      rnorm = _residual_tensor.L2norm();
+
+    iteration++;
+  }
+
+  if (iteration >= _maxiter)
+  {
+    if (_print_convergence_message)
+      mooseWarning("ComputeCrystalPlasticityStressDamage2: Stress Integration error rmax = ",
+                   rnorm,
+                   " and the tolerance is ",
+                   _rtol * rnorm0,
+                   " when the rnorm0 value is ",
+                   rnorm0,
+                   " for element ",
+                   _current_elem->id(),
+                   " and qp ",
+                   _qp);
+
+    _convergence_failed = true;
+  }
+}
+
+// Calculates stress residual equation and jacobian
+void
+ComputeCrystalPlasticityStressDamage2::calculateResidualAndJacobian()
+{
+  calculateResidual();
+  if (_convergence_failed)
+    return;
+  calculateJacobian();
 }
 
 void

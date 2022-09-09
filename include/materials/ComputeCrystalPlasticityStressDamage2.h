@@ -57,7 +57,7 @@ protected:
    * Solves stress residual equation using Newton - Rhapson: Updates slip
    * system resistances iteratively
    */
-  virtual void updateStress(RankTwoTensor & cauchy_stress, RankFourTensor & jacobian_mult);
+  virtual void updateStress(RankTwoTensor & cauchy_stress, RankFourTensor & jacobian_mult) override;
 
   /**
    * initializes the stateful properties such as PK2 stress, resolved shear
@@ -97,6 +97,17 @@ protected:
    * by the constitutive model defined in the inheriting class
    */
   void solveStateVariables();
+  
+  /**
+   * solves for stress, updates plastic deformation gradient.
+   */
+  void solveStress();
+  
+  /**
+   * Calls the residual and jacobian functions used in the stress update
+   * algorithm.
+   */
+  void calculateResidualAndJacobian();
 
   /**
    * Calculate stress residual as the difference between the stored material
