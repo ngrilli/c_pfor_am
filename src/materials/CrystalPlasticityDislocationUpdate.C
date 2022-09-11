@@ -18,6 +18,8 @@ CrystalPlasticityDislocationUpdate::validParams()
                              "using the stress update code");
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
+  params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
+  params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
@@ -56,6 +58,8 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     // Constitutive model parameters
     _ao(getParam<Real>("ao")),
     _xm(getParam<Real>("xm")),
+    _creep_ao(getParam<Real>("creep_ao")),
+    _creep_xm(getParam<Real>("creep_xm")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_alpha_0(getParam<Real>("alpha_0")),
@@ -317,11 +321,19 @@ bool
 CrystalPlasticityDislocationUpdate::calculateSlipRate()
 {
   calculateSlipResistance();
+  
+  // Ratio between RSS and CRSS
+  // temporary variable for each slip system
+  Real stress_ratio;
 	
   for (const auto i : make_range(_number_slip_systems))
   {
+    stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
+    
     _slip_increment[_qp][i] =
-        _ao * std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm);
+        _ao * std::pow(stress_ratio, 1.0 / _xm)
+      + _creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
+      
     if (_tau[_qp][i] < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
@@ -413,14 +425,27 @@ void
 CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
 {
+  // Ratio between RSS and CRSS
+  // temporary variable for each slip system
+  Real stress_ratio;	
+	
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
+    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0)) {
+		
       dslip_dtau[i] = 0.0;
-    else
+      		
+	} else {
+		
+	  stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
+
       dslip_dtau[i] = _ao / _xm *
-                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
-                      _slip_resistance[_qp][i];
+                      std::pow(stress_ratio, 1.0 / _xm - 1.0) /
+                      _slip_resistance[_qp][i]
+                    + _creep_ao / _creep_xm *
+                      std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
+                      _slip_resistance[_qp][i];		
+	}
   }
 }
 

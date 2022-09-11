@@ -108,6 +108,10 @@ protected:
   // Slip rate constants
   const Real _ao;
   const Real _xm;
+  
+  // Creep rate constants
+  const Real _creep_ao;
+  const Real _creep_xm;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
