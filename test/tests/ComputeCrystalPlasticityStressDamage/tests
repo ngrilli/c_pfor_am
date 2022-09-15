@@ -5,4 +5,10 @@
     exodiff = 'dislocation_model_with_damage_out.e'
 	heavy = false
   [../]
+  [./read_Gc_from_file]
+    type = 'Exodiff'
+    input = 'read_Gc_from_file.i'
+    exodiff = 'read_Gc_from_file_out.e'
+	heavy = false
+  [../]
 []
