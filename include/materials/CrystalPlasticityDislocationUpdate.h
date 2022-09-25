@@ -112,6 +112,10 @@ protected:
   // Creep rate constants
   const Real _creep_ao;
   const Real _creep_xm;
+  
+  // Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time
+  // This is useful for an initial plastic deformation followed by creep load
+  const Function * const _creep_ao_function;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
