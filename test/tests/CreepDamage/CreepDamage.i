@@ -1,4 +1,5 @@
-# Test the Gc value read from file
+# Plastic deformation followed by creep by changing the slip rate prefactor with time
+# two grains are used to see the GND density
 
 [GlobalParams]
   displacements = 'ux uy uz'
@@ -8,14 +9,14 @@
   type = GeneratedMesh
   dim = 3
   xmin = 0.0
-  xmax = 5.0
+  xmax = 1.0
   ymin = 0.0
-  ymax = 5.0
+  ymax = 2.0
   zmin = 0.0
-  zmax = 1.0
-  nx = 5
-  ny = 5
-  nz = 1
+  zmax = 2.0
+  nx = 1
+  ny = 2
+  nz = 2
   elem_type = HEX8
   displacements = 'ux uy uz'
 []
@@ -46,8 +47,14 @@
 
   [./dts]
     type = PiecewiseConstant
-    x = '0.0 1.0'
-    y = '0.002 0.002'
+    x = '0.0 2.8'
+    y = '0.01 0.01'
+  [../]
+  
+  [./creep_rate_prefactor]
+    type = PiecewiseConstant
+    x = '0.0 1.4'
+    y = '0.001 3.0e-8'
   [../]
 
 []
@@ -441,11 +448,6 @@
   
   # free energy terms that contribute to damage
   [./elastic_energy]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  
-  [./Gc]
     order = CONSTANT
     family = MONOMIAL
   [../]
@@ -980,13 +982,6 @@
     property = elastic_energy
     execute_on = timestep_end
   [../]
-  
-  [./Gc]
-    type = MaterialRealAux
-    variable = Gc
-    property = gc_prop
-    execute_on = timestep_end
-  [../]  
 
 []
 
@@ -1010,10 +1005,10 @@
 # tension boundary conditions
 # lateral boundaries blocked
 [BCs]
-  [y_pull_top]
+  [z_pull_front]
     type = FunctionDirichletBC
-    variable = uy
-    boundary = top
+    variable = uz
+    boundary = front
     function = pull
   []
   [x_left]
@@ -1060,20 +1055,23 @@
     plastic_damage_prefactor = 0.0
   [../]
   
+  # 316H stainless steel parameters (to check better)
   [./trial_xtalpl]
     type = CrystalPlasticityDislocationUpdate
     number_slip_systems = 12
     slip_sys_file_name = input_slip_sys.txt
-	ao = 0.001
+	ao = 0.0 # creep term acts as slip before time = 1.4
 	xm = 0.1
-	burgers_vector_mag = 0.000256
+	creep_xm = 0.1
+	creep_ao_function = creep_rate_prefactor
+	burgers_vector_mag = 0.000258
 	shear_modulus = 86000.0 # MPa
 	alpha_0 = 0.3
 	r = 1.4
 	tau_c_0 = 0.112
 	k_0 = 0.04347
-	y_c = 0.0039046875
-	init_rho_ssd = 35.925613042119906
+	y_c = 0.0013
+	init_rho_ssd = 257.3578
 	init_rho_gnd_edge = 0.0
 	init_rho_gnd_screw = 0.0
 	# These activate slip gradients
@@ -1104,15 +1102,8 @@
   # ideally element size should be about one fourth of l
   [./pfbulkmat]
     type = GenericConstantMaterial
-    prop_names = 'l visco'
-    prop_values = '1.0 1e-3'
-  [../]
-  
-  # gc_prop is read from file
-  [./Gc_from_file_object]
-    type = FileParsedMaterial
-    prop_name = 'gc_prop'
-    read_prop_user_object = Gc_read
+    prop_names = 'gc_prop l visco'
+    prop_values = '6200.0 3.0 1e-3'
   [../]
   
   [./define_mobility]
@@ -1147,14 +1138,8 @@
 [UserObjects]
   [./prop_read]
     type = GrainPropertyReadFile
-    prop_file_name = 'EulerAngles25.txt'
+    prop_file_name = 'EulerAngles.txt'
     nprop = 3
-    read_type = element
-  [../]
-  [./Gc_read]
-    type = ElementPropertyReadFile
-    prop_file_name = 'Gc.txt'
-    nprop = 1
     read_type = element
   [../]
 []
@@ -1184,7 +1169,7 @@
 	growth_factor = 1.01
   [../]
   
-  end_time = 0.002 # run until 0.5 to see fracture
+  end_time = 0.01 # run until 10.0 to see a substantial growth of GNDs up to hundreds micron^{-2}
   dtmin = 0.000001
 []
 

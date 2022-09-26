@@ -71,7 +71,6 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
                                : nullptr)
 {
   _convergence_failed = false;
-  std::cout << "constructor" << std::endl;
 }
 
 void

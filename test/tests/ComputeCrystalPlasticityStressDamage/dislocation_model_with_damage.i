@@ -80,11 +80,6 @@
 # off diagonal Jacobian kernels
 [Kernels]
 
-  [./constant_c]
-    type = TimeDerivative
-    variable = c
-  [../]
-
   [./solid_x]
     type = PhaseFieldFractureMechanicsOffDiag
     variable = ux

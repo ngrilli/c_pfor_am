@@ -7,6 +7,7 @@
 #include "CrystalPlasticityDislocationUpdate.h"
 #include "libmesh/int_range.h"
 #include <cmath>
+#include "Function.h"
 
 registerMooseObject("TensorMechanicsApp", CrystalPlasticityDislocationUpdate);
 
@@ -331,14 +332,28 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
   // Ratio between RSS and CRSS
   // temporary variable for each slip system
   Real stress_ratio;
-	
+  
+  // Creep prefactor: if function is not given
+  // the constant value is used
+  Real creep_ao;
+  
+  if (_creep_ao_function) {
+	  
+    creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
+	  
+  } else {
+	  
+    creep_ao = _creep_ao;
+	  
+  }
+  
   for (const auto i : make_range(_number_slip_systems))
   {
     stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
     
     _slip_increment[_qp][i] =
         _ao * std::pow(stress_ratio, 1.0 / _xm)
-      + _creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
+      + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
       
     if (_tau[_qp][i] < 0.0)
       _slip_increment[_qp][i] *= -1.0;
@@ -433,7 +448,21 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
 {
   // Ratio between RSS and CRSS
   // temporary variable for each slip system
-  Real stress_ratio;	
+  Real stress_ratio;
+  
+  // Creep prefactor: if function is not given
+  // the constant value is used
+  Real creep_ao;
+  
+  if (_creep_ao_function) {
+	  
+    creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
+	  
+  } else {
+	  
+    creep_ao = _creep_ao;
+	  
+  }	
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -448,7 +477,7 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
       dslip_dtau[i] = _ao / _xm *
                       std::pow(stress_ratio, 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i]
-                    + _creep_ao / _creep_xm *
+                    + creep_ao / _creep_xm *
                       std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
                       _slip_resistance[_qp][i];		
 	}
