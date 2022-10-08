@@ -16,7 +16,8 @@ CrystalPlasticityDislocationUpdate::validParams()
 {
   InputParameters params = CrystalPlasticityDislocationUpdateBase::validParams();
   params.addClassDescription("Dislocation based model for crystal plasticity "
-                             "using the stress update code");
+                             "using the stress update code. "
+                             "Includes slip, creep and backstress. ");
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
@@ -31,6 +32,8 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
   params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
+  params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
+  params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
   params.addParam<Real>("rho_tol",1.0,"Tolerance on dislocation density update");
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
@@ -75,6 +78,10 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
 	
+	// Backstress parameters
+	_h(getParam<Real>("h")),
+	_h_D(getParam<Real>("h_D")),
+	
 	// Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
@@ -83,8 +90,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 	// Tolerance on dislocation density update
 	_rho_tol(getParam<Real>("rho_tol")),
 	
-	// not needed anymore, we only need slip resistance
-    //_slip_resistance_increment(_number_slip_systems, 0.0),
+	// State variables of the dislocation model
 	
     _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
     _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
@@ -93,9 +99,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
   	_rho_gnd_screw(declareProperty<std::vector<Real>>("rho_gnd_screw")),
     _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
 
-    // resize local caching vectors used for substepping
-    //_previous_substep_slip_resistance(_number_slip_systems, 0.0),
-    //_slip_resistance_before_update(_number_slip_systems, 0.0),
+    // increments of state variables
 	
     _rho_ssd_increment(_number_slip_systems, 0.0),
     _rho_gnd_edge_increment(_number_slip_systems, 0.0),

@@ -138,6 +138,10 @@ protected:
   // Critical annihilation diameter
   const Real _y_c;
   
+  // Backstress parameters
+  const Real _h;
+  const Real _h_D;
+  
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
   const Real _init_rho_gnd_edge;
