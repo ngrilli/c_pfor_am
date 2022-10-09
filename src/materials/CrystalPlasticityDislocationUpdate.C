@@ -115,7 +115,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _previous_substep_rho_ssd(_number_slip_systems, 0.0),
 	_previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
 	_previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
-	_previous_backstress(_number_slip_systems, 0.0),
+	_previous_substep_backstress(_number_slip_systems, 0.0),
     _rho_ssd_before_update(_number_slip_systems, 0.0),
     _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
     _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
@@ -328,7 +328,7 @@ CrystalPlasticityDislocationUpdate::setInitialConstitutiveVariableValues()
   _rho_gnd_screw[_qp] = _rho_gnd_screw_old[_qp];
   _previous_substep_rho_gnd_screw = _rho_gnd_screw_old[_qp];
   _backstress[_qp] = _backstress_old[_qp];
-  _previous_backstress = _backstress_old[_qp];
+  _previous_substep_backstress = _backstress_old[_qp];
 }
 
 void
@@ -339,7 +339,7 @@ CrystalPlasticityDislocationUpdate::setSubstepConstitutiveVariableValues()
   _rho_ssd[_qp] = _previous_substep_rho_ssd;
   _rho_gnd_edge[_qp] = _previous_substep_rho_gnd_edge;
   _rho_gnd_screw[_qp] = _previous_substep_rho_gnd_screw;
-  _backstress[_qp] = _previous_backstress;
+  _backstress[_qp] = _previous_substep_backstress;
 }
 
 // Slip resistance can be calculated from dislocation density here only
@@ -473,9 +473,13 @@ void
 CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
 {
-  // Ratio between RSS and CRSS
+  // Ratio between effective stress and CRSS
   // temporary variable for each slip system
   Real stress_ratio;
+  
+  // Difference between RSS and backstress
+  // temporary variable for each slip system
+  Real effective_stress;
   
   // Creep prefactor: if function is not given
   // the constant value is used
@@ -493,13 +497,15 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
 	
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0)) {
+    effective_stress = _tau[_qp][i] - _backstress[_qp][i];	  
+	  
+    if (MooseUtils::absoluteFuzzyEqual(effective_stress, 0.0)) {
 		
       dslip_dtau[i] = 0.0;
       		
 	} else {
 		
-	  stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
+	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
       dslip_dtau[i] = _ao / _xm *
                       std::pow(stress_ratio, 1.0 / _xm - 1.0) /
@@ -526,10 +532,11 @@ CrystalPlasticityDislocationUpdate::areConstitutiveStateVariablesConverged()
 void
 CrystalPlasticityDislocationUpdate::updateSubstepConstitutiveVariableValues()
 {
-  // Would also set substepped dislocation densities here if included in this model
+  // Update temporary variables at the end of the substep
   _previous_substep_rho_ssd = _rho_ssd[_qp];
   _previous_substep_rho_gnd_edge = _rho_gnd_edge[_qp];
   _previous_substep_rho_gnd_screw = _rho_gnd_screw[_qp];
+  _previous_substep_backstress = _backstress[_qp];
 }
 
 void
@@ -538,6 +545,7 @@ CrystalPlasticityDislocationUpdate::cacheStateVariablesBeforeUpdate()
   _rho_ssd_before_update = _rho_ssd[_qp];
   _rho_gnd_edge_before_update = _rho_gnd_edge[_qp];
   _rho_gnd_screw_before_update = _rho_gnd_screw[_qp];
+  _backstress_before_update = _backstress[_qp];
 }
 
 void
@@ -567,6 +575,20 @@ CrystalPlasticityDislocationUpdate::calculateStateVariableEvolutionRateComponent
     _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
 		
   }
+  
+  // backstress increment
+  ArmstrongFrederickBackstressUpdate();
+}
+
+// Armstrong-Frederick update of the backstress
+void
+CrystalPlasticityDislocationUpdate::ArmstrongFrederickBackstressUpdate()
+{
+  for (const auto i : make_range(_number_slip_systems)) 
+  {
+    _backstress_increment[i] = _h * _slip_increment[_qp][i];
+    _backstress_increment[i] -= _h_D * _backstress[_qp][i] * std::abs(_slip_increment[_qp][i]);  
+  }
 }
 
 bool
@@ -588,18 +610,25 @@ CrystalPlasticityDislocationUpdate::updateStateVariables()
       return false;
   }
   
-  // GND edge: can be both positive and negative
+  // GND edge: can be both positive or negative
   for (const auto i : make_range(_number_slip_systems))
   { 
     _rho_gnd_edge_increment[i] *= _substep_dt;
     _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i] + _rho_gnd_edge_increment[i];
   }
   
-  // GND screw: can be both positive and negative
+  // GND screw: can be both positive or negative
   for (const auto i : make_range(_number_slip_systems))
   { 
     _rho_gnd_screw_increment[i] *= _substep_dt;
     _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i] + _rho_gnd_screw_increment[i];
+  }
+  
+  // Backstress: can be both positive or negative
+  for (const auto i : make_range(_number_slip_systems))
+  { 
+    _backstress_increment[i] *= _substep_dt;
+    _backstress[_qp][i] = _previous_substep_backstress[i] + _backstress_increment[i];
   }
   
   return true;

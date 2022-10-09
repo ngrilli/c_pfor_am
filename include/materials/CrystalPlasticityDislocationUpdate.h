@@ -91,6 +91,9 @@ protected:
    * International Journal of Plasticity 136 (2021) 102898
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
+  
+  // Armstrong-Frederick update of the backstress
+  virtual void ArmstrongFrederickBackstressUpdate();
 
   /*
    * Finalizes the values of the state variables and slip system resistance
@@ -183,7 +186,7 @@ protected:
   std::vector<Real> _previous_substep_rho_ssd;
   std::vector<Real> _previous_substep_rho_gnd_edge;
   std::vector<Real> _previous_substep_rho_gnd_screw;
-  std::vector<Real> _previous_backstress;
+  std::vector<Real> _previous_substep_backstress;
 
   /**
    * Caches the value of the current dislocation densities immediately prior
