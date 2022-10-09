@@ -327,15 +327,19 @@ CrystalPlasticityDislocationUpdate::setInitialConstitutiveVariableValues()
   _previous_substep_rho_gnd_edge = _rho_gnd_edge_old[_qp];
   _rho_gnd_screw[_qp] = _rho_gnd_screw_old[_qp];
   _previous_substep_rho_gnd_screw = _rho_gnd_screw_old[_qp];
+  _backstress[_qp] = _backstress_old[_qp];
+  _previous_backstress = _backstress_old[_qp];
 }
 
 void
 CrystalPlasticityDislocationUpdate::setSubstepConstitutiveVariableValues()
 {
-  // Would also set substepped dislocation densities here if included in this model
+  // Inialize state variable of the next substep
+  // with the value at the previous substep
   _rho_ssd[_qp] = _previous_substep_rho_ssd;
   _rho_gnd_edge[_qp] = _previous_substep_rho_gnd_edge;
   _rho_gnd_screw[_qp] = _previous_substep_rho_gnd_screw;
+  _backstress[_qp] = _previous_backstress;
 }
 
 // Slip resistance can be calculated from dislocation density here only
@@ -346,9 +350,13 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
 {
   calculateSlipResistance();
   
-  // Ratio between RSS and CRSS
+  // Ratio between effective stress and CRSS
   // temporary variable for each slip system
   Real stress_ratio;
+  
+  // Difference between RSS and backstress
+  // temporary variable for each slip system
+  Real effective_stress;
   
   // Creep prefactor: if function is not given
   // the constant value is used
@@ -366,13 +374,15 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
   
   for (const auto i : make_range(_number_slip_systems))
   {
-    stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
+    effective_stress = _tau[_qp][i] - _backstress[_qp][i];
+    
+    stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
     _slip_increment[_qp][i] =
         _ao * std::pow(stress_ratio, 1.0 / _xm)
       + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
       
-    if (_tau[_qp][i] < 0.0)
+    if (effective_stress < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
