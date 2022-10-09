@@ -98,20 +98,28 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
    	_rho_gnd_edge_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_edge")),
   	_rho_gnd_screw(declareProperty<std::vector<Real>>("rho_gnd_screw")),
     _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
+    
+    // Backstress variable
+    
+    _backstress(declareProperty<std::vector<Real>>("backstress")),
+    _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
 
     // increments of state variables
 	
     _rho_ssd_increment(_number_slip_systems, 0.0),
     _rho_gnd_edge_increment(_number_slip_systems, 0.0),
     _rho_gnd_screw_increment(_number_slip_systems, 0.0),
+    _backstress_increment(_number_slip_systems, 0.0),
 	
 	// resize local caching vectors used for substepping
     _previous_substep_rho_ssd(_number_slip_systems, 0.0),
 	_previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
 	_previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
+	_previous_backstress(_number_slip_systems, 0.0),
     _rho_ssd_before_update(_number_slip_systems, 0.0),
     _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
     _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
+    _backstress_before_update(_number_slip_systems, 0.0),
 
     // Twinning contributions, if used
     _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
@@ -153,12 +161,15 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   // Temperature dependence of the CRSS
   Real temperature_dependence;
 
-  // Initialize and dislocation density size
+  // Initialize the dislocation density size
   _rho_ssd[_qp].resize(_number_slip_systems);
   _rho_gnd_edge[_qp].resize(_number_slip_systems);
   _rho_gnd_screw[_qp].resize(_number_slip_systems);
   
-  // Initialize dislocation densities
+  // Initialize the backstress size
+  _backstress[_qp].resize(_number_slip_systems);
+  
+  // Initialize dislocation densities and backstress
   for (const auto i : make_range(_number_slip_systems))
   {
     _rho_ssd[_qp][i] = _init_rho_ssd;
@@ -174,6 +185,8 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
     _rho_gnd_screw[_qp][i] = _init_rho_gnd_screw;
 	
 	}
+	
+	_backstress[_qp][i] = 0.0;	
   }
  
   // Critical resolved shear stress decreases exponentially with temperature
@@ -307,7 +320,7 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
 void
 CrystalPlasticityDislocationUpdate::setInitialConstitutiveVariableValues()
 {
-  // Would also set old dislocation densities here if included in this model
+  // Initialize state variables with the value at the previous time step
   _rho_ssd[_qp] = _rho_ssd_old[_qp];
   _previous_substep_rho_ssd = _rho_ssd_old[_qp];
   _rho_gnd_edge[_qp] = _rho_gnd_edge_old[_qp];

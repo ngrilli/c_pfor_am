@@ -18,6 +18,7 @@ class CrystalPlasticityDislocationUpdate;
  * variables are updated using an interative predictor-corrector algorithm.
  * Backward Euler integration rule is used for the rate equations.
  * Dislocation based model for crystal plasticity.
+ * Slip, creep and backstress are included 
  */
 
 class CrystalPlasticityDislocationUpdate : public CrystalPlasticityDislocationUpdateBase
@@ -82,7 +83,12 @@ protected:
 
   /**
    * Following the Constitutive model for slip system resistance as given in
-   * Dislocation based model: add reference to do ...
+   * Dislocation based model:
+   * E. Demir, I Gutierrez-Urrutia
+   * Investigation of strain hardening near grain
+   * boundaries of an aluminium oligocrystal:
+   * Experiments and crystal based finite element method
+   * International Journal of Plasticity 136 (2021) 102898
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
 
@@ -158,19 +164,26 @@ protected:
   MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
   const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
   
-  /// Increment of dislocation densities
+  // Backstress variables
+  MaterialProperty<std::vector<Real>> & _backstress;
+  const MaterialProperty<std::vector<Real>> & _backstress_old;  
+  
+  /// Increment of dislocation densities and backstress
   std::vector<Real> _rho_ssd_increment;
   std::vector<Real> _rho_gnd_edge_increment;
-  std::vector<Real> _rho_gnd_screw_increment;  
+  std::vector<Real> _rho_gnd_screw_increment;
+  std::vector<Real> _backstress_increment;
 
   /**
-   * Stores the values of the dislocation densities from the previous substep
+   * Stores the values of the dislocation densities and backstress 
+   * from the previous substep
    * In classes which use dislocation densities, analogous dislocation density
    * substep vectors will be required.
    */
   std::vector<Real> _previous_substep_rho_ssd;
   std::vector<Real> _previous_substep_rho_gnd_edge;
   std::vector<Real> _previous_substep_rho_gnd_screw;
+  std::vector<Real> _previous_backstress;
 
   /**
    * Caches the value of the current dislocation densities immediately prior
@@ -181,6 +194,7 @@ protected:
   std::vector<Real> _rho_ssd_before_update;
   std::vector<Real> _rho_gnd_edge_before_update; 
   std::vector<Real> _rho_gnd_screw_before_update;
+  std::vector<Real> _backstress_before_update;
 
   /**
    * Flag to include the total twin volume fraction in the plastic velocity
