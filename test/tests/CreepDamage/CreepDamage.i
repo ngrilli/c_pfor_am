@@ -1,5 +1,6 @@
 # Plastic deformation followed by creep by changing the slip rate prefactor with time
 # two grains are used to see the GND density
+# calibrated for 316H stainless steel
 
 [GlobalParams]
   displacements = 'ux uy uz'
@@ -1055,7 +1056,7 @@
     plastic_damage_prefactor = 0.0
   [../]
   
-  # 316H stainless steel parameters (to check better)
+  # 316H stainless steel parameters
   [./trial_xtalpl]
     type = CrystalPlasticityDislocationUpdate
     number_slip_systems = 12
@@ -1066,10 +1067,10 @@
 	creep_ao_function = creep_rate_prefactor
 	burgers_vector_mag = 0.000258
 	shear_modulus = 86000.0 # MPa
-	alpha_0 = 0.3
-	r = 1.4
+	alpha_0 = 0.0948
+	r = 1.0
 	tau_c_0 = 0.112
-	k_0 = 0.04347
+	k_0 = 1.13
 	y_c = 0.0013
 	init_rho_ssd = 257.3578
 	init_rho_gnd_edge = 0.0

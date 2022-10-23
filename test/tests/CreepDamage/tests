@@ -1,0 +1,8 @@
+[Tests]
+  [./CreepDamage]
+    type = 'Exodiff'
+    input = 'CreepDamage.i'
+    exodiff = 'CreepDamage_out.e'
+	heavy = false
+  [../]
+[]
