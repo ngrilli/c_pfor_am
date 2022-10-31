@@ -74,6 +74,7 @@ CrystalPlasticityIrradiatedRPVSteel::validParams()
   params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
   params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   params.addCoupledVar("temperature",303.0,"Temperature (K)");
+  params.addParam<bool>("use_lattice_friction_slip", true, "Use the Gibbs energy based term for slip.");
   return params;
 }
 
@@ -183,6 +184,10 @@ CrystalPlasticityIrradiatedRPVSteel::CrystalPlasticityIrradiatedRPVSteel(
   // Temperature in K as coupled variables
   // so temperature evolution can be included in the model
   _temperature(coupledValue("temperature")),
+  
+  // Use the Gibbs energy based term for slip
+  // If false, a simple power law slip equation is used
+  _use_lattice_friction_slip(getParam<bool>("use_lattice_friction_slip")),
 
   // store edge and screw slip directions to calculate directional derivatives
   // of the plastic slip rate
@@ -551,28 +556,45 @@ CrystalPlasticityIrradiatedRPVSteel::calculateSlipRate()
   calculateObstaclesSpacing();
   calculateAvgLengthScrew();
 
-  if(calculateDragSlipRate()) {
-    if (calculateLatticeFrictionSlipRate()) {
+  if (_use_lattice_friction_slip) {
+	  
+    if(calculateDragSlipRate()) {
+      if (calculateLatticeFrictionSlipRate()) {
 
-      for (const auto i : make_range(_number_slip_systems)) {
+        for (const auto i : make_range(_number_slip_systems)) {
 
-        temp_sum = _drag_slip_increment[i] + _lattice_friction_slip_increment[i];
-		    temp_multiplication = _drag_slip_increment[i] * _lattice_friction_slip_increment[i];
+          temp_sum = _drag_slip_increment[i] + _lattice_friction_slip_increment[i];
+		  temp_multiplication = _drag_slip_increment[i] * _lattice_friction_slip_increment[i];
 
-        if (std::abs(temp_sum) > 1.0e-9) { // avoid division by zero
+          if (std::abs(temp_sum) > 1.0e-9) { // avoid division by zero
 
           // this is the rate, not multiplied by dt
           _slip_increment[_qp][i] = temp_multiplication / temp_sum;
 
-		    } else {
+		  } else {
 
           _slip_increment[_qp][i] = 0.0;
 
-		    }
+		  }
 	    }
 
-    return true;
+      return true;
 	  }
+    }
+        
+  } else { // Simple power law slip equation
+	  
+    if (calculateDragSlipRate()) {
+
+      for (const auto i : make_range(_number_slip_systems)) {
+
+      // this is the rate, not multiplied by dt
+        _slip_increment[_qp][i] = _drag_slip_increment[i];
+	  }
+
+      return true;
+    }  
+	  
   }
 
   return false;
@@ -899,27 +921,40 @@ CrystalPlasticityIrradiatedRPVSteel::calculateConstitutiveSlipDerivative(
 
   // calculate the derivatives of the two terms in equations (2) and (3)
   calculateDragSlipRateDerivative();
-  calculateLatticeFrictionSlipRateDerivative();
+  
+  if (_use_lattice_friction_slip) {
+	  
+    calculateLatticeFrictionSlipRateDerivative();
 
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    dslip_dtau[i] = 0.0;
+    for (const auto i : make_range(_number_slip_systems))
+    {
+      dslip_dtau[i] = 0.0;
 
-    temp_denominator = _lattice_friction_slip_increment[i] + _drag_slip_increment[i];
-    temp_denominator = temp_denominator*temp_denominator;
+      temp_denominator = _lattice_friction_slip_increment[i] + _drag_slip_increment[i];
+      temp_denominator = temp_denominator*temp_denominator;
 
-    if (temp_denominator > 1.0e-18) {
+      if (temp_denominator > 1.0e-18) {
 
-      temp_ratio = _lattice_friction_slip_increment[i] * _lattice_friction_slip_increment[i];
-      temp_ratio /= temp_denominator;
-      dslip_dtau[i] += temp_ratio * _ddrag_slip_increment_dtau[i];
+        temp_ratio = _lattice_friction_slip_increment[i] * _lattice_friction_slip_increment[i];
+        temp_ratio /= temp_denominator;
+        dslip_dtau[i] += temp_ratio * _ddrag_slip_increment_dtau[i];
 
-      temp_ratio = _drag_slip_increment[i] * _drag_slip_increment[i];
-      temp_ratio /= temp_denominator;
-      dslip_dtau[i] += temp_ratio * _dlattice_friction_slip_increment_dtau[i];
+        temp_ratio = _drag_slip_increment[i] * _drag_slip_increment[i];
+        temp_ratio /= temp_denominator;
+        dslip_dtau[i] += temp_ratio * _dlattice_friction_slip_increment_dtau[i];
 
-    }
+      }
+    }	  
+	  
+  } else { // Simple power law slip rate
+	   
+    for (const auto i : make_range(_number_slip_systems))
+    {
+	  dslip_dtau[i] = _ddrag_slip_increment_dtau[i];	
+	}	  
+	  
   }
+  
 }
 
 // Calculate slip derivatives of the drag term in equation (2)

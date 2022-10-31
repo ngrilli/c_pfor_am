@@ -357,6 +357,10 @@ protected:
   // Temperature in K as coupled variables
   // so temperature evolution can be included in the model
   const VariableValue & _temperature;
+  
+  // Use the Gibbs energy based term for slip
+  // If false, a simple power law slip equation is used
+  bool _use_lattice_friction_slip;
 
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
