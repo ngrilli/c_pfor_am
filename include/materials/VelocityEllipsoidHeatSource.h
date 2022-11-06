@@ -36,10 +36,15 @@ protected:
   const Real _rz;
   /// scaling factor
   const Real _f;
+  
+  /// Scanning speed vector
+  RealVectorValue _velocity;
+  
+  
   /// path of the heat source, x, y, z components
-  const Function & _function_x;
-  const Function & _function_y;
-  const Function & _function_z;
+//  const Function & _function_x;
+//  const Function & _function_y;
+//  const Function & _function_z;
 
   ADMaterialProperty<Real> & _volumetric_heat;
 };

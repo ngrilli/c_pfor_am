@@ -21,12 +21,16 @@ VelocityEllipsoidHeatSource::validParams()
   params.addRequiredParam<Real>("rz", "effective depth ellipsoid radius");
   params.addParam<Real>(
       "factor", 1, "scaling factor that is multiplied to the heat source to adjust the intensity");
-  params.addParam<FunctionName>(
-      "function_x", "0", "The x component of the center of the heating spot as a function of time");
-  params.addParam<FunctionName>(
-      "function_y", "0", "The y component of the center of the heating spot as a function of time");
-  params.addParam<FunctionName>(
-      "function_z", "0", "The z component of the center of the heating spot as a function of time");
+  params.addRequiredParam<RealVectorValue>("velocity", "Velocity vector");      
+      
+      
+      
+//  params.addParam<FunctionName>(
+//      "function_x", "0", "The x component of the center of the heating spot as a function of time");
+//  params.addParam<FunctionName>(
+//      "function_y", "0", "The y component of the center of the heating spot as a function of time");
+//  params.addParam<FunctionName>(
+//      "function_z", "0", "The z component of the center of the heating spot as a function of time");
 
 
   return params;
@@ -40,9 +44,12 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     _ry(getParam<Real>("ry")),
     _rz(getParam<Real>("rz")),
     _f(getParam<Real>("factor")),
-    _function_x(getFunction("function_x")),
-    _function_y(getFunction("function_y")),
-    _function_z(getFunction("function_z")),
+    _velocity(getParam<RealVectorValue>("velocity")), // Scanning speed vector
+    
+//    _function_x(getFunction("function_x")),
+//    _function_y(getFunction("function_y")),
+//    _function_z(getFunction("function_z")),
+    
     _volumetric_heat(declareADProperty<Real>("volumetric_heat"))
 {
 }
@@ -55,9 +62,9 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   const Real & z = _q_point[_qp](2);
 
   // center of the heat source
-  Real x_t = _function_x.value(_t);
-  Real y_t = _function_y.value(_t);
-  Real z_t = _function_z.value(_t);
+  Real x_t = 0.0; //_function_x.value(_t);
+  Real y_t = 0.0; // _function_y.value(_t);
+  Real z_t = 0.0; // _function_z.value(_t);
 
   _volumetric_heat[_qp] = 6.0 * std::sqrt(3.0) * _P * _eta * _f /
                           (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
