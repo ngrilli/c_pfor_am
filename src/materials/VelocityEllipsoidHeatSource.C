@@ -76,6 +76,7 @@ VelocityEllipsoidHeatSource::initQpStatefulProperties()
   _y_coord = _init_y_coords[0];
   _z_coord = _init_z_coords[0];
   _t_scan = _t;
+  _n_track = 0;
 }
 
 void
@@ -85,7 +86,7 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   const Real & y = _q_point[_qp](1);
   const Real & z = _q_point[_qp](2);
   
-  checkPPcondition();
+  
 
   // center of the heat source
   Real x_t = _x_coord + _velocity(0) * (_t - _t_scan);
@@ -94,7 +95,8 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   
   if ((_t - _t_scan) > _single_scan_time) { // This single scan is over
 	  
-    _volumetric_heat[_qp] = 0.0;	  
+    _volumetric_heat[_qp] = 0.0;	
+    checkPPcondition();  
 	  
   } else {
 
@@ -114,10 +116,11 @@ VelocityEllipsoidHeatSource::checkPPcondition()
   if (_temperature_pp < _temperature_pp_old) { // cooling condition
     if (_temperature_pp < _threshold_temperature) { // reached threshold temperature
 		
-      // update initial heat source coordinate and track time		
-      _x_coord = _init_x_coords[0];
-      _y_coord = _init_y_coords[0];
-      _z_coord = _init_z_coords[0];
+      // update initial heat source coordinate and track time	
+      _n_track += 1;	
+      _x_coord = _init_x_coords[_n_track];
+      _y_coord = _init_y_coords[_n_track];
+      _z_coord = _init_z_coords[_n_track];
       _t_scan = _t;
   		
 	}

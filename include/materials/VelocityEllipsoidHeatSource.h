@@ -78,7 +78,8 @@ protected:
   /// set of coordinates
   const Real _threshold_temperature;
   
-  /// Track index
+  /// Heat source track index
+  int _n_track; 
 
   ADMaterialProperty<Real> & _volumetric_heat;
 };
