@@ -30,7 +30,8 @@ VelocityEllipsoidHeatSource::validParams()
   
   params.addRequiredParam<PostprocessorName>("temperature_pp","Postprocessor with temperature value to determine heat source motion.");
       
-      
+  params.addRequiredParam<Real>("single_scan_time","Total time during one scan. "
+                                                   "After this time the laser is switched off. ");
       
 //  params.addParam<FunctionName>(
 //      "function_x", "0", "The x component of the center of the heating spot as a function of time");
@@ -61,12 +62,25 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     // Postprocess with temperature value
     _temperature_pp(getPostprocessorValue("temperature_pp")),
     
+    // Total time during one scan
+    _single_scan_time(getParam<Real>("single_scan_time")),
+    
 //    _function_x(getFunction("function_x")),
 //    _function_y(getFunction("function_y")),
 //    _function_z(getFunction("function_z")),
     
     _volumetric_heat(declareADProperty<Real>("volumetric_heat"))
 {
+}
+
+void
+VelocityEllipsoidHeatSource::initQpStatefulProperties()
+{
+  // Initialize coordinates of the heat source
+  _x_coord = _init_x_coords[0];
+  _y_coord = _init_y_coords[0];
+  _z_coord = _init_z_coords[0];
+  _t_scan = _t;
 }
 
 void
@@ -77,13 +91,21 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   const Real & z = _q_point[_qp](2);
 
   // center of the heat source
-  Real x_t = 0.0; //_function_x.value(_t);
-  Real y_t = 0.0; // _function_y.value(_t);
-  Real z_t = 0.0; // _function_z.value(_t);
+  Real x_t = _x_coord + _velocity(0) * (_t - _t_scan);
+  Real y_t = _y_coord + _velocity(1) * (_t - _t_scan);
+  Real z_t = _z_coord + _velocity(2) * (_t - _t_scan);
 
   _volumetric_heat[_qp] = 6.0 * std::sqrt(3.0) * _P * _eta * _f /
                           (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
                           std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
                                      3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
                                      3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
+}
+
+// Check if the postprocessor temperature condition is satisfied
+// and change the initial coordinates and scan time
+void
+VelocityEllipsoidHeatSource::checkPPcondition()
+{
+	
 }

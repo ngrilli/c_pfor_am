@@ -22,7 +22,12 @@ public:
   VelocityEllipsoidHeatSource(const InputParameters & parameters);
 
 protected:
+  virtual void initQpStatefulProperties() override;
   virtual void computeQpProperties() override;
+  
+  // Check if the postprocessor temperature condition is satisfied
+  // and change the initial coordinates and scan time
+  virtual void checkPPcondition();
 
   /// power
   const Real _P;
@@ -43,20 +48,29 @@ protected:
   /// Initial values of the coordinates of the heat source
   /// Every time the postprocessor condition is satisfied, 
   /// the heat source is moved to the next set of coordinates
-  std::vector<Real> _init_x_coords;
-  std::vector<Real> _init_y_coords;
-  std::vector<Real> _init_z_coords;
+  const std::vector<Real> _init_x_coords;
+  const std::vector<Real> _init_y_coords;
+  const std::vector<Real> _init_z_coords;
   
   /// Postprocess with temperature value
   /// it provides the condition based on which the heat source
   /// is moved to the next set of initial coordinates
   const PostprocessorValue & _temperature_pp;
   
+  /// variables to store the coordinates 
+  /// of the center of the heat source
+  Real _x_coord;
+  Real _y_coord;
+  Real _z_coord;
   
-  /// path of the heat source, x, y, z components
-//  const Function & _function_x;
-//  const Function & _function_y;
-//  const Function & _function_z;
+  /// _t_scan tracks the simulation time at which a new
+  /// scan begins after the condition based on the postprocessor
+  /// changes the coordinates of the heat source
+  Real _t_scan;
+  
+  /// Total time during one scan
+  /// After this time the laser is switched off
+  const Real _single_scan_time;
 
   ADMaterialProperty<Real> & _volumetric_heat;
 };
