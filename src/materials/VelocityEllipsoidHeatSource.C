@@ -24,9 +24,11 @@ VelocityEllipsoidHeatSource::validParams()
   params.addRequiredParam<RealVectorValue>("velocity", "Velocity vector");
   
   // Every time the postprocessor condition is satisfied, the heat source is moved to the next set of coordinates
-  params.addParam<std::vector<Real>>("init_x_coords", "Initial values of x coordinates of the heat source");
-  params.addParam<std::vector<Real>>("init_y_coords", "Initial values of y coordinates of the heat source");
-  params.addParam<std::vector<Real>>("init_z_coords", "Initial values of z coordinates of the heat source");
+  params.addRequiredParam<std::vector<Real>>("init_x_coords", "Initial values of x coordinates of the heat source");
+  params.addRequiredParam<std::vector<Real>>("init_y_coords", "Initial values of y coordinates of the heat source");
+  params.addRequiredParam<std::vector<Real>>("init_z_coords", "Initial values of z coordinates of the heat source");
+  
+  params.addRequiredParam<PostprocessorName>("temperature_pp","Postprocessor with temperature value to determine heat source motion.");
       
       
       
@@ -55,6 +57,9 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     _init_x_coords(getParam<std::vector<Real>>("init_x_coords")),
     _init_y_coords(getParam<std::vector<Real>>("init_y_coords")),
     _init_z_coords(getParam<std::vector<Real>>("init_z_coords")),
+    
+    // Postprocess with temperature value
+    _temperature_pp(getPostprocessorValue("temperature_pp")),
     
 //    _function_x(getFunction("function_x")),
 //    _function_y(getFunction("function_y")),

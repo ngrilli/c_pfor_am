@@ -47,6 +47,11 @@ protected:
   std::vector<Real> _init_y_coords;
   std::vector<Real> _init_z_coords;
   
+  /// Postprocess with temperature value
+  /// it provides the condition based on which the heat source
+  /// is moved to the next set of initial coordinates
+  const PostprocessorValue & _temperature_pp;
+  
   
   /// path of the heat source, x, y, z components
 //  const Function & _function_x;
