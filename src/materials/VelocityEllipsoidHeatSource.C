@@ -21,7 +21,12 @@ VelocityEllipsoidHeatSource::validParams()
   params.addRequiredParam<Real>("rz", "effective depth ellipsoid radius");
   params.addParam<Real>(
       "factor", 1, "scaling factor that is multiplied to the heat source to adjust the intensity");
-  params.addRequiredParam<RealVectorValue>("velocity", "Velocity vector");      
+  params.addRequiredParam<RealVectorValue>("velocity", "Velocity vector");
+  
+  // Every time the postprocessor condition is satisfied, the heat source is moved to the next set of coordinates
+  params.addParam<std::vector<Real>>("init_x_coords", "Initial values of x coordinates of the heat source");
+  params.addParam<std::vector<Real>>("init_y_coords", "Initial values of y coordinates of the heat source");
+  params.addParam<std::vector<Real>>("init_z_coords", "Initial values of z coordinates of the heat source");
       
       
       
@@ -45,6 +50,11 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     _rz(getParam<Real>("rz")),
     _f(getParam<Real>("factor")),
     _velocity(getParam<RealVectorValue>("velocity")), // Scanning speed vector
+    
+    // Initial values of the coordinates of the heat source
+    _init_x_coords(getParam<std::vector<Real>>("init_x_coords")),
+    _init_y_coords(getParam<std::vector<Real>>("init_y_coords")),
+    _init_z_coords(getParam<std::vector<Real>>("init_z_coords")),
     
 //    _function_x(getFunction("function_x")),
 //    _function_y(getFunction("function_y")),

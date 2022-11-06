@@ -40,6 +40,13 @@ protected:
   /// Scanning speed vector
   RealVectorValue _velocity;
   
+  /// Initial values of the coordinates of the heat source
+  /// Every time the postprocessor condition is satisfied, 
+  /// the heat source is moved to the next set of coordinates
+  std::vector<Real> _init_x_coords;
+  std::vector<Real> _init_y_coords;
+  std::vector<Real> _init_z_coords;
+  
   
   /// path of the heat source, x, y, z components
 //  const Function & _function_x;
