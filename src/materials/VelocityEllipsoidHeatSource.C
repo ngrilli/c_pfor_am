@@ -32,15 +32,9 @@ VelocityEllipsoidHeatSource::validParams()
       
   params.addRequiredParam<Real>("single_scan_time","Total time during one scan. "
                                                    "After this time the laser is switched off. ");
-      
-//  params.addParam<FunctionName>(
-//      "function_x", "0", "The x component of the center of the heating spot as a function of time");
-//  params.addParam<FunctionName>(
-//      "function_y", "0", "The y component of the center of the heating spot as a function of time");
-//  params.addParam<FunctionName>(
-//      "function_z", "0", "The z component of the center of the heating spot as a function of time");
-
-
+  params.addRequiredParam<Real>("threshold_temperature","When the temperature provided by the postprocessor decreases "
+                                                        "below this threshold, the heat source is moved to the next "
+                                                        "set of coordinates. ");                                                   
   return params;
 }
 
@@ -61,14 +55,15 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     
     // Postprocess with temperature value
     _temperature_pp(getPostprocessorValue("temperature_pp")),
+    _temperature_pp_old(getPostprocessorValueOld("temperature_pp")),
     
     // Total time during one scan
     _single_scan_time(getParam<Real>("single_scan_time")),
     
-//    _function_x(getFunction("function_x")),
-//    _function_y(getFunction("function_y")),
-//    _function_z(getFunction("function_z")),
+    // Threshold temperature for the postprocessor condition
+    _threshold_temperature(getParam<Real>("threshold_temperature")),
     
+    // Volumetric heat source used by the kernel
     _volumetric_heat(declareADProperty<Real>("volumetric_heat"))
 {
 }
@@ -89,17 +84,26 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   const Real & x = _q_point[_qp](0);
   const Real & y = _q_point[_qp](1);
   const Real & z = _q_point[_qp](2);
+  
+  checkPPcondition();
 
   // center of the heat source
   Real x_t = _x_coord + _velocity(0) * (_t - _t_scan);
   Real y_t = _y_coord + _velocity(1) * (_t - _t_scan);
   Real z_t = _z_coord + _velocity(2) * (_t - _t_scan);
+  
+  if ((_t - _t_scan) > _single_scan_time) { // This single scan is over
+	  
+    _volumetric_heat[_qp] = 0.0;	  
+	  
+  } else {
 
-  _volumetric_heat[_qp] = 6.0 * std::sqrt(3.0) * _P * _eta * _f /
-                          (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
-                          std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
-                                     3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
-                                     3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
+    _volumetric_heat[_qp] = 6.0 * std::sqrt(3.0) * _P * _eta * _f /
+                            (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
+                            std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
+                                       3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
+                                       3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
+  }
 }
 
 // Check if the postprocessor temperature condition is satisfied
@@ -107,5 +111,15 @@ VelocityEllipsoidHeatSource::computeQpProperties()
 void
 VelocityEllipsoidHeatSource::checkPPcondition()
 {
-	
+  if (_temperature_pp < _temperature_pp_old) { // cooling condition
+    if (_temperature_pp < _threshold_temperature) { // reached threshold temperature
+		
+      // update initial heat source coordinate and track time		
+      _x_coord = _init_x_coords[0];
+      _y_coord = _init_y_coords[0];
+      _z_coord = _init_z_coords[0];
+      _t_scan = _t;
+  		
+	}
+  }
 }

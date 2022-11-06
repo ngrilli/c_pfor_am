@@ -56,6 +56,7 @@ protected:
   /// it provides the condition based on which the heat source
   /// is moved to the next set of initial coordinates
   const PostprocessorValue & _temperature_pp;
+  const PostprocessorValue & _temperature_pp_old;
   
   /// variables to store the coordinates 
   /// of the center of the heat source
@@ -71,6 +72,13 @@ protected:
   /// Total time during one scan
   /// After this time the laser is switched off
   const Real _single_scan_time;
+  
+  /// When the temperature provided by the postprocessor decreases
+  /// below this threshold, the heat source is moved to the next
+  /// set of coordinates
+  const Real _threshold_temperature;
+  
+  /// Track index
 
   ADMaterialProperty<Real> & _volumetric_heat;
 };
