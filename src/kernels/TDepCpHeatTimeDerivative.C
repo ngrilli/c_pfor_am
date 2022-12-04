@@ -47,5 +47,8 @@ TDepCpHeatTimeDerivative::computeQpResidual()
 Real
 TDepCpHeatTimeDerivative::computeQpJacobian()
 {
-  return _specific_heat[_qp] * _density[_qp] * TimeDerivative::computeQpJacobian();
+  Real TDepCp = _specific_heat[_qp] + _dspecific_heat_dT * (_u[_qp] - _reference_temperature);
+
+  return _density[_qp] * _dspecific_heat_dT * _phi[_j][_qp] * _test[_i][_qp] * _u_dot[_qp]
+       + _density[_qp] * TDepCp * _test[_i][_qp] * _phi[_j][_qp] * _du_dot_du[_qp];
 }
