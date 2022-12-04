@@ -39,4 +39,7 @@ protected:
   
   /// Constant derivative of the specific heat with respect to temperature.
   const Real _dspecific_heat_dT;
+  
+  /// Reference temperature (K) at which specific heat is _specific_heat[_qp]
+  const Real _reference_temperature;
 };
