@@ -36,4 +36,7 @@ protected:
 
   const MaterialProperty<Real> & _specific_heat;
   const MaterialProperty<Real> & _density;
+  
+  /// Constant derivative of the specific heat with respect to temperature.
+  const Real _dspecific_heat_dT;
 };

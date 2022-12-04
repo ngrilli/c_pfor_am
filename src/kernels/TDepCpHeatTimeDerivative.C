@@ -20,22 +20,19 @@ TDepCpHeatTimeDerivative::validParams()
   params.set<bool>("use_displaced_mesh") = true;
 
   params.addParam<MaterialPropertyName>(
-      "specific_heat", "specific_heat", "Property name of the specific heat material property");
-
-  /**
-   * We would like to rename this input parameter to 'density' but gratuitous use of
-   * 'density' in the GlobalParams block of many many Bison simulations (for the
-   * Density kernel)prevent us from doing this.
-   */
+      "specific_heat", "specific_heat", "Property name of the specific heat material property "
+                                        "at the reference temperature. ");
   params.addParam<MaterialPropertyName>(
       "density_name", "density", "Property name of the density material property");
+  params.addParam<Real>("dspecific_heat_dT",0.0,"Constant derivative of the specific heat with respect to temperature. ");
   return params;
 }
 
 TDepCpHeatTimeDerivative::TDepCpHeatTimeDerivative(const InputParameters & parameters)
   : TimeDerivative(parameters),
     _specific_heat(getMaterialProperty<Real>("specific_heat")),
-    _density(getMaterialProperty<Real>("density_name"))
+    _density(getMaterialProperty<Real>("density_name")),
+    _dspecific_heat_dT(getParam<Real>("dspecific_heat_dT"))
 {
 }
 
