@@ -4,8 +4,6 @@
 
 #include "VelocityEllipsoidHeatSource.h"
 
-// #include "Function.h" // is this necessary?
-
 registerMooseObject("HeatConductionApp", VelocityEllipsoidHeatSource);
 
 InputParameters
