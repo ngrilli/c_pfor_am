@@ -1,10 +1,10 @@
-// Nicolò Grilli
-// University of Bristol
-// 6 Novembre 2022
+// Fernando Valiente Dies & Nicolò Grilli
+// University of Sydney & University of Bristol
+// 26 Novembre 2022
 
 #include "VelocityEllipsoidHeatSource.h"
 
-#include "Function.h" // is this necessary?
+// #include "Function.h" // is this necessary?
 
 registerMooseObject("HeatConductionApp", VelocityEllipsoidHeatSource);
 
@@ -29,9 +29,10 @@ VelocityEllipsoidHeatSource::validParams()
   params.addRequiredParam<std::vector<Real>>("init_z_coords", "Initial values of z coordinates of the heat source");
   
   params.addRequiredParam<PostprocessorName>("temperature_pp","Postprocessor with temperature value to determine heat source motion.");
-      
-  params.addRequiredParam<Real>("single_scan_time","Total time during one scan. "
-                                                   "After this time the laser is switched off. ");
+  
+  params.addRequiredParam<std::vector<Real>>("scan_length","Total length during one scan. "
+                                                           "After this length the laser is switched off. ");
+
   params.addRequiredParam<Real>("threshold_temperature","When the temperature provided by the postprocessor decreases "
                                                         "below this threshold, the heat source is moved to the next "
                                                         "set of coordinates. ");                                                   
@@ -55,10 +56,9 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     
     // Postprocess with temperature value
     _temperature_pp(getPostprocessorValue("temperature_pp")),
-    _temperature_pp_old(getPostprocessorValueOld("temperature_pp")),
     
     // Total time during one scan
-    _single_scan_time(getParam<Real>("single_scan_time")),
+    _scan_length(getParam<std::vector<Real>>("scan_length")),
     
     // Threshold temperature for the postprocessor condition
     _threshold_temperature(getParam<Real>("threshold_temperature")),
@@ -71,10 +71,7 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
 void
 VelocityEllipsoidHeatSource::initQpStatefulProperties()
 {
-  // Initialize coordinates of the heat source
-  _x_coord = _init_x_coords[0];
-  _y_coord = _init_y_coords[0];
-  _z_coord = _init_z_coords[0];
+  // Initialize time tracking and number of tracks
   _t_scan = _t;
   _n_track = 0;
 }
@@ -82,18 +79,27 @@ VelocityEllipsoidHeatSource::initQpStatefulProperties()
 void
 VelocityEllipsoidHeatSource::computeQpProperties()
 {
+  // Set initial coordinates for this track
+  _x_coord = _init_x_coords[_n_track];
+  _y_coord = _init_y_coords[_n_track];
+  _z_coord = _init_z_coords[_n_track];
+
   const Real & x = _q_point[_qp](0);
   const Real & y = _q_point[_qp](1);
   const Real & z = _q_point[_qp](2);
   
-  
-
   // center of the heat source
   Real x_t = _x_coord + _velocity(0) * (_t - _t_scan);
   Real y_t = _y_coord + _velocity(1) * (_t - _t_scan);
   Real z_t = _z_coord + _velocity(2) * (_t - _t_scan);
   
-  if ((_t - _t_scan) > _single_scan_time) { // This single scan is over
+  // Calculate distance travelled by the heat source during this scan
+  Real distance = std::pow(x_t - _x_coord, 2);
+  distance += std::pow(y_t - _y_coord, 2);
+  distance += std::pow(z_t - _z_coord, 2);
+  distance = std::sqrt(distance);
+  
+  if (distance > _scan_length[_n_track]) { // This single scan is over
 	  
     _volumetric_heat[_qp] = 0.0;	
     checkPPcondition();  
@@ -106,6 +112,9 @@ VelocityEllipsoidHeatSource::computeQpProperties()
                                        3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
                                        3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
   }
+  
+  // store postprocessor value to use in the next time step
+  _previous_pp_temperature = _temperature_pp;  
 }
 
 // Check if the postprocessor temperature condition is satisfied
@@ -113,14 +122,11 @@ VelocityEllipsoidHeatSource::computeQpProperties()
 void
 VelocityEllipsoidHeatSource::checkPPcondition()
 {
-  if (_temperature_pp < _temperature_pp_old) { // cooling condition
+  if (_temperature_pp < _previous_pp_temperature) { // cooling condition
     if (_temperature_pp < _threshold_temperature) { // reached threshold temperature
 		
       // update initial heat source coordinate and track time	
-      _n_track += 1;	
-      _x_coord = _init_x_coords[_n_track];
-      _y_coord = _init_y_coords[_n_track];
-      _z_coord = _init_z_coords[_n_track];
+      _n_track += 1;
       _t_scan = _t;
   		
 	}

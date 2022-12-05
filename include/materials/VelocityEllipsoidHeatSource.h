@@ -1,6 +1,6 @@
-// Nicolò Grilli
-// University of Bristol
-// 6 Novembre 2022
+// Fernando Valiente Dies & Nicolò Grilli
+// University of Sydney & University of Bristol
+// 26 Novembre 2022
 
 // Double ellipsoid volumetric source heat, the motion is determined
 // by input velocity, starting positions and a postprocessor.
@@ -9,7 +9,7 @@
 
 #include "Material.h"
 
-class Function;  // is this necessary?
+//class Function;  // is this necessary?
 
 /**
  * Double ellipsoid heat source distribution.
@@ -43,7 +43,10 @@ protected:
   const Real _f;
   
   /// Scanning speed vector
-  RealVectorValue _velocity;
+  const RealVectorValue _velocity;
+  
+  /// Postprocessor temperature at the previous timestep
+  Real _previous_pp_temperature;
   
   /// Initial values of the coordinates of the heat source
   /// Every time the postprocessor condition is satisfied, 
@@ -56,7 +59,6 @@ protected:
   /// it provides the condition based on which the heat source
   /// is moved to the next set of initial coordinates
   const PostprocessorValue & _temperature_pp;
-  const PostprocessorValue & _temperature_pp_old;
   
   /// variables to store the coordinates 
   /// of the center of the heat source
@@ -69,9 +71,10 @@ protected:
   /// changes the coordinates of the heat source
   Real _t_scan;
   
-  /// Total time during one scan
-  /// After this time the laser is switched off
-  const Real _single_scan_time;
+  /// Total length during each scan
+  /// After the laser has travelled this length
+  /// it is switched off
+  const std::vector<Real> _scan_length;
   
   /// When the temperature provided by the postprocessor decreases
   /// below this threshold, the heat source is moved to the next
