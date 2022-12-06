@@ -5,7 +5,7 @@
 #include "TDepHeatConduction.h"
 #include "MooseMesh.h"
 
-registerMooseObjectAliased("HeatConductionApp", TDepHeatConduction);
+registerMooseObject("HeatConductionApp", TDepHeatConduction);
 
 InputParameters
 TDepHeatConduction::validParams()
