@@ -14,6 +14,7 @@ HyperElasticThermalDamage::validParams()
   params.addParam<Real>("reference_temperature", 293.0, "Reference temperature at which thermal expansion is zero. ");
   params.addParam<Real>("thermal_expansion_coeff", 0.0, "Thermal expansion coefficient. ");
   params.addRequiredCoupledVar("temperature", "Temperature");
+  params.addParam<bool>("suppress_history", false, "Use current elastic energy and do not consider max elastic energy during history. ");
   params.addClassDescription(
       "Computes damaged stress and energy in the intermediate configuration assuming isotropy. "
       "Thermal stress is included. ");
@@ -25,7 +26,8 @@ HyperElasticThermalDamage::HyperElasticThermalDamage(const InputParameters & par
   : HyperElasticPhaseFieldIsoDamage(parameters),
     _reference_temperature(getParam<Real>("reference_temperature")),
     _thermal_expansion_coeff(getParam<Real>("thermal_expansion_coeff")),
-    _temperature(coupledValue("temperature"))
+    _temperature(coupledValue("temperature")),
+    _suppress_history(getParam<bool>("suppress_history"))
 {
 }
 
@@ -93,6 +95,10 @@ HyperElasticThermalDamage::computeDamageStress()
       _hist[_qp] = G0_pos;
     else
       _hist[_qp] = _hist_old[_qp];
+      
+    // If G0_pos decreases, then decrease the history variable as well
+    if (_suppress_history)
+      _hist[_qp] = G0_pos;
 
     Real hist_variable = _hist_old[_qp];
     if (_use_current_hist)

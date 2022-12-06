@@ -37,5 +37,8 @@ protected:
 
   /// Coupled temperature
   const VariableValue & _temperature;
+  
+  /// Use current elastic energy and do not consider max elastic energy during history.
+  bool _suppress_history;
 
 };
