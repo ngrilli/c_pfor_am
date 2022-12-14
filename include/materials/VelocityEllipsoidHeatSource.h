@@ -67,7 +67,7 @@ protected:
   /// _t_scan tracks the simulation time at which a new
   /// scan begins after the condition based on the postprocessor
   /// changes the coordinates of the heat source
-  Real _t_scan;
+  MaterialProperty<Real> & _t_scan;
   
   /// Total length during each scan
   /// After the laser has travelled this length
@@ -80,7 +80,7 @@ protected:
   const Real _threshold_temperature;
   
   /// Heat source track index
-  int _n_track; 
+  MaterialProperty<int> & _n_track; 
 
   ADMaterialProperty<Real> & _volumetric_heat;
 };

@@ -54,12 +54,20 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     
     // Postprocess with temperature value
     _temperature_pp(getPostprocessorValue("temperature_pp")),
+
+    // _t_scan tracks the simulation time at which a new
+    // scan begins after the condition based on the postprocessor
+    // changes the coordinates of the heat source
+    _t_scan(declareProperty<Real>("t_scan")),
     
     // Total time during one scan
     _scan_length(getParam<std::vector<Real>>("scan_length")),
     
     // Threshold temperature for the postprocessor condition
     _threshold_temperature(getParam<Real>("threshold_temperature")),
+    
+    // Heat source track index
+    _n_track(declareProperty<int>("n_track")),
     
     // Volumetric heat source used by the kernel
     _volumetric_heat(declareADProperty<Real>("volumetric_heat"))
@@ -70,34 +78,34 @@ void
 VelocityEllipsoidHeatSource::initQpStatefulProperties()
 {
   // Initialize time tracking and number of tracks
-  _t_scan = _t;
-  _n_track = 0;
+  _t_scan[_qp] = _t;
+  _n_track[_qp] = 0;
 }
 
 void
 VelocityEllipsoidHeatSource::computeQpProperties()
-{
+{	
   // Set initial coordinates for this track
-  _x_coord = _init_x_coords[_n_track];
-  _y_coord = _init_y_coords[_n_track];
-  _z_coord = _init_z_coords[_n_track];
+  _x_coord = _init_x_coords[_n_track[_qp]];
+  _y_coord = _init_y_coords[_n_track[_qp]];
+  _z_coord = _init_z_coords[_n_track[_qp]];
 
   const Real & x = _q_point[_qp](0);
   const Real & y = _q_point[_qp](1);
   const Real & z = _q_point[_qp](2);
   
   // center of the heat source
-  Real x_t = _x_coord + _velocity(0) * (_t - _t_scan);
-  Real y_t = _y_coord + _velocity(1) * (_t - _t_scan);
-  Real z_t = _z_coord + _velocity(2) * (_t - _t_scan);
-  
+  Real x_t = _x_coord + _velocity(0) * (_t - _t_scan[_qp]);
+  Real y_t = _y_coord + _velocity(1) * (_t - _t_scan[_qp]);
+  Real z_t = _z_coord + _velocity(2) * (_t - _t_scan[_qp]);
+
   // Calculate distance travelled by the heat source during this scan
   Real distance = std::pow(x_t - _x_coord, 2);
   distance += std::pow(y_t - _y_coord, 2);
   distance += std::pow(z_t - _z_coord, 2);
   distance = std::sqrt(distance);
   
-  if (distance > _scan_length[_n_track]) { // This single scan is over
+  if (distance > _scan_length[_n_track[_qp]]) { // This single scan is over
 	  
     _volumetric_heat[_qp] = 0.0;	
     checkPPcondition();  
@@ -123,9 +131,10 @@ VelocityEllipsoidHeatSource::checkPPcondition()
   if (_temperature_pp < _previous_pp_temperature) { // cooling condition
     if (_temperature_pp < _threshold_temperature) { // reached threshold temperature
 		
-      // update initial heat source coordinate and track time	
-      _n_track += 1;
-      _t_scan = _t;
+      // update initial heat source coordinate and track time
+      std::cout << "change track" << std::endl;	
+      _n_track[_qp] += 1;
+      _t_scan[_qp] = _t;
   		
 	}
   }
