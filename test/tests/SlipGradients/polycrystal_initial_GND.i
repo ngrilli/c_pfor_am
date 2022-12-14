@@ -29,7 +29,6 @@
     ymax = 13.3
     zmax = 1.9
     elem_type = HEX8
-    displacements = 'ux uy uz'
   [../]
 []
 
