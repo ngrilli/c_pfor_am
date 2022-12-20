@@ -11,7 +11,6 @@
     ymax = 1.0
     zmax = 1.0
     elem_type = HEX8
-	displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
