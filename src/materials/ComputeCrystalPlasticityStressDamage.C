@@ -533,6 +533,15 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
       equivalent_slip_increment, pk2_new;
       
   Real F_pos, F_neg; // tensile and compressive part of the elastic strain energy
+  
+  // Thermal expansion variables
+  Real temperature = _temperature[_qp];
+  Real reference_temperature = _reference_temperature;
+  Real thermal_expansion = _thermal_expansion;
+  Real dCTE_dT =_dCTE_dT;
+  
+  // Thermal eigenstrain
+  RankTwoTensor thermal_eigenstrain;
 
   equivalent_slip_increment.zero();
 
