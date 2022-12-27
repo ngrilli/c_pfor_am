@@ -1,5 +1,7 @@
 // Nicolò Grilli
 // University of Bristol
+// Daijun Hu
+// National University of Singapore
 // 9 Settembre 2022
 
 #pragma once
@@ -19,7 +21,7 @@
  * residual equation at the intermediate configuration to evolve the material state. The internal
  * variables are updated using an iterative predictor-corrector algorithm. Backward Euler
  * integration rule is used for the rate equations.
- *
+ * Thermal eigenstrain is included
  *
  * The only difference between this class and ComputeMultipleCrystalPlasticityStress
  * is that the _models variable here is an array of CrystalPlasticityDislocationUpdateBase
@@ -204,5 +206,16 @@ protected:
   /// Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33}
   /// of the initial plastic deformation gradient
   const ElementPropertyReadFile * const _read_initial_Fp;
-
+  
+  /// Coupled temperature
+  const VariableValue & _temperature;
+  
+  /// Reference temperature with no thermal expansion
+  const Real _reference_temperature;
+  
+  /// Thermal expansion coefficient
+  /// and its first derivative with respect to temperature  
+  const Real _thermal_expansion;
+  const Real _dCTE_dT;
+  
 };
