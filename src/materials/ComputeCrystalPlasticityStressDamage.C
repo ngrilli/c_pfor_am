@@ -539,9 +539,6 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
   Real reference_temperature = _reference_temperature;
   Real thermal_expansion = _thermal_expansion;
   Real dCTE_dT =_dCTE_dT;
-  
-  // Volumetric thermal expansion coefficient
-  Real volumetric_thermal_expansion;
 
   equivalent_slip_increment.zero();
 
@@ -576,6 +573,16 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
 
   elastic_strain = ce - RankTwoTensor::Identity();
   elastic_strain *= 0.5;
+  
+  // Calculate volumetric thermal expansion and thermal eigenstrain
+  _volumetric_thermal_expansion = 1.5 * (
+    std::exp((2.0/3.0)*(
+        0.5 * dCTE_dT * (temperature-reference_temperature)*(temperature-reference_temperature)
+        + thermal_expansion * (temperature - reference_temperature)
+      )
+    ) - 1.0);
+
+  _thermal_eigenstrain = (1.0/3.0) * _volumetric_thermal_expansion * RankTwoTensor::Identity();
   
   // Decompose ee into volumetric and non-volumetric
   // and calculate elastic energy and stress

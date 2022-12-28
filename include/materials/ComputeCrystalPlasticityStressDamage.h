@@ -218,4 +218,10 @@ protected:
   const Real _thermal_expansion;
   const Real _dCTE_dT;
   
+  /// Volumetric thermal expansion
+  Real _volumetric_thermal_expansion;
+  
+  /// Thermal eigenstrain
+  RankTwoTensor _thermal_eigenstrain;
+  
 };
