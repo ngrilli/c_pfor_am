@@ -213,7 +213,7 @@ protected:
   /// Reference temperature with no thermal expansion
   const Real _reference_temperature;
   
-  /// Thermal expansion coefficient
+  /// Linear thermal expansion coefficient
   /// and its first derivative with respect to temperature  
   const Real _thermal_expansion;
   const Real _dCTE_dT;

@@ -43,7 +43,7 @@ ComputeCrystalPlasticityStressDamage::validParams()
                                   "of the initial plastic deformation gradient");
   params.addCoupledVar("temperature",303.0,"Temperature");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
-  params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
+  params.addParam<Real>("thermal_expansion",0.0,"Linear thermal expansion coefficient");
   params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature");
   return params;
 }
