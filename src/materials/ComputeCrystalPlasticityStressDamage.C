@@ -540,8 +540,8 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
   Real thermal_expansion = _thermal_expansion;
   Real dCTE_dT =_dCTE_dT;
   
-  // Thermal eigenstrain
-  RankTwoTensor thermal_eigenstrain;
+  // Volumetric thermal expansion coefficient
+  Real volumetric_thermal_expansion;
 
   equivalent_slip_increment.zero();
 
@@ -651,6 +651,9 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
   
   // inverse of the right Cauchy–Green deformation tensor (elastic)
   RankTwoTensor invce;
+  
+  // Thermal eigenstrain
+  RankTwoTensor thermal_eigenstrain;
   
   // Anisotropic elasticity (Luscher 2017)
   // Kb = K in (Luscher 2017)
