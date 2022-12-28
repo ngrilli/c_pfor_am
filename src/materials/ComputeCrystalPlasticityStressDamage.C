@@ -649,8 +649,9 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
   // Isochoric free energy
   Real a_pos_cpl;
   
-  // Undamaged elastic energy tensor
+  // Undamaged elastic energy tensor and thermal energy
   RankTwoTensor undamaged_elastic_energy;
+  RankTwoTensor undamaged_thermal_energy;
   
   // Positive and negative part of the Piola-Kirchhoff stress
   RankTwoTensor pk2_pos;
@@ -695,9 +696,15 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
 
   undamaged_elastic_energy = _elasticity_tensor[_qp] * ee;
   undamaged_elastic_energy = 0.5 * ee * undamaged_elastic_energy;
+  
+  undamaged_thermal_energy = _elasticity_tensor[_qp] * _thermal_eigenstrain;
+  undamaged_thermal_energy = ee * undamaged_thermal_energy;
 
   a_pos_cpl = undamaged_elastic_energy.trace();
   a_pos_cpl -= 0.5 * Kb * delta * delta;
+  
+  a_pos_cpl -= undamaged_thermal_energy.trace();
+  a_pos_cpl += Kb * delta * _volumetric_thermal_expansion;
 
   // Calculate positive and negative parts of the Piola-Kirchhoff stress
   // Equation 18 in Grilli, Koslowski, 2019
