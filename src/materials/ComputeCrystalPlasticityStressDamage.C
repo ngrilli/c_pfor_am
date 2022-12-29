@@ -105,7 +105,7 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
         initial_Fp(i,j) = _read_initial_Fp->getData(_current_elem, 3*i+j);
 	  }
 	}
-  
+
     _plastic_deformation_gradient[_qp] = initial_Fp;
   
   } else { // Initialize uniform plastic deformation gradient to identity
@@ -682,12 +682,14 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
   if (Je >= 1.0) { // expansion
 	  
     a_pos_vol = 0.5 * Kb * delta * delta;
+    a_pos_vol -= Kb * delta * _volumetric_thermal_expansion;
     a_neg_vol = 0.0;
 	  
   } else { // compression
 	  
     a_pos_vol = 0.0;
 	a_neg_vol = 0.5 * Kb * delta * delta;
+	a_neg_vol -= Kb * delta * _volumetric_thermal_expansion;
 	
   }
   
@@ -710,7 +712,7 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
   // Equation 18 in Grilli, Koslowski, 2019
   if (Je >= 1.0) { // expansion
   
-    pk2_pos = _elasticity_tensor[_qp] * ee;
+    pk2_pos = _elasticity_tensor[_qp] * (ee - _thermal_eigenstrain);
     pk2_neg = 0.0;
 	
   } else { // compression
@@ -720,7 +722,7 @@ ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real
 	pk2_neg = Je23 * Kb * delta * invce;
 	
     pk2_pos = (-1.0) * pk2_neg;	
-    pk2_pos += _elasticity_tensor[_qp] * ee;
+    pk2_pos += _elasticity_tensor[_qp] * (ee - _thermal_eigenstrain);
 
   }
 
