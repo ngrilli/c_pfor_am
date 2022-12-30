@@ -52,8 +52,11 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     _init_y_coords(getParam<std::vector<Real>>("init_y_coords")),
     _init_z_coords(getParam<std::vector<Real>>("init_z_coords")),
     
+    //_previous_pp_temperature(declareProperty<Real>("previous_pp_temperature")),
+    
     // Postprocess with temperature value
     _temperature_pp(getPostprocessorValue("temperature_pp")),
+    _temperature_pp_old(getPostprocessorValueOld("temperature_pp")),
 
     // _t_scan tracks the simulation time at which a new
     // scan begins after the condition based on the postprocessor
@@ -80,6 +83,7 @@ VelocityEllipsoidHeatSource::initQpStatefulProperties()
   // Initialize time tracking and number of tracks
   _t_scan[_qp] = _t;
   _n_track[_qp] = 0;
+  //_previous_pp_temperature[_qp] = 0;
 }
 
 void
@@ -105,6 +109,13 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   distance += std::pow(z_t - _z_coord, 2);
   distance = std::sqrt(distance);
   
+  //std::cout << "_temperature_pp" << std::endl;
+  //std::cout << _temperature_pp << std::endl;
+  //std::cout << "_temperature_pp_old" << std::endl;
+  //std::cout << _temperature_pp_old << std::endl;
+  //std::cout << "_previous_pp_temperature[_qp]" << std::endl;
+  //std::cout << _previous_pp_temperature[_qp] << std::endl;
+  
   if (distance > _scan_length[_n_track[_qp]]) { // This single scan is over
 	  
     _volumetric_heat[_qp] = 0.0;	
@@ -120,7 +131,10 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   }
   
   // store postprocessor value to use in the next time step
-  _previous_pp_temperature = _temperature_pp;  
+  //Real previous_pp_temperature;
+  //previous_pp_temperature = _temperature_pp;
+  //_previous_pp_temperature[_qp] = previous_pp_temperature;
+  
 }
 
 // Check if the postprocessor temperature condition is satisfied
@@ -128,7 +142,7 @@ VelocityEllipsoidHeatSource::computeQpProperties()
 void
 VelocityEllipsoidHeatSource::checkPPcondition()
 {
-  if (_temperature_pp < _previous_pp_temperature) { // cooling condition
+  //if (_temperature_pp < _previous_pp_temperature[_qp]) { // cooling condition
     if (_temperature_pp < _threshold_temperature) { // reached threshold temperature
 		
       // update initial heat source coordinate and track time
@@ -137,5 +151,5 @@ VelocityEllipsoidHeatSource::checkPPcondition()
       _t_scan[_qp] = _t;
   		
 	}
-  }
+  //}
 }
