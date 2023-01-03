@@ -43,9 +43,6 @@ protected:
   /// Scanning speed vector
   const RealVectorValue _velocity;
   
-  /// Postprocessor temperature at the previous timestep
-  ///MaterialProperty<Real> & _previous_pp_temperature;
-  
   /// Initial values of the coordinates of the heat source
   /// Every time the postprocessor condition is satisfied, 
   /// the heat source is moved to the next set of coordinates
@@ -57,7 +54,6 @@ protected:
   /// it provides the condition based on which the heat source
   /// is moved to the next set of initial coordinates
   const PostprocessorValue & _temperature_pp;
-  const PostprocessorValue & _temperature_pp_old;
   
   /// variables to store the coordinates 
   /// of the center of the heat source
