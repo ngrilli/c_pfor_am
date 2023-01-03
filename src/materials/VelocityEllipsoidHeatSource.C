@@ -85,6 +85,15 @@ VelocityEllipsoidHeatSource::initQpStatefulProperties()
 void
 VelocityEllipsoidHeatSource::computeQpProperties()
 {	
+  // When maximum number of tracks is reached
+  // heat source is switched off
+  if (_n_track[_qp] >= _init_x_coords.size()) {
+	  
+    _volumetric_heat[_qp] = 0.0;	
+	return;
+	
+  }
+
   // Set initial coordinates for this track
   _x_coord = _init_x_coords[_n_track[_qp]];
   _y_coord = _init_y_coords[_n_track[_qp]];
@@ -104,7 +113,7 @@ VelocityEllipsoidHeatSource::computeQpProperties()
   distance += std::pow(y_t - _y_coord, 2);
   distance += std::pow(z_t - _z_coord, 2);
   distance = std::sqrt(distance);
-  
+
   if (distance > _scan_length[_n_track[_qp]]) { // This single scan is over
 	  
     _volumetric_heat[_qp] = 0.0;	
@@ -118,12 +127,7 @@ VelocityEllipsoidHeatSource::computeQpProperties()
                                        3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
                                        3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
   }
-  
-  // store postprocessor value to use in the next time step
-  //Real previous_pp_temperature;
-  //previous_pp_temperature = _temperature_pp;
-  //_previous_pp_temperature[_qp] = previous_pp_temperature;
-  
+
 }
 
 // Check if the postprocessor temperature condition is satisfied
@@ -140,6 +144,6 @@ VelocityEllipsoidHeatSource::checkPPcondition()
     // update initial heat source coordinate and track time
     _n_track[_qp] += 1;
     _t_scan[_qp] = _t;
-  		
+
   }
 }
