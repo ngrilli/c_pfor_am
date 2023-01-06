@@ -90,19 +90,23 @@ HyperElasticThermalDamage::computeDamageStress()
     const Real G0_pos = lambda * etrpos * etrpos / 2.0 + mu * pval;
     const Real G0_neg = lambda * etrneg * etrneg / 2.0 + mu * nval;
 
+    Real hist_variable = _hist_old[_qp];
     // Assign history variable and derivative
     if (G0_pos > _hist_old[_qp])
       _hist[_qp] = G0_pos;
     else
       _hist[_qp] = _hist_old[_qp];
       
-    // If G0_pos decreases, then decrease the history variable as well
-    if (_suppress_history)
-      _hist[_qp] = G0_pos;
-
-    Real hist_variable = _hist_old[_qp];
     if (_use_current_hist)
-      hist_variable = _hist[_qp];
+      hist_variable = _hist[_qp];      
+      
+    // If G0_pos decreases, then decrease the history variable as well
+    if (_suppress_history) {
+		
+      _hist[_qp] = G0_pos;
+      hist_variable = G0_pos;
+		
+	}
 
     // Elastic free energy density
     _F[_qp] = hist_variable * xfac - G0_neg + _gc[_qp] / (2 * _l[_qp]) * c * c;
