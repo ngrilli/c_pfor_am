@@ -209,7 +209,6 @@
     variable = disp_y
     boundary = bottom_on_block_1
     value = 0.0
-    block = '1'
   [../]
 
   [./x0]
@@ -217,7 +216,6 @@
     variable = disp_x
     boundary = left_on_block_1
     value = 0.0
-    block = '1'
   [../]
 
   [./x1]
@@ -225,7 +223,6 @@
     variable = disp_x
     boundary = right_on_block_1
     function = disp_load
-    block = '1'
   [../]
 []
 
