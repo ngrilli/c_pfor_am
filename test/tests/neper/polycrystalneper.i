@@ -2,10 +2,6 @@
   [./nepermesh]
     type = FileMeshGenerator
     file = n2-id2.msh
-    displacements = 'disp_x disp_y disp_z'
-    # This MeshModifier currently only works with ReplicatedMesh.
-    # For more information, refer to #2129.
-    parallel_type = replicated
   [../]
 
   [./x0_modifier]
