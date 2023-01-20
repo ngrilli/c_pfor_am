@@ -15,11 +15,14 @@ HEPFlowRatePowerLawJ2::validParams()
       "It is similar to HEVPFlowRatePowerLawJ2 but "
       "plastic and not visco-plastic, therefore it gives zero "
       "plastic strain rate below the yield point. ");
+  params.addParam<Real>("threshold_stress_ratio", 0.0, "Ratio between equivalent stress and yield strength "
+                                                       "at which plastic slip starts. ");
   return params;
 }
 
 HEPFlowRatePowerLawJ2::HEPFlowRatePowerLawJ2(const InputParameters & parameters)
-  : HEVPFlowRatePowerLawJ2(parameters)
+  : HEVPFlowRatePowerLawJ2(parameters),
+    _threshold_stress_ratio(getParam<Real>("threshold_stress_ratio"))
 {
 }
 

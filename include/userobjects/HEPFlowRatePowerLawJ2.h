@@ -25,4 +25,7 @@ public:
   virtual bool computeDerivative(unsigned int, const std::string &, Real &) const;
   virtual bool computeTensorDerivative(unsigned int, const std::string &, RankTwoTensor &) const;
 
+protected:
+  Real _threshold_stress_ratio;
+
 };
