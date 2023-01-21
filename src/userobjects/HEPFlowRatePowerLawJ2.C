@@ -34,7 +34,7 @@ HEPFlowRatePowerLawJ2::computeValue(unsigned int qp, Real & val) const
   
   Real stress_ratio = eqv_stress / _strength[qp];
   
-  if (stress_ratio < 1.0) { // below yield point
+  if (stress_ratio < _threshold_stress_ratio) { // below yield point
 	  
     val = 0.0;
   
@@ -69,7 +69,7 @@ HEPFlowRatePowerLawJ2::computeDerivative(unsigned int qp,
     
     Real stress_ratio = eqv_stress / _strength[qp];
     
-    if (stress_ratio < 1.0) { // below yield point
+    if (stress_ratio < _threshold_stress_ratio) { // below yield point
 		
       val = 0.0;
 		
@@ -100,7 +100,7 @@ HEPFlowRatePowerLawJ2::computeTensorDerivative(unsigned int qp,
     
     Real stress_ratio = eqv_stress / _strength[qp];
     
-    if (stress_ratio < 1.0) { // below yield point
+    if (stress_ratio < _threshold_stress_ratio) { // below yield point
 		
       dflowrate_dseqv = 0.0;
 		
