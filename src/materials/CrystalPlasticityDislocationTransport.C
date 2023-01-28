@@ -31,10 +31,6 @@ CrystalPlasticityDislocationTransport::validParams()
   // TO DO
   
 
-  params.addParam<Real>("rho_tol",1.0,"Tolerance on dislocation density update");
-  params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
-  params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
-  params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
@@ -80,14 +76,7 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
 	_tau_c_0(getParam<Real>("tau_c_0")),
 
 	
-	
-	// Initial values of the state variables
-    _init_rho_ssd(getParam<Real>("init_rho_ssd")),
-    _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
-    _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
-	
-	// Tolerance on dislocation density update
-	_rho_tol(getParam<Real>("rho_tol")),
+
 	
 	// State variables of the dislocation model
 	
@@ -170,17 +159,17 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
   // Initialize dislocation densities and backstress
   for (const auto i : make_range(_number_slip_systems))
   {
-    _rho_ssd[_qp][i] = _init_rho_ssd;
+    _rho_ssd[_qp][i] = 0.0;
 	
 	if (_read_initial_gnd_density) { // Read initial GND density from file
 	
-    _rho_gnd_edge[_qp][i] = _read_initial_gnd_density->getData(_current_elem, i);
-	_rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
+    _rho_gnd_edge[_qp][i] = 0.0;
+	_rho_gnd_screw[_qp][i] = 0.0;
 	
 	} else { // Initialize uniform GND density
 		
-    _rho_gnd_edge[_qp][i] = _init_rho_gnd_edge;
-    _rho_gnd_screw[_qp][i] = _init_rho_gnd_screw;
+    _rho_gnd_edge[_qp][i] = 0.0;
+    _rho_gnd_screw[_qp][i] = 0.0;
 	
 	}
 	
@@ -498,16 +487,12 @@ CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
   }
 }
 
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy
 bool
 CrystalPlasticityDislocationTransport::areConstitutiveStateVariablesConverged()
 {
-  return isConstitutiveStateVariableConverged(_rho_ssd[_qp],
-                                              _rho_ssd_before_update,
-                                              _previous_substep_rho_ssd,
-                                              _rho_tol);
-
-  // How do we check the tolerance of GNDs and is it needed?
-											  
+  return true;						  
 }
 
 void

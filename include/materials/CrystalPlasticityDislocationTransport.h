@@ -80,15 +80,6 @@ protected:
   // Cache the slip system value before the update for the diff in the convergence check
   virtual void cacheStateVariablesBeforeUpdate() override;
 
-  /**
-   * Following the Constitutive model for slip system resistance as given in
-   * Dislocation based model:
-   * E. Demir, I Gutierrez-Urrutia
-   * Investigation of strain hardening near grain
-   * boundaries of an aluminium oligocrystal:
-   * Experiments and crystal based finite element method
-   * International Journal of Plasticity 136 (2021) 102898
-   */
   virtual void calculateStateVariableEvolutionRateComponent() override;
 
   /*
@@ -100,6 +91,8 @@ protected:
   /*
    * Determines if the state variables, e.g. defect densities, have converged
    * by comparing the change in the values over the iteration period.
+   * It is a dummy function returning true for this model
+   * but necessary because called by ComputeCrystalPlasticityStressDamage
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
 
@@ -136,16 +129,7 @@ protected:
   
   
   
-  
-  
-  
-  // Initial values of the dislocation density
-  const Real _init_rho_ssd;
-  const Real _init_rho_gnd_edge;
-  const Real _init_rho_gnd_screw;
-  
-  // Tolerance on dislocation density update
-  const Real _rho_tol;
+
   
   // Dislocation densities
   MaterialProperty<std::vector<Real>> & _rho_ssd;
