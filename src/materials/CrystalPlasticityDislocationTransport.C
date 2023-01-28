@@ -25,13 +25,10 @@ CrystalPlasticityDislocationTransport::validParams()
 
                              
                              
-  params.addParam<Real>("ao", 0.001, "slip rate coefficient");
-  params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
-  params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
-  params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
-  params.addParam<FunctionName>("creep_ao_function",
-    "Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time. "
-    "This is useful for an initial plastic deformation followed by creep load. ");
+
+
+
+
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
@@ -82,13 +79,8 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
   
   
     // Constitutive model parameters
-    _ao(getParam<Real>("ao")),
-    _xm(getParam<Real>("xm")),
-    _creep_ao(getParam<Real>("creep_ao")),
-    _creep_xm(getParam<Real>("creep_xm")),
-    _creep_ao_function(this->isParamValid("creep_ao_function")
-                       ? &this->getFunction("creep_ao_function")
-                       : NULL),
+
+
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_alpha_0(getParam<Real>("alpha_0")),
@@ -155,7 +147,7 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
     _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
 	
-
+    // Temperature dependence of CRSS parameters
     _reference_temperature(getParam<Real>("reference_temperature")),
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
@@ -378,17 +370,9 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
   
   // Creep prefactor: if function is not given
   // the constant value is used
-  Real creep_ao;
+  Real creep_ao = 0.0;
   
-  if (_creep_ao_function) {
-	  
-    creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
-	  
-  } else {
-	  
-    creep_ao = _creep_ao;
-	  
-  }
+  // No backstress
   
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -396,9 +380,10 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
     
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
-    _slip_increment[_qp][i] =
-        _ao * std::pow(stress_ratio, 1.0 / _xm)
-      + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
+    _slip_increment[_qp][i] = 0.0;
+        
+        //_ao * std::pow(stress_ratio, 1.0 / _xm)
+      //+ creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
       
     if (effective_stress < 0.0)
       _slip_increment[_qp][i] *= -1.0;
@@ -501,17 +486,7 @@ CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
   
   // Creep prefactor: if function is not given
   // the constant value is used
-  Real creep_ao;
-  
-  if (_creep_ao_function) {
-	  
-    creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
-	  
-  } else {
-	  
-    creep_ao = _creep_ao;
-	  
-  }	
+  Real creep_ao = 0.0;
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -525,12 +500,12 @@ CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
 		
 	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
-      dslip_dtau[i] = _ao / _xm *
-                      std::pow(stress_ratio, 1.0 / _xm - 1.0) /
-                      _slip_resistance[_qp][i]
-                    + creep_ao / _creep_xm *
-                      std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-                      _slip_resistance[_qp][i];		
+      dslip_dtau[i] = 0.0; //_ao / _xm *
+                      //std::pow(stress_ratio, 1.0 / _xm - 1.0) /
+                      //_slip_resistance[_qp][i]
+                    //+ creep_ao / _creep_xm *
+                     // std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
+                      //_slip_resistance[_qp][i];		
 	}
   }
 }
