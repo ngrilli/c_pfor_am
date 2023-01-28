@@ -22,22 +22,15 @@ CrystalPlasticityDislocationTransport::validParams()
   params.addCoupledVar("rho_edge_vector","Total edge GND density vector: each component is the edge GND density on each slip system");
   params.addCoupledVar("rho_screw_vector","Total screw GND density vector: each component is the screw GND density on each slip system");
   params.addCoupledVar("q_t_vector","Curvature density vector: each component is the curvature on each slip system");
-
-                             
-                             
-
-
-
-
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
-  params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
-  params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
-  params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
-  params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
+  
+  // TO DO
+  
+
   params.addParam<Real>("rho_tol",1.0,"Tolerance on dislocation density update");
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
@@ -69,6 +62,7 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
 	// Temperature dependent properties
 	_temperature(coupledValue("temperature")),
 
+    // Dislocation model variables, not updated here
     _rho_t_vector(isParamValid("rho_t_vector") ? coupledVectorValue("rho_t_vector") : _vector_zero),	
     _rho_edge_vector(isParamValid("rho_edge_vector") ? coupledVectorValue("rho_edge_vector") : _vector_zero),
     _rho_screw_vector(isParamValid("rho_screw_vector") ? coupledVectorValue("rho_screw_vector") : _vector_zero),	
@@ -79,19 +73,13 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
   
   
     // Constitutive model parameters
-
-
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_alpha_0(getParam<Real>("alpha_0")),
     _r(getParam<Real>("r")),
 	_tau_c_0(getParam<Real>("tau_c_0")),
-	_k_0(getParam<Real>("k_0")),
-	_y_c(getParam<Real>("y_c")),
+
 	
-	// Backstress parameters
-	_h(getParam<Real>("h")),
-	_h_D(getParam<Real>("h_D")),
 	
 	// Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
@@ -202,7 +190,7 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
   // Critical resolved shear stress decreases exponentially with temperature
   // A + B exp(- C * (T - T0)) 
   temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
-                                             * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
+                         * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
   
   // Initialize value of the slip resistance
   // as a function of the dislocation density
@@ -412,7 +400,7 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
   // Critical resolved shear stress decreases exponentially with temperature
   // A + B exp(- C * (T - T0)) 
   temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
-                                             * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
+                         * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -555,7 +543,7 @@ CrystalPlasticityDislocationTransport::calculateStateVariableEvolutionRateCompon
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
 	// and the rate equation gets multiplied by time step in updateStateVariables
-    _rho_ssd_increment[i] = _k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
+    _rho_ssd_increment[i] = 0.0; //_k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
     _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
 
   }
@@ -567,20 +555,6 @@ CrystalPlasticityDislocationTransport::calculateStateVariableEvolutionRateCompon
     _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
     _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
 		
-  }
-  
-  // backstress increment
-  ArmstrongFrederickBackstressUpdate();
-}
-
-// Armstrong-Frederick update of the backstress
-void
-CrystalPlasticityDislocationTransport::ArmstrongFrederickBackstressUpdate()
-{
-  for (const auto i : make_range(_number_slip_systems)) 
-  {
-    _backstress_increment[i] = _h * _slip_increment[_qp][i];
-    _backstress_increment[i] -= _h_D * _backstress[_qp][i] * std::abs(_slip_increment[_qp][i]);  
   }
 }
 

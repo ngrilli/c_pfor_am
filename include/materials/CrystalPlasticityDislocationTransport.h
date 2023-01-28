@@ -90,9 +90,6 @@ protected:
    * International Journal of Plasticity 136 (2021) 102898
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
-  
-  // Armstrong-Frederick update of the backstress
-  virtual void ArmstrongFrederickBackstressUpdate();
 
   /*
    * Finalizes the values of the state variables and slip system resistance
@@ -137,15 +134,10 @@ protected:
   // Peierls stress
   const Real _tau_c_0;
   
-  // Coefficient K in SSD evolution, representing accumulation rate
-  const Real _k_0;
   
-  // Critical annihilation diameter
-  const Real _y_c;
   
-  // Backstress parameters
-  const Real _h;
-  const Real _h_D;
+  
+  
   
   // Initial values of the dislocation density
   const Real _init_rho_ssd;
