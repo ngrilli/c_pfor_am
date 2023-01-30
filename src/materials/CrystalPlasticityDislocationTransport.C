@@ -15,7 +15,7 @@ CrystalPlasticityDislocationTransport::validParams()
   InputParameters params = CrystalPlasticityDislocationUpdateBase::validParams();
   params.addClassDescription("Dislocation based model for crystal plasticity with Orowan's law "
                              "using the stress update code. "
-                             "Plastic slip is calculated using the CDD model variable, "
+                             "Plastic slip is calculated using the CDD model variables, "
                              "therefore no update of material properties. ");
   params.addCoupledVar("temperature", 303.0,"Temperature, initialize at room temperature");
   params.addCoupledVar("rho_t_vector","Total dislocation density vector: each component is the total dislocation density on each slip system");
@@ -38,8 +38,6 @@ CrystalPlasticityDislocationTransport::validParams()
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element value "
                                   "of the initial GND density");
-  params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
-  params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
@@ -119,10 +117,6 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
                                ? &getUserObject<ElementPropertyReadFile>("read_initial_gnd_density")
                                : nullptr),
-									
-    // Directional derivatives of the slip rate
-    _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
-    _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
 	
     // Temperature dependence of CRSS parameters
     _reference_temperature(getParam<Real>("reference_temperature")),
@@ -537,8 +531,8 @@ CrystalPlasticityDislocationTransport::calculateStateVariableEvolutionRateCompon
   for (const auto i : make_range(_number_slip_systems)) 
   {
 
-    _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
-    _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
+    _rho_gnd_edge_increment[i] = 0.0;
+    _rho_gnd_screw_increment[i] = 0.0;
 		
   }
 }

@@ -16,7 +16,7 @@ class CrystalPlasticityDislocationTransport;
  * variables are updated using an interative predictor-corrector algorithm.
  * Backward Euler integration rule is used for the rate equations.
  * Dislocation based model for crystal plasticity with Orowan's law.
- * Plastic slip is calculated using the CDD model variable,
+ * Plastic slip is calculated using the CDD model variables,
  * therefore no update of material properties.
  */
 
@@ -190,11 +190,6 @@ protected:
    * UserObject to read the initial GND density from file
    */
   const ElementPropertyReadFile * const _read_initial_gnd_density;
-  
-  // Directional derivative of the slip rate along the edge dislocation motion direction
-  // and along the screw dislocation motion direction
-  const ArrayVariableValue & _dslip_increment_dedge;
-  const ArrayVariableValue & _dslip_increment_dscrew;
   
 
   const Real _reference_temperature;
