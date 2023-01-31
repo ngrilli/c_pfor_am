@@ -128,6 +128,9 @@ protected:
   const Real _tau_c_0;
   
   
+  const Real _dislo_mobility;
+  const Real _reduced_mobility;
+  
   
 
   

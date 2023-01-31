@@ -28,6 +28,9 @@ CrystalPlasticityDislocationTransport::validParams()
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
   
+  params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
+  params.addParam<Real>("reduced_mobility",0.0,"Ratio between mobility above vmax and mobility");
+  
   // TO DO
   
 
@@ -72,9 +75,9 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
 	_alpha_0(getParam<Real>("alpha_0")),
     _r(getParam<Real>("r")),
 	_tau_c_0(getParam<Real>("tau_c_0")),
-
 	
-
+	_dislo_mobility(getParam<Real>("dislo_mobility")),
+	_reduced_mobility(getParam<Real>("reduced_mobility")),
 	
 	// State variables of the dislocation model
 	
