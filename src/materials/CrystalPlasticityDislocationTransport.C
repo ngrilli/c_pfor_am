@@ -92,13 +92,6 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
-
-    // increments of state variables
-	
-    _rho_ssd_increment(_number_slip_systems, 0.0),
-    _rho_gnd_edge_increment(_number_slip_systems, 0.0),
-    _rho_gnd_screw_increment(_number_slip_systems, 0.0),
-    _backstress_increment(_number_slip_systems, 0.0),
 	
 	// resize local caching vectors used for substepping
     _previous_substep_rho_ssd(_number_slip_systems, 0.0),
@@ -511,33 +504,14 @@ CrystalPlasticityDislocationTransport::cacheStateVariablesBeforeUpdate()
   _backstress_before_update = _backstress[_qp];
 }
 
+// Dislocation density is a FE problem variable
+// and not an internal variable,
+// therefore, there is nothing to evolve here.
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy.
 void
 CrystalPlasticityDislocationTransport::calculateStateVariableEvolutionRateComponent()
 {
-  Real rho_sum;
-
-  // SSD dislocation density increment
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    
-    rho_sum = _rho_ssd[_qp][i] + std::abs(_rho_gnd_edge[_qp][i]) + std::abs(_rho_gnd_screw[_qp][i]);
-
-    // Multiplication and annihilation
-	// note that _slip_increment here is the rate
-	// and the rate equation gets multiplied by time step in updateStateVariables
-    _rho_ssd_increment[i] = 0.0; //_k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
-    _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
-
-  }
-  
-  // GND dislocation density increment
-  for (const auto i : make_range(_number_slip_systems)) 
-  {
-
-    _rho_gnd_edge_increment[i] = 0.0;
-    _rho_gnd_screw_increment[i] = 0.0;
-		
-  }
 }
 
 bool
@@ -547,13 +521,11 @@ CrystalPlasticityDislocationTransport::updateStateVariables()
   // SSD
   for (const auto i : make_range(_number_slip_systems))
   { 
-    _rho_ssd_increment[i] *= _substep_dt;
-
     // force positive SSD density
-    if (_previous_substep_rho_ssd[i] < _zero_tol && _rho_ssd_increment[i] < 0.0)
+    if (_previous_substep_rho_ssd[i] < _zero_tol)
       _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i];
     else
-      _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i] + _rho_ssd_increment[i];
+      _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i];
 
     if (_rho_ssd[_qp][i] < 0.0)
       return false;
@@ -562,22 +534,19 @@ CrystalPlasticityDislocationTransport::updateStateVariables()
   // GND edge: can be both positive or negative
   for (const auto i : make_range(_number_slip_systems))
   { 
-    _rho_gnd_edge_increment[i] *= _substep_dt;
-    _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i] + _rho_gnd_edge_increment[i];
+    _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i];
   }
   
   // GND screw: can be both positive or negative
   for (const auto i : make_range(_number_slip_systems))
   { 
-    _rho_gnd_screw_increment[i] *= _substep_dt;
-    _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i] + _rho_gnd_screw_increment[i];
+    _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i];
   }
   
   // Backstress: can be both positive or negative
   for (const auto i : make_range(_number_slip_systems))
   { 
-    _backstress_increment[i] *= _substep_dt;
-    _backstress[_qp][i] = _previous_substep_backstress[i] + _backstress_increment[i];
+    _backstress[_qp][i] = _previous_substep_backstress[i];
   }
   
   return true;

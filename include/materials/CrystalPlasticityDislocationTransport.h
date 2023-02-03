@@ -144,13 +144,7 @@ protected:
   
   // Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
-  const MaterialProperty<std::vector<Real>> & _backstress_old;  
-  
-  /// Increment of dislocation densities and backstress
-  std::vector<Real> _rho_ssd_increment;
-  std::vector<Real> _rho_gnd_edge_increment;
-  std::vector<Real> _rho_gnd_screw_increment;
-  std::vector<Real> _backstress_increment;
+  const MaterialProperty<std::vector<Real>> & _backstress_old;
 
   /**
    * Stores the values of the dislocation densities and backstress 
