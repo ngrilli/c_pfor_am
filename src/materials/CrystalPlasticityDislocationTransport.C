@@ -27,13 +27,13 @@ CrystalPlasticityDislocationTransport::validParams()
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
-  
   params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
   params.addParam<Real>("reduced_mobility",0.0,"Ratio between mobility above vmax and mobility");
-  
-  // TO DO
-  
-
+  params.addParam<Real>("dislo_max_velocity",1000.0,"Maximum dislocation velocity (phonon drag)");
+  params.addParam<Real>("bowout_coef",0.0,"bow-out coefficient: alpha in 4.30 of Hull-Bacon book");
+  params.addParam<Real>("bowout_rho_threshold",0.2,"dislo density threshold to apply bow-out");
+  params.addParam<Real>("rho_v_thres",0.001,"Dislo density threshold below which velocity goes to zero");
+  params.addParam<bool>("rho_v_thres_flag",false,"Flag to determine whether to apply the previous threshold");
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
@@ -41,7 +41,6 @@ CrystalPlasticityDislocationTransport::validParams()
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element value "
                                   "of the initial GND density");
-  
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
@@ -64,10 +63,6 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     _rho_edge_vector(isParamValid("rho_edge_vector") ? coupledVectorValue("rho_edge_vector") : _vector_zero),
     _rho_screw_vector(isParamValid("rho_screw_vector") ? coupledVectorValue("rho_screw_vector") : _vector_zero),	
     _q_t_vector(isParamValid("q_t_vector") ? coupledVectorValue("q_t_vector") : _vector_zero),
-
-
-    // TO DO
-  
   
     // Constitutive model parameters
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
@@ -76,43 +71,20 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     _r(getParam<Real>("r")),
 	_tau_c_0(getParam<Real>("tau_c_0")),
 	
+	// Dislocation mobility parameters
 	_dislo_mobility(getParam<Real>("dislo_mobility")),
 	_reduced_mobility(getParam<Real>("reduced_mobility")),
-	
-	// State variables of the dislocation model
-	
-    _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
-    _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
-    _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
-   	_rho_gnd_edge_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_edge")),
-  	_rho_gnd_screw(declareProperty<std::vector<Real>>("rho_gnd_screw")),
-    _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
-    
-    // Backstress variable
-    
-    _backstress(declareProperty<std::vector<Real>>("backstress")),
-    _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
-	
-	// resize local caching vectors used for substepping
-    _previous_substep_rho_ssd(_number_slip_systems, 0.0),
-	_previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
-	_previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
-	_previous_substep_backstress(_number_slip_systems, 0.0),
-    _rho_ssd_before_update(_number_slip_systems, 0.0),
-    _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
-    _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
-    _backstress_before_update(_number_slip_systems, 0.0),
+    _dislo_max_velocity(getParam<Real>("dislo_max_velocity")), // Maximum dislocation velocity (phonon drag)
+	_bowout_coef(getParam<Real>("bowout_coef")),
+	_bowout_rho_threshold(getParam<Real>("bowout_rho_threshold")),
+    _rho_v_thres(getParam<Real>("rho_v_thres")), // Dislo density threshold below which velocity goes to zero
+    _rho_v_thres_flag(getParam<bool>("rho_v_thres_flag")), // Flag to determine whether to apply the previous threshold
 
     // Twinning contributions, if used
     _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
     _twin_volume_fraction_total(_include_twinning_in_Lp
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
                                     : nullptr),
-
-    // UserObject to read the initial GND density from file						
-    _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
-                               ? &getUserObject<ElementPropertyReadFile>("read_initial_gnd_density")
-                               : nullptr),
 	
     // Temperature dependence of CRSS parameters
     _reference_temperature(getParam<Real>("reference_temperature")),
@@ -137,34 +109,6 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
   
   // Temperature dependence of the CRSS
   Real temperature_dependence;
-
-  // Initialize the dislocation density size
-  _rho_ssd[_qp].resize(_number_slip_systems);
-  _rho_gnd_edge[_qp].resize(_number_slip_systems);
-  _rho_gnd_screw[_qp].resize(_number_slip_systems);
-  
-  // Initialize the backstress size
-  _backstress[_qp].resize(_number_slip_systems);
-  
-  // Initialize dislocation densities and backstress
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    _rho_ssd[_qp][i] = 0.0;
-	
-	if (_read_initial_gnd_density) { // Read initial GND density from file
-	
-    _rho_gnd_edge[_qp][i] = 0.0;
-	_rho_gnd_screw[_qp][i] = 0.0;
-	
-	} else { // Initialize uniform GND density
-		
-    _rho_gnd_edge[_qp][i] = 0.0;
-    _rho_gnd_screw[_qp][i] = 0.0;
-	
-	}
-	
-	_backstress[_qp][i] = 0.0;	
-  }
  
   // Critical resolved shear stress decreases exponentially with temperature
   // A + B exp(- C * (T - T0)) 
@@ -190,15 +134,15 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
       if (iplane == jplane) { // self vs. latent hardening
 	  
 	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])); 
+	    taylor_hardening += _rho_t_vector[_qp](j); 
+		//          + std::abs(_rho_gnd_edge[_qp][j])
+		//		  + std::abs(_rho_gnd_screw[_qp][j])); 
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));	  
+	    //taylor_hardening += (_r * (_rho_ssd[_qp][j] 
+		//          + std::abs(_rho_gnd_edge[_qp][j])
+		//		  + std::abs(_rho_gnd_screw[_qp][j])));	  
 		  
 	  }
     }
@@ -294,29 +238,23 @@ CrystalPlasticityDislocationTransport::calculateSchmidTensor(
   
 }
 
+// No costitutive variables here because dislocation density
+// is a FE problem variable
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy.
 void
 CrystalPlasticityDislocationTransport::setInitialConstitutiveVariableValues()
 {
   // Initialize state variables with the value at the previous time step
-  _rho_ssd[_qp] = _rho_ssd_old[_qp];
-  _previous_substep_rho_ssd = _rho_ssd_old[_qp];
-  _rho_gnd_edge[_qp] = _rho_gnd_edge_old[_qp];
-  _previous_substep_rho_gnd_edge = _rho_gnd_edge_old[_qp];
-  _rho_gnd_screw[_qp] = _rho_gnd_screw_old[_qp];
-  _previous_substep_rho_gnd_screw = _rho_gnd_screw_old[_qp];
-  _backstress[_qp] = _backstress_old[_qp];
-  _previous_substep_backstress = _backstress_old[_qp];
 }
 
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy.
 void
 CrystalPlasticityDislocationTransport::setSubstepConstitutiveVariableValues()
 {
   // Inialize state variable of the next substep
   // with the value at the previous substep
-  _rho_ssd[_qp] = _previous_substep_rho_ssd;
-  _rho_gnd_edge[_qp] = _previous_substep_rho_gnd_edge;
-  _rho_gnd_screw[_qp] = _previous_substep_rho_gnd_screw;
-  _backstress[_qp] = _previous_substep_backstress;
 }
 
 // Slip resistance can be calculated from dislocation density here only
@@ -343,7 +281,7 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
   
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = _tau[_qp][i] - _backstress[_qp][i];
+    effective_stress = _tau[_qp][i];
     
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
@@ -398,15 +336,15 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
       if (iplane == jplane) { // self vs. latent hardening
 	  
 	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])); 
+	    //taylor_hardening += (_rho_ssd[_qp][j] 
+		//          + std::abs(_rho_gnd_edge[_qp][j])
+		//		  + std::abs(_rho_gnd_screw[_qp][j])); 
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));
+	    //taylor_hardening += (_r * (_rho_ssd[_qp][j] 
+		//          + std::abs(_rho_gnd_edge[_qp][j])
+		//		  + std::abs(_rho_gnd_screw[_qp][j])));
 
         		  
 		  
@@ -457,7 +395,7 @@ CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
 	
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = _tau[_qp][i] - _backstress[_qp][i];	  
+    effective_stress = _tau[_qp][i];	  
 	  
     if (MooseUtils::absoluteFuzzyEqual(effective_stress, 0.0)) {
 		
@@ -478,30 +416,28 @@ CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
 }
 
 // This is called in ComputeCrystalPlasticityStressDamage,
-// therefore it must be kept here even if dummy
+// therefore it must be kept here even if dummy.
 bool
 CrystalPlasticityDislocationTransport::areConstitutiveStateVariablesConverged()
 {
   return true;						  
 }
 
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy.
 void
 CrystalPlasticityDislocationTransport::updateSubstepConstitutiveVariableValues()
 {
   // Update temporary variables at the end of the substep
-  _previous_substep_rho_ssd = _rho_ssd[_qp];
-  _previous_substep_rho_gnd_edge = _rho_gnd_edge[_qp];
-  _previous_substep_rho_gnd_screw = _rho_gnd_screw[_qp];
-  _previous_substep_backstress = _backstress[_qp];
 }
 
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy.
 void
 CrystalPlasticityDislocationTransport::cacheStateVariablesBeforeUpdate()
 {
-  _rho_ssd_before_update = _rho_ssd[_qp];
-  _rho_gnd_edge_before_update = _rho_gnd_edge[_qp];
-  _rho_gnd_screw_before_update = _rho_gnd_screw[_qp];
-  _backstress_before_update = _backstress[_qp];
+  // Update the *_before_update variable
+  // with internal state variables
 }
 
 // Dislocation density is a FE problem variable
@@ -514,40 +450,12 @@ CrystalPlasticityDislocationTransport::calculateStateVariableEvolutionRateCompon
 {
 }
 
+// This is called in ComputeCrystalPlasticityStressDamage,
+// therefore it must be kept here even if dummy.
 bool
 CrystalPlasticityDislocationTransport::updateStateVariables()
 {
-  // Now perform the check to see if the slip system should be updated
-  // SSD
-  for (const auto i : make_range(_number_slip_systems))
-  { 
-    // force positive SSD density
-    if (_previous_substep_rho_ssd[i] < _zero_tol)
-      _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i];
-    else
-      _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i];
-
-    if (_rho_ssd[_qp][i] < 0.0)
-      return false;
-  }
-  
-  // GND edge: can be both positive or negative
-  for (const auto i : make_range(_number_slip_systems))
-  { 
-    _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i];
-  }
-  
-  // GND screw: can be both positive or negative
-  for (const auto i : make_range(_number_slip_systems))
-  { 
-    _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i];
-  }
-  
-  // Backstress: can be both positive or negative
-  for (const auto i : make_range(_number_slip_systems))
-  { 
-    _backstress[_qp][i] = _previous_substep_backstress[i];
-  }
-  
+  // update internal state variables using _previous_substep_* variables
+  // and perform the check to see if the state variable should be updated  
   return true;
 }

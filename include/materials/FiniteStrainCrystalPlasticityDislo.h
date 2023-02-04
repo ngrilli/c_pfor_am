@@ -152,7 +152,7 @@ protected:
   const Real _bowout_coef;
   const Real _bowout_rho_threshold;  
   
-  // If the dislocation density goes below the threshold threshold
+  // If the dislocation density goes below the threshold
   // we want the velocity to go to zero because velocity in a region without dislocations
   // is irrelevant for the model and may induce numerical oscillations of the variables
   // This option is activated with the flag _rho_v_thres_flag

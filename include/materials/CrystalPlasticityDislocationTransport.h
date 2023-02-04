@@ -107,11 +107,6 @@ protected:
   const VectorVariableValue & _rho_screw_vector;
   const VectorVariableValue & _q_t_vector;
 
-
-
-
-
-
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
   
@@ -127,46 +122,25 @@ protected:
   // Peierls stress
   const Real _tau_c_0;
   
-  
+  // Dislocation mobility and reduced mobility
+  // when the velocity goes above the max velocity
   const Real _dislo_mobility;
   const Real _reduced_mobility;
   
+  // Max dislocation velocity
+  const Real _dislo_max_velocity;
   
-
+  // Bow-out curvature term for line tension
+  // See Hull, Bacon, Dislocations book equation 4.30
+  const Real _bowout_coef;
+  const Real _bowout_rho_threshold;  
   
-  // Dislocation densities
-  MaterialProperty<std::vector<Real>> & _rho_ssd;
-  const MaterialProperty<std::vector<Real>> & _rho_ssd_old;
-  MaterialProperty<std::vector<Real>> & _rho_gnd_edge;
-  const MaterialProperty<std::vector<Real>> & _rho_gnd_edge_old;
-  MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
-  const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
-  
-  // Backstress variables
-  MaterialProperty<std::vector<Real>> & _backstress;
-  const MaterialProperty<std::vector<Real>> & _backstress_old;
-
-  /**
-   * Stores the values of the dislocation densities and backstress 
-   * from the previous substep
-   * In classes which use dislocation densities, analogous dislocation density
-   * substep vectors will be required.
-   */
-  std::vector<Real> _previous_substep_rho_ssd;
-  std::vector<Real> _previous_substep_rho_gnd_edge;
-  std::vector<Real> _previous_substep_rho_gnd_screw;
-  std::vector<Real> _previous_substep_backstress;
-
-  /**
-   * Caches the value of the current dislocation densities immediately prior
-   * to the update, and they are used to calculate the
-   * the dislocation densities for the current substep (or step if
-   * only one substep is taken) for the convergence check tolerance comparison.
-   */
-  std::vector<Real> _rho_ssd_before_update;
-  std::vector<Real> _rho_gnd_edge_before_update; 
-  std::vector<Real> _rho_gnd_screw_before_update;
-  std::vector<Real> _backstress_before_update;
+  // If the dislocation density goes below the threshold
+  // we want the velocity to go to zero because velocity in a region without dislocations
+  // is irrelevant for the model and may induce numerical oscillations of the variables
+  // This option is activated with the flag _rho_v_thres_flag
+  const Real _rho_v_thres;
+  bool _rho_v_thres_flag;
 
   /**
    * Flag to include the total twin volume fraction in the plastic velocity
@@ -183,12 +157,7 @@ protected:
    */
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
   
-  /**
-   * UserObject to read the initial GND density from file
-   */
-  const ElementPropertyReadFile * const _read_initial_gnd_density;
-  
-
+  // Temperature dependent critical resolved shear stress
   const Real _reference_temperature;
   const Real _dCRSS_dT_A;
   const Real _dCRSS_dT_B;
