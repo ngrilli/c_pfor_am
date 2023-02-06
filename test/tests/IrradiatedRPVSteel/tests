@@ -7,4 +7,13 @@
     # rel_err = 1e-4
     # abs_zero = 1e-6
   [../]
+  
+  [./PolycrystalIrradiated]
+    type = 'Exodiff'
+    input = 'poly_irradiated_GND.i'
+    exodiff = 'poly_irradiated_GND_out.e'
+	heavy = false
+    # rel_err = 1e-4
+    # abs_zero = 1e-6
+  [../]
 []
