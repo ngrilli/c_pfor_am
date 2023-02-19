@@ -37,7 +37,9 @@ protected:
   const Real _cycles_per_unit_time;
 
   // alpha variable in the cyclic model
+  // and its value at the previous time step
   MaterialProperty<Real> & _alpha_cyclic;
+  const MaterialProperty<Real> & _alpha_cyclic_old;
 
   // fatigue degradation function in the cyclic model
   MaterialProperty<Real> & _fatigue_degradation;

@@ -24,6 +24,7 @@ ComputeLinearElasticPFFractureCyclic::ComputeLinearElasticPFFractureCyclic(
   : ComputeLinearElasticPFFractureStress(parameters),
   _cycles_per_unit_time(getParam<Real>("cycles_per_unit_time")),
   _alpha_cyclic(declareProperty<Real>("alpha_cyclic")),
+  _alpha_cyclic_old(getMaterialPropertyOld<Real>("alpha_cyclic")),
   _fatigue_degradation(declareProperty<Real>("fatigue_degradation"))
 {
 }
@@ -98,8 +99,7 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
   _Jacobian_mult[_qp] = (I4sym - (1 - _D[_qp]) * Ppos) * _elasticity_tensor[_qp];
 
   // update my number of cycles
-  _alpha_cyclic[_qp] += _cycles_per_unit_time * _dt;
-  //_alpha_cyclic[_qp] = F_pos;
+  _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + _cycles_per_unit_time * _dt;
 
   //fatigue degradation function (1000 its just a value that will be taken from experiment)
   _fatigue_degradation[_qp] = ((2 * 1000) / (_alpha_cyclic[_qp] + 1000)) * ((2 * 1000) / (_alpha_cyclic[_qp] + 1000));
