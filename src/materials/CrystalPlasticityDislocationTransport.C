@@ -26,7 +26,7 @@ CrystalPlasticityDislocationTransport::validParams()
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
-  params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
+  params.addParam<Real>("tau_c_0", 0.0, "Peierls stress");
   params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
   params.addParam<Real>("reduced_mobility",0.0,"Ratio between mobility above vmax and mobility");
   params.addParam<Real>("dislo_max_velocity",1000.0,"Maximum dislocation velocity (phonon drag)");
@@ -105,7 +105,8 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
   // Slip resistance is resized here
   CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties();
   
-  Real taylor_hardening;
+  // Total dislocation density
+  Real TotalRho = 0.0;
   
   // Temperature dependence of the CRSS
   Real temperature_dependence;
@@ -119,37 +120,42 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
   // as a function of the dislocation density
   for (const auto i : make_range(_number_slip_systems))
   {
-    // Add Peierls stress
+    TotalRho += _rho_t_vector[_qp](i);
+    
+    // Add Peierls stress to each slip system
     _slip_resistance[_qp][i] = _tau_c_0;
-
-    taylor_hardening = 0.0;
+  }
+  
+  if (TotalRho >= _bowout_rho_threshold) { // avoid that bow-out term becomes too large
 	  
-    for (const auto j : make_range(_number_slip_systems))
+    for (const auto i : make_range(_number_slip_systems))
     {
-      // Determine slip planes
-      unsigned int iplane, jplane;
-      iplane = i / 3;
-      jplane = j / 3;
-
-      if (iplane == jplane) { // self vs. latent hardening
+	  // Taylor hardening + bow-out term
+	  // See Hull, Bacon, Dislocations book equation 4.30
+      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag 
+	    * (std::sqrt(TotalRho) + _bowout_coef * (_q_t_vector[_qp](i) / TotalRho));
+	}
+  
+  } else if (TotalRho >= 0.0) {
 	  
-	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += _rho_t_vector[_qp](j); 
-		//          + std::abs(_rho_gnd_edge[_qp][j])
-		//		  + std::abs(_rho_gnd_screw[_qp][j])); 
-		  
-	  } else { // latent hardening
-	  
-	    //taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		//          + std::abs(_rho_gnd_edge[_qp][j])
-		//		  + std::abs(_rho_gnd_screw[_qp][j])));	  
-		  
-	  }
+    for (const auto i : make_range(_number_slip_systems))
+    {	  
+      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag * std::sqrt(TotalRho);	  
     }
-	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening) * temperature_dependence);
-	
+  
+  } else {
+	  
+    for (const auto i : make_range(_number_slip_systems))
+    {
+	  _slip_resistance[_qp][i] += 0.0;
+    }
+    
+  }
+  
+  // Temperature dependence prefactor
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    _slip_resistance[_qp][i] *= temperature_dependence;
   }
 
   // initialize slip increment
