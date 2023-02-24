@@ -70,7 +70,17 @@ protected:
 
   virtual bool calculateSlipRate() override;
   
+  /**
+  * This function calculates the critical resolved shear stress 
+  */
   virtual void calculateSlipResistance();
+  
+  /**
+  * This function
+  * stores the dislocation velocity value
+  * to couple with dislocation transport
+  */
+  virtual void getDisloVelocity();
 
   virtual void
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
@@ -162,6 +172,13 @@ protected:
   const Real _dCRSS_dT_A;
   const Real _dCRSS_dT_B;
   const Real _dCRSS_dT_C;
+  
+  // Dislocation velocity
+  MaterialProperty<std::vector<Real>> & _dislo_velocity;
+  
+  // Derivative of the dislocation velocity with respect to the RSS
+  // on the same slip system
+  MaterialProperty<std::vector<Real>> & _ddislo_velocity_dtau;
   
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate

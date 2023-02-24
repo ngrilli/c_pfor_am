@@ -91,6 +91,10 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
 	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
 	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
+	
+	// Dislocation velocity and its derivatives
+	_dislo_velocity(declareProperty<std::vector<Real>>("dislo_velocity")), 
+    _ddislo_velocity_dtau(declareProperty<std::vector<Real>>("ddislo_velocity_dtau")),
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
@@ -265,39 +269,42 @@ CrystalPlasticityDislocationTransport::setSubstepConstitutiveVariableValues()
 
 // Slip resistance can be calculated from dislocation density here only
 // because it is the first method in which it is used,
-// while calculateConstitutiveSlipDerivative is called afterwards
+// while calculateConstitutiveSlipDerivative is called afterwards.
+// No backstress is included.
 bool
 CrystalPlasticityDislocationTransport::calculateSlipRate()
 {
   calculateSlipResistance();
   
-  // Ratio between effective stress and CRSS
-  // temporary variable for each slip system
-  Real stress_ratio;
+  // calculate dislocation velocity
+  // and store it for advection kernel
+  // necessary to call it here because slip rate
+  // depends on dislocation velocity
+  getDisloVelocity();
   
-  // Difference between RSS and backstress
-  // temporary variable for each slip system
-  Real effective_stress;
+  // Total dislocation density
+  Real TotalRho = 0.0;
   
-  // Creep prefactor: if function is not given
-  // the constant value is used
-  Real creep_ao = 0.0;
-  
-  // No backstress
-  
+  // Calculate total dislocation density
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = _tau[_qp][i];
-    
-    stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
-    
-    _slip_increment[_qp][i] = 0.0;
-        
-        //_ao * std::pow(stress_ratio, 1.0 / _xm)
-      //+ creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
-      
-    if (effective_stress < 0.0)
-      _slip_increment[_qp][i] *= -1.0;
+    TotalRho += _rho_t_vector[_qp](i);
+  }
+
+  // _slip_increment is the strain rate
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    if (TotalRho > 0.0) {
+		
+      _slip_increment[_qp][i] = TotalRho *
+        std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
+        std::copysign(1.0, _tau[_qp][i]);
+		
+	} else {
+		
+      _slip_increment[_qp][i] = 0.0;
+		
+	}
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
@@ -306,8 +313,9 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
                      std::abs(_slip_increment[_qp][i]) * _substep_dt);
 
       return false;
-    }
+    } 
   }
+  
   return true;
 }
 
@@ -327,7 +335,7 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
   temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
                          * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
 
-  // Initialize value of the slip resistance
+  // Calculate value of the slip resistance
   // as a function of the dislocation density
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -369,6 +377,31 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
     _slip_resistance[_qp][i] *= temperature_dependence;
   }	
 
+}
+
+// Calculate dislocation velocity (edge and screw) as a function
+// of the resolved shear stress and its derivative
+void
+CrystalPlasticityDislocationTransport::getDisloVelocity()
+{
+  // Total dislocation density
+  Real TotalRho = 0.0;	
+	
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    TotalRho += _rho_t_vector[_qp](i);
+  }
+  
+  _dislo_velocity[_qp].resize(_number_slip_systems);
+  _ddislo_velocity_dtau[_qp].resize(_number_slip_systems);
+  
+  // TO DO
+  
+  
+  
+  
+  
+	
 }
 
 void
