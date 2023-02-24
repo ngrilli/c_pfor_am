@@ -312,10 +312,12 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
 }
 
 // Slip resistance based on Taylor hardening
+// and dislocation bow-out stress
 void
 CrystalPlasticityDislocationTransport::calculateSlipResistance()
-{
-  Real taylor_hardening;
+{	
+  // Total dislocation density
+  Real TotalRho = 0.0;
   
   // Temperature dependence of the CRSS
   Real temperature_dependence;
@@ -324,43 +326,48 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
   // A + B exp(- C * (T - T0)) 
   temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
                          * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
-	
+
+  // Initialize value of the slip resistance
+  // as a function of the dislocation density
   for (const auto i : make_range(_number_slip_systems))
   {
-    // Add Peierls stress
+    TotalRho += _rho_t_vector[_qp](i);
+    
+    // Add Peierls stress to each slip system
     _slip_resistance[_qp][i] = _tau_c_0;
-
-    taylor_hardening = 0.0;
-	  
-    for (const auto j : make_range(_number_slip_systems))
-    {
-      // Determine slip planes
-      unsigned int iplane, jplane;
-      iplane = i / 3;
-      jplane = j / 3;
-
-      if (iplane == jplane) { // self vs. latent hardening
-	  
-	    // q_{ab} = 1.0 for self hardening
-	    //taylor_hardening += (_rho_ssd[_qp][j] 
-		//          + std::abs(_rho_gnd_edge[_qp][j])
-		//		  + std::abs(_rho_gnd_screw[_qp][j])); 
-		  
-	  } else { // latent hardening
-	  
-	    //taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		//          + std::abs(_rho_gnd_edge[_qp][j])
-		//		  + std::abs(_rho_gnd_screw[_qp][j])));
-
-        		  
-		  
-	  }
-    }
-	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening) * temperature_dependence);
-	
   }
+  
+  if (TotalRho >= _bowout_rho_threshold) { // avoid that bow-out term becomes too large
+	  
+    for (const auto i : make_range(_number_slip_systems))
+    {
+	  // Taylor hardening + bow-out term
+	  // See Hull, Bacon, Dislocations book equation 4.30
+      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag 
+	    * (std::sqrt(TotalRho) + _bowout_coef * (_q_t_vector[_qp](i) / TotalRho));
+	}
+  
+  } else if (TotalRho >= 0.0) {
+	  
+    for (const auto i : make_range(_number_slip_systems))
+    {	  
+      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag * std::sqrt(TotalRho);	  
+    }
+  
+  } else {
+	  
+    for (const auto i : make_range(_number_slip_systems))
+    {
+	  _slip_resistance[_qp][i] += 0.0;
+    }
+    
+  }
+  
+  // Temperature dependence prefactor
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    _slip_resistance[_qp][i] *= temperature_dependence;
+  }	
 
 }
 
