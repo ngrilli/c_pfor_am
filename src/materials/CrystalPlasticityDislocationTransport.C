@@ -24,7 +24,7 @@ CrystalPlasticityDislocationTransport::validParams()
   params.addCoupledVar("q_t_vector","Curvature density vector: each component is the curvature on each slip system");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
-  params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
+  params.addParam<Real>("alpha_0",0.4,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.0, "Peierls stress");
   params.addParam<Real>("dislo_mobility",0.0,"Dislocation mobility");
@@ -136,7 +136,7 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
     {
 	  // Taylor hardening + bow-out term
 	  // See Hull, Bacon, Dislocations book equation 4.30
-      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag 
+      _slip_resistance[_qp][i] += _alpha_0 * _shear_modulus * _burgers_vector_mag 
 	    * (std::sqrt(TotalRho) + _bowout_coef * (_q_t_vector[_qp](i) / TotalRho));
 	}
   
@@ -144,7 +144,7 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
 	  
     for (const auto i : make_range(_number_slip_systems))
     {	  
-      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag * std::sqrt(TotalRho);	  
+      _slip_resistance[_qp][i] += _alpha_0 * _shear_modulus * _burgers_vector_mag * std::sqrt(TotalRho);	  
     }
   
   } else {
@@ -281,22 +281,13 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
   // necessary to call it here because slip rate
   // depends on dislocation velocity
   getDisloVelocity();
-  
-  // Total dislocation density
-  Real TotalRho = 0.0;
-  
-  // Calculate total dislocation density
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    TotalRho += _rho_t_vector[_qp](i);
-  }
 
   // _slip_increment is the strain rate
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (TotalRho > 0.0) {
+    if (_rho_t_vector[_qp](i) > 0.0) {
 		
-      _slip_increment[_qp][i] = TotalRho *
+      _slip_increment[_qp][i] = _rho_t_vector[_qp](i) *
         std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
         std::copysign(1.0, _tau[_qp][i]);
 		
@@ -351,7 +342,7 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
     {
 	  // Taylor hardening + bow-out term
 	  // See Hull, Bacon, Dislocations book equation 4.30
-      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag 
+      _slip_resistance[_qp][i] += _alpha_0 * _shear_modulus * _burgers_vector_mag 
 	    * (std::sqrt(TotalRho) + _bowout_coef * (_q_t_vector[_qp](i) / TotalRho));
 	}
   
@@ -359,7 +350,7 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
 	  
     for (const auto i : make_range(_number_slip_systems))
     {	  
-      _slip_resistance[_qp][i] += 0.4 * _shear_modulus * _burgers_vector_mag * std::sqrt(TotalRho);	  
+      _slip_resistance[_qp][i] += _alpha_0 * _shear_modulus * _burgers_vector_mag * std::sqrt(TotalRho);	  
     }
   
   } else {
