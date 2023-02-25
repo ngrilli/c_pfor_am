@@ -374,25 +374,73 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
 // of the resolved shear stress and its derivative
 void
 CrystalPlasticityDislocationTransport::getDisloVelocity()
-{
-  // Total dislocation density
-  Real TotalRho = 0.0;	
-	
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    TotalRho += _rho_t_vector[_qp](i);
-  }
-  
+{		
+  // resolved shear stress at max velocity _dislo_max_velocity	
+  Real tau0; 
+
   _dislo_velocity[_qp].resize(_number_slip_systems);
   _ddislo_velocity_dtau[_qp].resize(_number_slip_systems);
   
-  // TO DO
+  for (unsigned int i = 0; i < _number_slip_systems; ++i) {
+    _dislo_velocity[_qp][i] = 0.0;
+    _ddislo_velocity_dtau[_qp][i] = 0.0;
+  }
   
-  
-  
-  
-  
+  for (unsigned int i = 0; i < _number_slip_systems; ++i)
+  {
+	tau0 = 0.0;
+		
+	if (_dislo_mobility > 0.0) {
+	  tau0 = _dislo_max_velocity / _dislo_mobility; // temporary variable for this slip system
+	  tau0 += _slip_resistance[_qp][i];		
+	}
 	
+	if (std::abs(_tau[_qp][i]) > tau0) { // Case above _dislo_max_velocity: use reduced mobility
+		
+	  _dislo_velocity[_qp][i] = (_dislo_max_velocity + _reduced_mobility * (std::abs(_tau[_qp][i]) - tau0))
+	                          * std::copysign(1.0, _tau[_qp][i]);
+	  
+	  // Derivative is always positive
+	  _ddislo_velocity_dtau[_qp][i] = _reduced_mobility;
+	  
+	  if (_rho_v_thres_flag) { // Case with density below threshold
+
+        if (_rho_t_vector[_qp](i) < _rho_v_thres) { // rescale dislocation velocity and derivative by a factor
+
+          _dislo_velocity[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
+		  _ddislo_velocity_dtau[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
+		  
+        }
+		  
+      }
+		 
+	} else if (std::abs(_tau[_qp][i]) > _slip_resistance[_qp][i]) { // Case below _dislo_max_velocity
+		
+      _dislo_velocity[_qp][i] = _dislo_mobility * (std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i])
+	                          * std::copysign(1.0, _tau[_qp][i]);
+
+	  // Derivative is always positive
+	  _ddislo_velocity_dtau[_qp][i] = _dislo_mobility;
+		
+	  if (_rho_v_thres_flag) { // Case with density below threshold
+
+        if (_rho_t_vector[_qp](i) < _rho_v_thres) { // rescale dislocation velocity and derivative by a factor
+
+          _dislo_velocity[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
+		  _ddislo_velocity_dtau[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
+		  
+        }
+		  
+      }		
+	  
+	} else { // Case below critical resolved shear stress
+		
+	  _dislo_velocity[_qp][i] = 0.0;
+	  _ddislo_velocity_dtau[_qp][i] = 0.0;
+	  
+	}	
+
+  } // end cycle over slip systems
 }
 
 void
