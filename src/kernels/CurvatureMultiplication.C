@@ -12,11 +12,10 @@
 
 registerMooseObject("MooseApp", CurvatureMultiplication);
 
-template <>
 InputParameters
-validParams<CurvatureMultiplication>()
+CurvatureMultiplication::validParams()
 {
-  InputParameters params = validParams<Kernel>();
+  InputParameters params = Kernel::validParams();
   params.addClassDescription("Total dislocation multiplication rate "
                              "Due to total dislocation curvature.");
   params.addCoupledVar("curvature", 0.0, "Total curvature density q_t.");

@@ -12,11 +12,6 @@
 
 #include "Kernel.h"
 
-class CurvatureMultiplication;
-
-template <>
-InputParameters validParams<CurvatureMultiplication>();
-
 class CurvatureMultiplication : public Kernel
 {
 public:
