@@ -6,11 +6,6 @@
 
 #include "Kernel.h"
 
-class DisloMultiplication;
-
-template <>
-InputParameters validParams<DisloMultiplication>();
-
 class DisloMultiplication : public Kernel
 {
 public:

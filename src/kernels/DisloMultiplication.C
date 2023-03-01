@@ -6,11 +6,10 @@
 
 registerMooseObject("MooseApp", DisloMultiplication);
 
-template <>
 InputParameters
-validParams<DisloMultiplication>()
+DisloMultiplication::validParams()
 {
-  InputParameters params = validParams<Kernel>();
+  InputParameters params = Kernel::validParams();
   params.addClassDescription("Dislocation multiplication rate. "
                              "Edge dislocations lead to screw multiplication and vice versa");
   params.addCoupledVar("rho_mult_1", 0.0, "First type of dislocations leading to multiplication of this type.");
