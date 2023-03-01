@@ -6,11 +6,10 @@
 
 registerMooseObject("MooseApp", SelfAnnihilation);
 
-template <>
 InputParameters
-validParams<SelfAnnihilation>()
+SelfAnnihilation::validParams()
 {
-  InputParameters params = validParams<Kernel>();
+  InputParameters params = Kernel::validParams();
   params.addClassDescription("Dislocation annihilation rate. "
                              "Dislocation density annihilates itself.");
   params.addRequiredParam<int>("slip_sys_index", "Slip system index to determine slip velocity, "

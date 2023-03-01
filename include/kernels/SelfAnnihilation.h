@@ -6,11 +6,6 @@
 
 #include "Kernel.h"
 
-class SelfAnnihilation;
-
-template <>
-InputParameters validParams<SelfAnnihilation>();
-
 class SelfAnnihilation : public Kernel
 {
 public:

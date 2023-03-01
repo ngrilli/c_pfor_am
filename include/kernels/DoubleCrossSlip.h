@@ -14,11 +14,6 @@
 
 #include "Kernel.h"
 
-class DoubleCrossSlip;
-
-template <>
-InputParameters validParams<DoubleCrossSlip>();
-
 class DoubleCrossSlip : public Kernel
 {
 public:

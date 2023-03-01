@@ -8,11 +8,10 @@
 
 registerMooseObject("MooseApp", DoubleCrossSlip);
 
-template <>
 InputParameters
-validParams<DoubleCrossSlip>()
+DoubleCrossSlip::validParams()
 {
-  InputParameters params = validParams<Kernel>();
+  InputParameters params = Kernel::validParams();
   params.addClassDescription("Dislocation double cross slip. "
                              "This kernel is meant to be applied to the curvature equation. "
 							 "It represents the creation of new curvature after a "

@@ -14,11 +14,10 @@
 
 registerMooseObject("MooseApp", ElementDeleter);
 
-template <>
 InputParameters
-validParams<ElementDeleter>()
+ElementDeleter::validParams()
 {
-    InputParameters params = validParams<ElementDeletionGeneratorBase>();
+    InputParameters params = ElementDeletionGeneratorBase::validParams();
     params.addClassDescription(
         "Mesh modifier which removes elements with the element ID");
     params.addRequiredParam<std::vector<std::string>>("ids", "The IDs of element to be removed");
