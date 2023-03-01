@@ -6,11 +6,6 @@
 
 #include "Kernel.h"
 
-class DisloAnnihilation;
-
-template <>
-InputParameters validParams<DisloAnnihilation>();
-
 class DisloAnnihilation : public Kernel
 {
 public:

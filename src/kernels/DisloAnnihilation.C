@@ -6,11 +6,10 @@
 
 registerMooseObject("MooseApp", DisloAnnihilation);
 
-template <>
 InputParameters
-validParams<DisloAnnihilation>()
+DisloAnnihilation::validParams()
 {
-  InputParameters params = validParams<Kernel>();
+  InputParameters params = Kernel::validParams();
   params.addClassDescription("Dislocation annihilation rate. "
                              "Positive dislocations annihilate negative ones");
   params.addCoupledVar("rho_annih", 0.0, "Opposite signed dislocation type leading to annihilation.");
