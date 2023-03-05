@@ -1,5 +1,7 @@
 // Nicolò Grilli
 // University of Bristol
+// Daijun Hu
+// National University of Singapore
 // 25 Gennaio 2023
 
 #include "CrystalPlasticityDislocationTransport.h"
