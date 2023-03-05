@@ -460,44 +460,19 @@ CrystalPlasticityDislocationTransport::calculateEquivalentSlipIncrement(
 // Note that this is always called after calculateSlipRate
 // because calculateSlipRate is called in calculateResidual
 // while this is called in calculateJacobian
-// therefore it is ok to calculate calculateSlipRate
+// therefore it is ok to call calculateSlipResistance
 // only inside calculateSlipRate
 void
 CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
-{
-  // Ratio between effective stress and CRSS
-  // temporary variable for each slip system
-  Real stress_ratio;
-  
-  // Difference between RSS and backstress
-  // temporary variable for each slip system
-  Real effective_stress;
-  
-  // Creep prefactor: if function is not given
-  // the constant value is used
-  Real creep_ao = 0.0;
-	
+{	
+
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = _tau[_qp][i];	  
-	  
-    if (MooseUtils::absoluteFuzzyEqual(effective_stress, 0.0)) {
-		
-      dslip_dtau[i] = 0.0;
-      		
-	} else {
-		
-	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
+    dslip_dtau[i] = _rho_t_vector[_qp](i) *
+      _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag;	  
+  }	
 
-      dslip_dtau[i] = 0.0; //_ao / _xm *
-                      //std::pow(stress_ratio, 1.0 / _xm - 1.0) /
-                      //_slip_resistance[_qp][i]
-                    //+ creep_ao / _creep_xm *
-                     // std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-                      //_slip_resistance[_qp][i];		
-	}
-  }
 }
 
 // This is called in ComputeCrystalPlasticityStressDamage,
