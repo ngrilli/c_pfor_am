@@ -15,7 +15,8 @@ ComputeLinearElasticPFFractureCyclic::validParams()
   params.addClassDescription("Computes the stress and free energy derivatives for the phase field "
                              "fracture model, with small strain, cyclic model");
   params.addParam<Real>("cycles_per_unit_time", 0, "Number of cycles per unit time.");
-  params.addParam<Real>("alpha_cyclic", "Variable accounting for fatigue effects.");
+  params.addParam<Real>("tau_cyclic_stress_history", 1.0, "Characteristic time for stress decrease in stress history.");
+  params.addParam<MaterialPropertyName>("NS_curve", "NS_curve", "Number of cycles to failure at a given stress level.");
   return params;
 }
 
@@ -23,9 +24,13 @@ ComputeLinearElasticPFFractureCyclic::ComputeLinearElasticPFFractureCyclic(
     const InputParameters & parameters)
   : ComputeLinearElasticPFFractureStress(parameters),
   _cycles_per_unit_time(getParam<Real>("cycles_per_unit_time")),
+  _tau_cyclic_stress_history(getParam<Real>("tau_cyclic_stress_history")),
   _alpha_cyclic(declareProperty<Real>("alpha_cyclic")),
   _alpha_cyclic_old(getMaterialPropertyOld<Real>("alpha_cyclic")),
-  _fatigue_degradation(declareProperty<Real>("fatigue_degradation"))
+  _fatigue_degradation(getMaterialProperty<Real>("fatigue_degradation")),
+  _cyclic_stress_history(declareProperty<Real>("cyclic_stress_history")),
+  _cyclic_stress_history_old(getMaterialPropertyOld<Real>("cyclic_stress_history")),
+  _NS_curve(getMaterialProperty<Real>("NS_curve"))
 {
 }
 
@@ -44,6 +49,15 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
   RankFourTensor Ppos =
       _mechanical_strain[_qp].positiveProjectionEigenDecomposition(eigval, eigvec);
   RankFourTensor I4sym(RankFourTensor::initIdentitySymmetricFour);
+  
+  // Eigenvalues of the stress tensor to use in the SN curve
+  // and maximum eigenvalue
+  RankTwoTensor eigvec_stress;
+  std::vector<Real> eigval_stress(LIBMESH_DIM);
+  Real max_eigval_stress = 0.0;
+  
+  // Undamaged stress for fatigue life calculation 
+  RankTwoTensor undamaged_stress;
 
   // Calculate tensors of outerproduct of eigen vectors
   std::vector<RankTwoTensor> etens(LIBMESH_DIM);
@@ -84,6 +98,31 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
   }
 
   _stress[_qp] = stress0pos * _D[_qp] - _pressure[_qp] * I2 * _I[_qp] + stress0neg;
+  
+  // Calculate stress history to determine the point of the SN curve
+  // based on the max eigenvalue
+  // note that max_eigval_stress cannot become negative
+  undamaged_stress = stress0pos - _pressure[_qp] * I2 * _I[_qp] + stress0neg;
+  undamaged_stress.positiveProjectionEigenDecomposition(eigval_stress, eigvec_stress);
+  
+  for (const auto i : make_range(Moose::dim)) {
+
+    max_eigval_stress = std::max(max_eigval_stress,eigval_stress[i]);
+	  
+  }
+  
+  // Evolve stress history used for cyclic fatigue calculation
+  // _cyclic_stress_history is used in a ParsedMaterial to calculate _NS_curve
+  
+  if (max_eigval_stress > _cyclic_stress_history_old[_qp]) { // Track maximum stress
+	  
+    _cyclic_stress_history[_qp] = max_eigval_stress;	  
+	  
+  } else { // Decrease history variable exponentially in time if max stress is decreasing
+	  
+    _cyclic_stress_history[_qp] = _cyclic_stress_history_old[_qp] * (1.0 - _dt / _tau_cyclic_stress_history);
+	  
+  } 
 
   // Energy with positive principal strains
   F_pos = lambda * etrpos * etrpos / 2.0 + mu * pval;
@@ -98,11 +137,15 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
 
   _Jacobian_mult[_qp] = (I4sym - (1 - _D[_qp]) * Ppos) * _elasticity_tensor[_qp];
 
-  // update my number of cycles
-  _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + _cycles_per_unit_time * _dt;
+  // update the fatigue effects variable using Miner's rule
+  // _NS_curve is used in a ParsedMaterial to calculate _fatigue_degradation
+  if (_NS_curve[_qp] == 0)
+    mooseError("ComputeLinearElasticPFFractureCyclic: number of cycles to failure must not be zero");
+  else
+    _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + (_cycles_per_unit_time * _dt)/_NS_curve[_qp];
 
   //fatigue degradation function (1000 its just a value that will be taken from experiment)
-  _fatigue_degradation[_qp] = ((2 * 1000) / (_alpha_cyclic[_qp] + 1000)) * ((2 * 1000) / (_alpha_cyclic[_qp] + 1000));
+  //_fatigue_degradation[_qp] = ((2 * 1000) / (_alpha_cyclic[_qp] + 1000)) * ((2 * 1000) / (_alpha_cyclic[_qp] + 1000));
 
 }
 
@@ -111,6 +154,10 @@ ComputeLinearElasticPFFractureCyclic::computeQpStress()
 {
   Real F_pos, F_neg;
   RankTwoTensor I2(RankTwoTensor::initIdentity);
+  
+  // Fpos as modified during cyclic fatigue
+  // It is effectively equivalent to a decrease in Gc
+  Real cyclic_F_pos;
 
   switch (_decomposition_type)
   {
@@ -136,20 +183,25 @@ ComputeLinearElasticPFFractureCyclic::computeQpStress()
       _Jacobian_mult[_qp] = _D[_qp] * _elasticity_tensor[_qp];
     }
   }
+  
+  if (_fatigue_degradation[_qp] > 1.0e-6)
+    cyclic_F_pos = F_pos / _fatigue_degradation[_qp];
+  else 
+    cyclic_F_pos = F_pos / 1.0e-6;
 
   // // Assign history variable
   Real hist_variable = _H_old[_qp];
   if (_use_snes_vi_solver)
   {
-    _H[_qp] = F_pos;
+    _H[_qp] = cyclic_F_pos;
 
     if (_use_current_hist)
       hist_variable = _H[_qp];
   }
   else
   {
-    if (F_pos > _H_old[_qp])
-      _H[_qp] = F_pos;
+    if (cyclic_F_pos > _H_old[_qp])
+      _H[_qp] = cyclic_F_pos;
     else
       _H[_qp] = _H_old[_qp];
 

@@ -35,14 +35,26 @@ protected:
 
   // number of cycles per unit time
   const Real _cycles_per_unit_time;
+  
+  // Characteristic time for stress decrease in stress history
+  const Real _tau_cyclic_stress_history;
 
   // alpha variable in the cyclic model
   // and its value at the previous time step
+  // Miner's rule
   MaterialProperty<Real> & _alpha_cyclic;
   const MaterialProperty<Real> & _alpha_cyclic_old;
 
   // fatigue degradation function in the cyclic model
-  MaterialProperty<Real> & _fatigue_degradation;
-
+  const MaterialProperty<Real> & _fatigue_degradation;
+  
+  // tracks the maximum positive stress eigenvalue
+  // to determine the point of the SN curve
+  MaterialProperty<Real> & _cyclic_stress_history;
+  const MaterialProperty<Real> & _cyclic_stress_history_old;
+  
+  // Stress level as a function of the number of cycles to failure
+  // This is defined using a ParsedMaterial in the input file 
+  const MaterialProperty<Real> & _NS_curve;
 
 };
