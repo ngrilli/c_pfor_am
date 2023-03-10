@@ -46,7 +46,7 @@ protected:
   const MaterialProperty<Real> & _alpha_cyclic_old;
 
   // fatigue degradation function in the cyclic model
-  const MaterialProperty<Real> & _fatigue_degradation;
+  const MaterialProperty<Real> & _fatigue_degradation_old;
   
   // tracks the maximum positive stress eigenvalue
   // to determine the point of the SN curve
@@ -55,6 +55,6 @@ protected:
   
   // Stress level as a function of the number of cycles to failure
   // This is defined using a ParsedMaterial in the input file 
-  const MaterialProperty<Real> & _NS_curve;
+  const MaterialProperty<Real> & _NS_curve_old;
 
 };

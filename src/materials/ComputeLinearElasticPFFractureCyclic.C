@@ -16,7 +16,8 @@ ComputeLinearElasticPFFractureCyclic::validParams()
                              "fracture model, with small strain, cyclic model");
   params.addParam<Real>("cycles_per_unit_time", 0, "Number of cycles per unit time.");
   params.addParam<Real>("tau_cyclic_stress_history", 1.0, "Characteristic time for stress decrease in stress history.");
-  params.addParam<MaterialPropertyName>("NS_curve", "NS_curve", "Number of cycles to failure at a given stress level.");
+  params.addParam<MaterialPropertyName>("NS_curve_name", "NS_curve", "Number of cycles to failure at a given stress level.");
+  params.addParam<MaterialPropertyName>("fatigue_degradation_name", "fatigue_degradation", "Fatigue degradation function in the cyclic model.");
   return params;
 }
 
@@ -27,10 +28,10 @@ ComputeLinearElasticPFFractureCyclic::ComputeLinearElasticPFFractureCyclic(
   _tau_cyclic_stress_history(getParam<Real>("tau_cyclic_stress_history")),
   _alpha_cyclic(declareProperty<Real>("alpha_cyclic")),
   _alpha_cyclic_old(getMaterialPropertyOld<Real>("alpha_cyclic")),
-  _fatigue_degradation(getMaterialProperty<Real>("fatigue_degradation")),
+  _fatigue_degradation_old(getMaterialPropertyOld<Real>("fatigue_degradation")),
   _cyclic_stress_history(declareProperty<Real>("cyclic_stress_history")),
   _cyclic_stress_history_old(getMaterialPropertyOld<Real>("cyclic_stress_history")),
-  _NS_curve(getMaterialProperty<Real>("NS_curve"))
+  _NS_curve_old(getMaterialPropertyOld<Real>("NS_curve"))
 {
 }
 
@@ -138,14 +139,11 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
   _Jacobian_mult[_qp] = (I4sym - (1 - _D[_qp]) * Ppos) * _elasticity_tensor[_qp];
 
   // update the fatigue effects variable using Miner's rule
-  // _NS_curve is used in a ParsedMaterial to calculate _fatigue_degradation
-  if (_NS_curve[_qp] == 0)
+  // _NS_curve is defined in a ParsedMaterial
+  if (_NS_curve_old[_qp] == 0)
     mooseError("ComputeLinearElasticPFFractureCyclic: number of cycles to failure must not be zero");
   else
-    _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + (_cycles_per_unit_time * _dt)/_NS_curve[_qp];
-
-  //fatigue degradation function (1000 its just a value that will be taken from experiment)
-  //_fatigue_degradation[_qp] = ((2 * 1000) / (_alpha_cyclic[_qp] + 1000)) * ((2 * 1000) / (_alpha_cyclic[_qp] + 1000));
+    _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + (_cycles_per_unit_time * _dt)/_NS_curve_old[_qp];
 
 }
 
@@ -184,12 +182,12 @@ ComputeLinearElasticPFFractureCyclic::computeQpStress()
     }
   }
   
-  if (_fatigue_degradation[_qp] > 1.0e-6)
-    cyclic_F_pos = F_pos / _fatigue_degradation[_qp];
+  if (_fatigue_degradation_old[_qp] > 1.0e-6)
+    cyclic_F_pos = F_pos / _fatigue_degradation_old[_qp];
   else 
     cyclic_F_pos = F_pos / 1.0e-6;
 
-  // // Assign history variable
+  // Assign history variable
   Real hist_variable = _H_old[_qp];
   if (_use_snes_vi_solver)
   {
