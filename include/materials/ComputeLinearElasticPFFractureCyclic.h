@@ -38,6 +38,9 @@ protected:
   
   // Characteristic time for stress decrease in stress history
   const Real _tau_cyclic_stress_history;
+  
+  // Minimum residual fatigue degradation
+  const Real _residual_fatigue_degradation;
 
   // alpha variable in the cyclic model
   // and its value at the previous time step

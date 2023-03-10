@@ -16,6 +16,7 @@ ComputeLinearElasticPFFractureCyclic::validParams()
                              "fracture model, with small strain, cyclic model");
   params.addParam<Real>("cycles_per_unit_time", 0, "Number of cycles per unit time.");
   params.addParam<Real>("tau_cyclic_stress_history", 1.0, "Characteristic time for stress decrease in stress history.");
+  params.addParam<Real>("residual_fatigue_degradation", 1e-3, "Minimum residual fatigue degradation.");
   params.addParam<MaterialPropertyName>("NS_curve_name", "NS_curve", "Number of cycles to failure at a given stress level.");
   params.addParam<MaterialPropertyName>("fatigue_degradation_name", "fatigue_degradation", "Fatigue degradation function in the cyclic model.");
   return params;
@@ -26,6 +27,7 @@ ComputeLinearElasticPFFractureCyclic::ComputeLinearElasticPFFractureCyclic(
   : ComputeLinearElasticPFFractureStress(parameters),
   _cycles_per_unit_time(getParam<Real>("cycles_per_unit_time")),
   _tau_cyclic_stress_history(getParam<Real>("tau_cyclic_stress_history")),
+  _residual_fatigue_degradation(getParam<Real>("residual_fatigue_degradation")),
   _alpha_cyclic(declareProperty<Real>("alpha_cyclic")),
   _alpha_cyclic_old(getMaterialPropertyOld<Real>("alpha_cyclic")),
   _fatigue_degradation_old(getMaterialPropertyOld<Real>("fatigue_degradation")),
@@ -190,10 +192,10 @@ ComputeLinearElasticPFFractureCyclic::computeQpStress()
     }
   }
   
-  if (_fatigue_degradation_old[_qp] > 1.0e-6)
+  if (_fatigue_degradation_old[_qp] > _residual_fatigue_degradation)
     cyclic_F_pos = F_pos / _fatigue_degradation_old[_qp];
   else 
-    cyclic_F_pos = F_pos / 1.0e-6;
+    cyclic_F_pos = F_pos / _residual_fatigue_degradation;
 
   // Assign history variable
   Real hist_variable = _H_old[_qp];
