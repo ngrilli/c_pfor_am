@@ -1,8 +1,6 @@
 [Mesh]
   file = FourGrains.msh
   dim = 3
-  elem_type = HEX8
-  displacements = 'disp_x disp_y disp_z'
 []
 
 [GlobalParams]
