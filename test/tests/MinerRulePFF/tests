@@ -1,0 +1,10 @@
+[Tests]
+  [./MinerRuleTest]
+    type = 'Exodiff'
+    input = 'MinerRuleTest10cycles.i'
+    exodiff = 'MinerRuleTest10cycles_out.e'
+	heavy = false
+    # rel_err = 1e-4
+    # abs_zero = 1e-6
+  [../]
+[]
