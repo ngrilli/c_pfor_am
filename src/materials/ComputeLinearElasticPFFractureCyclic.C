@@ -140,11 +140,19 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
 
   // update the fatigue effects variable using Miner's rule
   // _NS_curve is defined in a ParsedMaterial
-  if (_NS_curve_old[_qp] == 0)
+  if (_NS_curve_old[_qp] == 0) {
+	  
     mooseError("ComputeLinearElasticPFFractureCyclic: number of cycles to failure must not be zero");
-  else
+	  
+  } else {
+	    
     _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + (_cycles_per_unit_time * _dt)/_NS_curve_old[_qp];
-
+    
+    // Limit the Miner rule variable to 1 to avoid problems in fatigue_degradation
+    _alpha_cyclic[_qp] = std::max(_alpha_cyclic[_qp],1.0);
+	  
+  }    
+  
 }
 
 void
