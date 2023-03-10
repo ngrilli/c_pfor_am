@@ -149,7 +149,7 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
     _alpha_cyclic[_qp] = _alpha_cyclic_old[_qp] + (_cycles_per_unit_time * _dt)/_NS_curve_old[_qp];
     
     // Limit the Miner rule variable to 1 to avoid problems in fatigue_degradation
-    _alpha_cyclic[_qp] = std::max(_alpha_cyclic[_qp],1.0);
+    _alpha_cyclic[_qp] = std::min(_alpha_cyclic[_qp],1.0);
 	  
   }    
   
