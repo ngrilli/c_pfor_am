@@ -112,10 +112,10 @@ protected:
   // Four state variables of the CDD model
   // Each component of the vector variable corresponds
   // to a different slip system
-  const VectorVariableValue & _rho_t_vector;
-  const VectorVariableValue & _rho_edge_vector;
-  const VectorVariableValue & _rho_screw_vector;
-  const VectorVariableValue & _q_t_vector;
+  const ArrayVariableValue & _rho_t_vector;
+  const ArrayVariableValue & _rho_edge_vector;
+  const ArrayVariableValue & _rho_screw_vector;
+  const ArrayVariableValue & _q_t_vector;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;

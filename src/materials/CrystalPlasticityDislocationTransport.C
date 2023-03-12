@@ -61,10 +61,10 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
 	_temperature(coupledValue("temperature")),
 
     // Dislocation model variables, not updated here
-    _rho_t_vector(isParamValid("rho_t_vector") ? coupledVectorValue("rho_t_vector") : _vector_zero),	
-    _rho_edge_vector(isParamValid("rho_edge_vector") ? coupledVectorValue("rho_edge_vector") : _vector_zero),
-    _rho_screw_vector(isParamValid("rho_screw_vector") ? coupledVectorValue("rho_screw_vector") : _vector_zero),	
-    _q_t_vector(isParamValid("q_t_vector") ? coupledVectorValue("q_t_vector") : _vector_zero),
+    _rho_t_vector(coupledArrayValue("rho_t_vector")),
+    _rho_edge_vector(coupledArrayValue("rho_edge_vector")),
+    _rho_screw_vector(coupledArrayValue("rho_screw_vector")),
+    _q_t_vector(coupledArrayValue("q_t_vector")),
   
     // Constitutive model parameters
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
