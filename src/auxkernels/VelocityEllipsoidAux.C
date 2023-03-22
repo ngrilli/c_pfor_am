@@ -32,8 +32,6 @@ VelocityEllipsoidAux::validParams()
   params.addRequiredParam<std::vector<Real>>("init_y_coords", "Initial values of y coordinates of the material deposition source");
   params.addRequiredParam<std::vector<Real>>("init_z_coords", "Initial values of z coordinates of the material deposition source");
   
-  params.addRequiredParam<PostprocessorName>("temperature_pp","Postprocessor with temperature value to determine material deposition source motion.");
-  
   params.addRequiredParam<std::vector<Real>>("scan_length","Total length during one scan. "
                                                            "After this length the material deposition is switched off. ");
   
@@ -57,15 +55,21 @@ VelocityEllipsoidAux::VelocityEllipsoidAux(const InputParameters & parameters)
     _init_y_coords(getParam<std::vector<Real>>("init_y_coords")),
     _init_z_coords(getParam<std::vector<Real>>("init_z_coords")),
     
-    // Postprocess with temperature value
-    _temperature_pp(getPostprocessorValue("temperature_pp")),
-    
     // Total length during one scan
     _scan_length(getParam<std::vector<Real>>("scan_length")),
     
+    // Threshold value of the ellipsoid function that activates the level set
+	_level_set_activation_threshold(getParam<Real>("level_set_activation_threshold")),
+	
+	// _t_scan tracks the simulation time at which a new
+    // scan begins after the condition based on the postprocessor
+    // changes the coordinates of the heat source
+    // imported from a VelocityEllipsoidHeatSource material object
+    _t_scan(getMaterialProperty<Real>("t_scan")),
     
-
-	_level_set_activation_threshold(getParam<Real>("level_set_activation_threshold"))
+    // Material deposition track index
+    // imported from a VelocityEllipsoidHeatSource material object
+    _n_track(getMaterialProperty<int>("n_track"))
 {
 }
 
@@ -75,25 +79,30 @@ VelocityEllipsoidAux::computeValue()
   // value of the level set variable at the previous time step
   Real old_level_set = _u[_qp];
   
+  // Set initial coordinates for this track
+  Real x_coord = _init_x_coords[_n_track[_qp]];
+  Real y_coord = _init_y_coords[_n_track[_qp]];
+  Real z_coord = _init_z_coords[_n_track[_qp]];
+  
   const Real & x = _q_point[_qp](0);
   const Real & y = _q_point[_qp](1);
   const Real & z = _q_point[_qp](2);
   
-  // center of the ellipsoidal heat source
-  Real x_t; // = _function_x.value(_t);
-  Real y_t; // = _function_y.value(_t);
-  Real z_t; // = _function_z.value(_t);
+  // center of the heat source
+  Real x_t = x_coord + _velocity(0) * (_t - _t_scan[_qp]);
+  Real y_t = y_coord + _velocity(1) * (_t - _t_scan[_qp]);
+  Real z_t = z_coord + _velocity(2) * (_t - _t_scan[_qp]);
   
   // ellipsoid function value
   Real val;
   
   val = 6.0 * std::sqrt(3.0) /
-          (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
-          std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
-                          3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
-                           3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
+        (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
+        std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
+                   3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
+                   3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
 
-  if (val > _level_set_activation_threshold) { // heat source activating this _qp
+  if (val > _level_set_activation_threshold) { // ellipsoid function activating this _qp
 	  
 	  return _high_level_set_var;
 	  

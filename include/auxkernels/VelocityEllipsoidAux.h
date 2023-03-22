@@ -50,31 +50,23 @@ protected:
   const std::vector<Real> _init_y_coords;
   const std::vector<Real> _init_z_coords;
   
-  /// Postprocess with temperature value
-  /// it provides the condition based on which the material deposition source
-  /// is moved to the next set of initial coordinates
-  const PostprocessorValue & _temperature_pp;
-  
-  /// variables to store the coordinates 
-  /// of the center of the material deposition source
-  Real _x_coord;
-  Real _y_coord;
-  Real _z_coord;
-  
-  /// _t_scan tracks the simulation time at which a new
-  /// scan begins after the condition based on the postprocessor
-  /// changes the coordinates of the heat source
-
-  
   /// Total length during each scan
   /// After the laser has travelled this length
   /// it is switched off
   const std::vector<Real> _scan_length;
-  
-  
-  
+
   /// Threshold value of the ellipsoid function
   /// that activates the level set.
   const Real _level_set_activation_threshold;
+  
+  /// _t_scan tracks the simulation time at which a new
+  /// scan begins after the condition based on the postprocessor
+  /// changes the coordinates of the heat source
+  /// imported from a VelocityEllipsoidHeatSource material object
+  const MaterialProperty<Real> & _t_scan;
+  
+  /// Material deposition track index
+  /// imported from a VelocityEllipsoidHeatSource material object
+  const MaterialProperty<int> & _n_track;
 
 };
