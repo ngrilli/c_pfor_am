@@ -34,7 +34,8 @@ VelocityEllipsoidAux::validParams()
   
   params.addRequiredParam<PostprocessorName>("temperature_pp","Postprocessor with temperature value to determine material deposition source motion.");
   
-  
+  params.addRequiredParam<std::vector<Real>>("scan_length","Total length during one scan. "
+                                                           "After this length the material deposition is switched off. ");
   
   
   params.addParam<Real>("level_set_activation_threshold", 0.5, "Threshold value of the ellipsoid function "
@@ -58,6 +59,9 @@ VelocityEllipsoidAux::VelocityEllipsoidAux(const InputParameters & parameters)
     
     // Postprocess with temperature value
     _temperature_pp(getPostprocessorValue("temperature_pp")),
+    
+    // Total length during one scan
+    _scan_length(getParam<std::vector<Real>>("scan_length")),
     
     
 

@@ -60,7 +60,7 @@ VelocityEllipsoidHeatSource::VelocityEllipsoidHeatSource(const InputParameters &
     // changes the coordinates of the heat source
     _t_scan(declareProperty<Real>("t_scan")),
     
-    // Total time during one scan
+    // Total length during one scan
     _scan_length(getParam<std::vector<Real>>("scan_length")),
     
     // Threshold temperature for the postprocessor condition
