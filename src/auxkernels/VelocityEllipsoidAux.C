@@ -93,15 +93,28 @@ VelocityEllipsoidAux::computeValue()
   Real y_t = y_coord + _velocity(1) * (_t - _t_scan[_qp]);
   Real z_t = z_coord + _velocity(2) * (_t - _t_scan[_qp]);
   
+  // Calculate distance travelled by the heat source during this scan
+  Real distance = std::pow(x_t - x_coord, 2);
+  distance += std::pow(y_t - y_coord, 2);
+  distance += std::pow(z_t - z_coord, 2);
+  distance = std::sqrt(distance);
+  
   // ellipsoid function value
   Real val;
   
-  val = 6.0 * std::sqrt(3.0) /
-        (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
-        std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
-                   3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
-                   3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
-
+  if (distance > _scan_length[_n_track[_qp]]) { // This single scan is over
+	  
+    val = 0.0;	  
+	  
+  } else {
+	  
+    val = 6.0 * std::sqrt(3.0) /
+          (_rx * _ry * _rz * std::pow(libMesh::pi, 1.5)) *
+          std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_rx, 2.0) +
+                     3.0 * std::pow(y - y_t, 2.0) / std::pow(_ry, 2.0) +
+                     3.0 * std::pow(z - z_t, 2.0) / std::pow(_rz, 2.0)));
+  }
+  
   if (val > _level_set_activation_threshold) { // ellipsoid function activating this _qp
 	  
 	  return _high_level_set_var;
@@ -116,7 +129,6 @@ VelocityEllipsoidAux::computeValue()
 
       return _low_level_set_var;
 
-    }	  
-	
+    }	 
   }
 }
