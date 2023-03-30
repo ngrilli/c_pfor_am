@@ -117,9 +117,7 @@ SA508CreepStressUpdateTempl<is_ad>::computeResidualInternal(
 // Derivative of the creep rate with respect to the stress
 // the prefactor _three_shear_modulus and subtraction -1
 // is due to the specific formulation in the function
-// computeStressDerivative in RadialReturnCreepStressUpdateBase 
-//
-// TO DO
+// computeStressDerivative in RadialReturnCreepStressUpdateBase
 template <bool is_ad>
 GenericReal<is_ad>
 SA508CreepStressUpdateTempl<is_ad>::computeDerivative(
@@ -127,13 +125,25 @@ SA508CreepStressUpdateTempl<is_ad>::computeDerivative(
 {
   const GenericReal<is_ad> stress_delta = effective_trial_stress - _three_shear_modulus * scalar;
   
+  // Calculate grain boundary sliding creep rate
+  const GenericReal<is_ad> GBS_creep_rate = _A0 * std::pow(stress_delta, _nA_exponent) * _exponential;
   
-  //const GenericReal<is_ad> creep_rate_derivative =
+  // Derivative of grain boundary sliding creep rate with respect to the stress
+  const GenericReal<is_ad> dGBS_creep_rate_dstress = _A0 * _nA_exponent * std::pow(stress_delta, _nA_exponent - 1.0) * _exponential;
+
+  // Calculate the derivative of the time scale for primary creep with respect to the stress
+  GenericReal<is_ad> dt_T_dstress = (_beta - 1.0) / (_beta * _beta * _H[_qp] * GBS_creep_rate);
+  
+  dt_T_dstress -= (_beta - 1.0) * dGBS_creep_rate_dstress / (_beta * _beta * _H[_qp] * GBS_creep_rate * GBS_creep_rate);
+  
+  // TO DO for Haziqah
+  
+  const GenericReal<is_ad> creep_rate_derivative = 0.0;
+
   //    -_coefficient * _three_shear_modulus * _n_exponent *
   //    std::pow(stress_delta, _n_exponent - 1.0) * _exponential * _exp_time;
   
-  //return creep_rate_derivative * _dt - 1.0;
-  return 0.0;
+  return creep_rate_derivative * _dt - 1.0;
 }
 
 template <bool is_ad>
