@@ -132,16 +132,44 @@ SA508CreepStressUpdateTempl<is_ad>::computeDerivative(
   const GenericReal<is_ad> dGBS_creep_rate_dstress = _A0 * _nA_exponent * std::pow(stress_delta, _nA_exponent - 1.0) * _exponential;
 
   // Calculate the derivative of the time scale for primary creep with respect to the stress
-  GenericReal<is_ad> dt_T_dstress = (_beta - 1.0) / (_beta * _beta * _H[_qp] * GBS_creep_rate);
-  
-  dt_T_dstress -= (_beta - 1.0) * dGBS_creep_rate_dstress / (_beta * _beta * _H[_qp] * GBS_creep_rate * GBS_creep_rate);
-  
-  // TO DO for Haziqah
-  
-  const GenericReal<is_ad> creep_rate_derivative = 0.0;
+  GenericReal<is_ad> dt_T_dstress = 0.0;
 
-  //    -_coefficient * _three_shear_modulus * _n_exponent *
-  //    std::pow(stress_delta, _n_exponent - 1.0) * _exponential * _exp_time;
+  if (_beta > 1e-6 && _H[_qp] > 1e-6 && GBS_creep_rate > 1e-12) { // Check that denominator is not too small
+
+    dt_T_dstress += (_beta - 1.0) / (_beta * _beta * _H[_qp] * GBS_creep_rate);
+  
+    dt_T_dstress -= stress_delta * (_beta - 1.0) * dGBS_creep_rate_dstress / (_beta * _beta * _H[_qp] * GBS_creep_rate * GBS_creep_rate);  
+  
+  }
+  
+  // Calculate time scale for primary creep in equation 6c
+  GenericReal<is_ad> t_T = 0.0;
+  
+  if (_beta > 1e-6 && _H[_qp] > 1e-6 && GBS_creep_rate > 1e-12) { // Check that denominator is not too small
+	  
+    t_T = stress_delta * (_beta - 1.0) / (_beta * _beta * _H[_qp] * GBS_creep_rate);
+	  
+  } else {
+	  
+    t_T = 1e12;
+	  
+  }
+  
+  // Calculate derivative of the creep rate with respect to the stress
+  GenericReal<is_ad> creep_rate_derivative = 0.0;
+  
+  if (_beta > 1.0 && t_T > 1e-6) {
+  
+    creep_rate_derivative += dGBS_creep_rate_dstress / (_beta - 1.0);
+    
+    creep_rate_derivative += GBS_creep_rate * _t * dt_T_dstress / ((_beta - 1.0) * t_T * t_T);
+    
+    creep_rate_derivative *= std::exp(-_t / t_T);
+  
+  }
+  
+  // Multiply by -_three_shear_modulus for compatibility with RadialReturnCreepStressUpdateBase
+  creep_rate_derivative *= (-1.0 * _three_shear_modulus);
   
   return creep_rate_derivative * _dt - 1.0;
 }
