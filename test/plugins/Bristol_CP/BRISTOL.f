@@ -19,6 +19,7 @@ c
       include "initialization.f"
       include "slipratelaws.f"
       include "sliphardlaws.f"
+      include "creepphasefielddamage.f"
       include "calculations.f"
 c
 c
@@ -62,7 +63,6 @@ c
 c     At the start of the analysis (only ONCE!)
       if (LOP.eq.0 .or. LOP.eq.4) then
 c
-c          foldername= "../../tests/umat/"
 c
       status_getcwd = getcwd(foldername255)
       if ( status_getcwd .ne. 0 ) stop
