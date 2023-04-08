@@ -84,6 +84,10 @@ c     this is needed for calculating _dstress_dc
 c     plastic work in finite strain formulation
       real(8), allocatable, public :: global_Wp(:,:)
       real(8), allocatable, public :: global_Wp_t(:,:)
+c     Flag to activate creep damage
+      integer, public :: pf_creep_flag
+c     Creep Damage Type 
+      integer, public :: pf_creep_type
 
 c	Constants used everywhere
 c     ______________________________________________________

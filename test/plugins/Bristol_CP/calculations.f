@@ -24,11 +24,15 @@ c	This subroutine calculates the two main variables: Stress and Consistent tange
      &GSeffect,grainID,grainsize_init,global_state0,tstep_forw,GND_init,
      &tstep_back,numel,numip,global_Fr0,tres,resdef,mtdjaco,coords_init,
      &grainmorph,global_damage,global_F_pos,global_F_neg,global_pk2_pos,
-     &phasefielddamage,phaseind,maxnumslip,global_Wp,global_Wp_t
+     &phasefielddamage,phaseind,maxnumslip,global_Wp,global_Wp_t,
+     &pf_creep_flag, pf_creep_type     
+     
       use initialization, only: initialize_grainsize,
      &initialize_gndslipgradel
       use phasefieldfracture, only: update_plastic_work
-	implicit none
+      use creepphasefielddamage, only: R5
+      
+      implicit none
 c	Inputs
       integer inc
       real(8) F_t(3,3),F(3,3),t,dt,temp
@@ -55,10 +59,12 @@ c     Variables related with phase field damage
       real(8) F_pos, F_neg, dam, pk2_pos_mat(3,3)
       integer damflag
       real(8) Wp, Wp_t
-      integer nonconv_debug_messages
-	  
+c     Variables related to Ed's Creep Damage Models      
+      real(8) f_ep_c, df_ep_c_dt
+      
 	  ! hard coded flag to activate debug messages when
 	  ! the NR loop does not converge
+      integer nonconv_debug_messages
 	  nonconv_debug_messages = 0
 
 c     - The step update is indicated with the change of time
@@ -79,7 +85,7 @@ c         write(6,*) 'Updated the state variables'
          global_state_t(el_no,ip_no,:,:)=global_state(el_no,ip_no,:,:)
          global_jacob_t(el_no,ip_no,:,:)=global_jacob(el_no,ip_no,:,:)
          global_sigma_t(el_no,ip_no,:)=global_sigma(el_no,ip_no,:)
-				 global_Wp_t(el_no,ip_no) = global_Wp(el_no,ip_no)
+         global_Wp_t(el_no,ip_no) = global_Wp(el_no,ip_no)
       endif
 	  
 
@@ -223,12 +229,7 @@ c	    Calculate stress and flow stress using J2 plasticity
           call J2_main(dt,F,Fp_t,Fe_t,S_t,sstate_t,sgsum_t,sgint_t,
      &    temp,sstate0,sXdist,ph_no,Fp,Fe,S,Np,eta,epsdot,
      &    depsdot_dsigma,sstate,sgsum,sgint,sigma,sconv)
-
-c 		    write(6,*) 'sigma'
-c		    write(6,*) sigma   
-
-
-
+ 
               
 c         Calculate the time factor
 c           pnewdt=1.25
@@ -368,9 +369,6 @@ c                 Calculate the material tangent (using elasticity)
                       
                   endif
 
-c 		        write(6,*) 'jacob'
-c		        write(6,*) jacob
-
 
 c		        When the jacobian calculation did not converge, assign the old jacobian!
 		        if (jconv.eq.0d+0) then
@@ -445,6 +443,11 @@ c	    Assign the globally stored variables
           ! assign local damage phase field variable
           dam = global_damage(el_no,ip_no)
           damflag = phasefielddamage
+          
+c         Plastic deformation variable used for creep damage estimation
+          if (pf_creep_flag .eq. 1) then
+            f_ep_c = state_t(numstvar,1)
+          endif
 
 
 c         Fr is scaled with time: i.e. tres = 1 seconds
@@ -470,7 +473,7 @@ c	    elasticity tensor from the global variables
           call SC_main(dt,F,Fp_t,Fr,S_t,state_t,gsum_t,gint_t,temp,
      & state0,Xdist,dam,damflag,ph_no,C,S,Lp,Fp,Fe,sigma,gammadot,
      & dgammadot_dtau,state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,
-     & Wp_t)
+     & Wp_t,f_ep_c)
 
 
 
@@ -675,7 +678,11 @@ c	    Store the important variables
           global_state(el_no,ip_no,1:nss,1:numstvar) = state
           global_gammadot(el_no,ip_no,1:nss) = gammadot
           global_gamma(el_no,ip_no,1:nss) = gint
-          global_gamma_sum(el_no,ip_no) = gsum   
+          global_gamma_sum(el_no,ip_no) = gsum  
+          
+c         Update the creep function f_ep_c
+c         f_ep_c is assigned to the last state variable of every slip system
+          global_state(el_no,ip_no,1:nss,numstvar) = f_ep_c
 
 	  ! assign to global variables
           global_F_pos(el_no,ip_no) = F_pos
@@ -1229,7 +1236,7 @@ c	Variables used within this subroutine
 	  real(8) dummy3(3,3)
       real(8) dummy4(3,3),dummy5(3,3),dummy9(maxnumslip)
       real(8) dummy6(maxnumslip),dummy7(maxnumslip),dummy8
-      real(8) dummy10, dummy11, dummy12(3,3), dummy13
+      real(8) dummy10, dummy11, dummy12(3,3), dummy13, dummy14
       integer i,j,sconv,nss
       real(8)	state(maxnumslip,numstvar), state_t(maxnumslip,numstvar)
       real(8) state0(maxnumslip,numstvar)
@@ -1264,7 +1271,7 @@ c		Call the calculation procedure
 		call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,state_t,gsum_t,gint_t,
      &    temp,state0,Xdist,dam,damflag,ph_no,dummy1,dummy2,dummy3,
      &    dummy4,dummy5,Cauchy_per_vec,dummy6,dummy7,state,dummy8,
-     &    dummy9,dummy10,dummy11,dummy12,sconv,dummy13)
+     &    dummy9,dummy10,dummy11,dummy12,sconv,dummy13,dummy14)
 
 c
           if (sconv.eq.0d+0) jconv=0d+0
@@ -1752,45 +1759,48 @@ c	USES:	scale, innertol, outertol, innoitmax, ounoitmax
       subroutine SC_main(dt,F,Fp_t,Fr,S_vec_t,state_t,
      & gsum_t,gint_t,temp,state0,Xdist,dam,damflag,ph_no,C,
      & S_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,dgammadot_dtau,
-     & state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,Wp)
+     & state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,Wp,f_ep_c)
 c
 c
 c
       use globalvars, only : ounoitmax, innoitmax, 
      &innertol, outerabstol, I6, dS_cr, numstvar, largenum,
-     &Schmid, SchmidT, I3, elas66, numslip, maxnumslip
+     &Schmid, SchmidT, I3, elas66, numslip, maxnumslip,
+     &pf_creep_flag, pf_creep_type
 c
 c
 c
       use phasefieldfracture, only : computeStrainVolumetric
+      use creepphasefielddamage, only : R5
 c
-	use globalsubs, only : invert3x3, determinant,convert3x3to6,
+      use globalsubs, only : invert3x3, determinant,convert3x3to6,
      &convert6to3x3, invertnxn
-	implicit none
+      
+      implicit none
 c	Input variable declarations
-	real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,temp
-      real(8) Fr(3,3),Xdist(maxnumslip),dam,gint_t(maxnumslip)
+      real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,temp
+      real(8) Fr(3,3),Xdist(maxnumslip),dam,gint_t(maxnumslip),f_ep_c
       integer damflag, ph_no
 c	Output variable declarations
-	real(8) C(3,3,maxnumslip),S_vec(6),Lp(3,3)
-	real(8) Fp(3,3),Fe(3,3),Cauchy(3,3),gsum
+      real(8) C(3,3,maxnumslip),S_vec(6),Lp(3,3)
+      real(8) Fp(3,3),Fe(3,3),Cauchy(3,3),gsum
       real(8) Cauchy_vec(6), gammadot(maxnumslip)
-	real(8) gint(maxnumslip),dgammadot_dtau(maxnumslip)
+      real(8) gint(maxnumslip),dgammadot_dtau(maxnumslip)
 c     Output variables related with phase field damage
       real(8) F_pos, F_neg, pk2_pos_mat(3,3)
 
 c	Variables used within this subroutine
-	real(8) detFp_t,invFp_t(3,3),A(3,3)
-	real(8) B(3,3,maxnumslip),B_vec(6,maxnumslip)
+      real(8) detFp_t,invFp_t(3,3),A(3,3)
+      real(8) B(3,3,maxnumslip),B_vec(6,maxnumslip)
       real(8) E_tr(3,3),E_vec_tr(6),S_vec_tr(6),C_vec(6,maxnumslip)
       real(8) sumG(6), tau(maxnumslip),inres,invFr(3,3),detFr,Fsum(3,3)
       real(8) dG(6,6),dS_vec(6),invdG(6,6),detdG,G_vec(6)
-	real(8) outres,invFp(3,3),detFp,state0(maxnumslip,numstvar)
+      real(8) outres,invFp(3,3),detFp,state0(maxnumslip,numstvar)
       real(8) Ee(3,3),Ee_vec(6)
       real(8)	state(maxnumslip,numstvar),state_t(maxnumslip,numstvar)
       real(8) statedot(maxnumslip,numstvar),Rstate(maxnumslip,numstvar)
       logical notnum, conv
-	integer ounoit,innoit,i,j,is,sconv,nss
+      integer ounoit,innoit,i,j,is,sconv,nss
       real(8) Je
 			real(8) Wp
       integer nonconv_debug_messages
@@ -2074,7 +2084,7 @@ c     Plastic part of the deformation gradient
       Fp = Fp / detFp**(1.0d+0/3.0d+0)
 
 c     Invert Fp
-	call invert3x3(Fp,invFp,detFp)
+      call invert3x3(Fp,invFp,detFp)
 
 c     Modifed for residual deformation
       Fe=matmul(F,invFp)
@@ -2098,11 +2108,18 @@ c     Vectorize strains
 
 c     Calculate the stresses
 
+c     Calculate the creep damage function
+      if (pf_creep_flag .eq. 1) then
+        if (pf_creep_type .eq. 1) then
+          call R5(f_ep_c,A,Ee_vec,E_vec_tr,dt)
+        endif
+      endif
+
       if (damflag.eq.0d+0) then
 
         S_vec = matmul(elas66(ph_no,:,:),Ee_vec)
 
-	  else ! phase field damage model
+      else ! phase field damage model
 
           call computeStrainVolumetric(ph_no,Ee,A,Fe,dam,
      &S_vec,F_pos,F_neg,pk2_pos_mat,Wp)

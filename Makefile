@@ -83,5 +83,6 @@ Bristol_CP:
 	gfortran -c -free gndslipgrad.f ; \
 	gfortran -c -free initialization.f ; \
 	gfortran -c -free phasefieldfracture.f ; \
+	gfortran -c -free creepphasefielddamage.f ; \
 	gfortran -c -free calculations.f ; \
 	cd ../../../
