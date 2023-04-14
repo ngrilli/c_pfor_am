@@ -1,38 +1,31 @@
 // Nicolò Grilli
+// Edward Horton
 // University of Bristol
-// 24 Marzo 2023
+// 12 Aprile 2023
 
-// This is a duplicate of ComputeCPStressR5CreepDamage
-// where main development is taking place
+#include "ComputeCPStressR5CreepDamage.h"
 
-#include "ComputeCrystalPlasticityCreepDamage.h"
-
-#include "CrystalPlasticityDislocationUpdateBase.h"
-#include "ComputeCrystalPlasticityEigenstrainBase.h"
-#include "libmesh/utility.h"
-#include "Conversion.h"
-#include "MooseException.h"
-
-registerMooseObject("TensorMechanicsApp", ComputeCrystalPlasticityCreepDamage);
+registerMooseObject("TensorMechanicsApp", ComputeCPStressR5CreepDamage);
 
 InputParameters
-ComputeCrystalPlasticityCreepDamage::validParams()
+ComputeCPStressR5CreepDamage::validParams()
 {
   InputParameters params = ComputeCrystalPlasticityStressDamage::validParams();
   params.addClassDescription(
-      "Crystal Plasticity base class: handles the Newton iteration over the stress residual and "
-      "calculates the Jacobian based on constitutive laws from multiple material classes "
-      "that are inherited from CrystalPlasticityDislocationUpdateBase."
-	  "The difference between this class and ComputeMultipleCrystalPlasticityStress "
-	  "is that the _dislocation_models variable here is an array of CrystalPlasticityDislocationUpdateBase "
-	  "instead of CrystalPlasticityStressUpdateBase. "
-	  "This material model is coupled with creep specific phase field damage. "
-	  "Thermal eigenstrain is included. ");
+      "This is a variant of ComputeCrystalPlasticityStressDamage in which the fracture energy "
+      "is degraded based on the R5 creep damage criterion, which is based on "
+      "ductility exhaustion theory."
+	  "The damage model is reported in: "
+	  "M. W. Spindler, "
+	  "The prediction of creep damage in type 347 weld metal. "
+	  "Part I: the determination of material properties from creep and tensile tests "
+	  "International Journal of Pressure Vessels and Piping "
+	  "Volume 82, Issue 3, March 2005, Pages 175-184 ");
   params.addParam<Real>("residual_creep_degradation", 1e-3, "Minimum residual creep degradation.");
   return params;
 }
 
-ComputeCrystalPlasticityCreepDamage::ComputeCrystalPlasticityCreepDamage(
+ComputeCPStressR5CreepDamage::ComputeCPStressR5CreepDamage(
     const InputParameters & parameters)
   : ComputeCrystalPlasticityStressDamage(parameters),
   _residual_creep_degradation(getParam<Real>("residual_creep_degradation")),
@@ -44,7 +37,7 @@ ComputeCrystalPlasticityCreepDamage::ComputeCrystalPlasticityCreepDamage(
 
 // Initialize internal state variables
 void
-ComputeCrystalPlasticityCreepDamage::initQpStatefulProperties()
+ComputeCPStressR5CreepDamage::initQpStatefulProperties()
 {
   // temporary variable to store the initial plastic deformation gradient
   // read from file and then assign it to _plastic_deformation_gradient
@@ -124,9 +117,11 @@ ComputeCrystalPlasticityCreepDamage::initQpStatefulProperties()
 // Functions that update state variables 
 // should be called here
 
+// Fpos and Fneg should be calculated here for more efficiency
+
 void
-ComputeCrystalPlasticityCreepDamage::postSolveQp(RankTwoTensor & cauchy_stress,
-                                                    RankFourTensor & jacobian_mult)
+ComputeCPStressR5CreepDamage::postSolveQp(RankTwoTensor & cauchy_stress,
+                                          RankFourTensor & jacobian_mult)
 {
   cauchy_stress = _elastic_deformation_gradient * _pk2[_qp] *
                   _elastic_deformation_gradient.transpose() / _elastic_deformation_gradient.det();
@@ -150,14 +145,11 @@ ComputeCrystalPlasticityCreepDamage::postSolveQp(RankTwoTensor & cauchy_stress,
   _updated_rotation[_qp] = rot * _crysrot[_qp];
 }
 
-// equivalent_slip_increment_per_model may be a way to
-// quantify plastic accumulated strain
-
 // compute history variable and assign to _E
 // which is used by the fracture model for damage growth
 // Damage grows only because of the positive part of the elastic energy F_pos
 void
-ComputeCrystalPlasticityCreepDamage::computeHistoryVariable(Real & F_pos, Real & F_neg)
+ComputeCPStressR5CreepDamage::computeHistoryVariable(Real & F_pos, Real & F_neg)
 {
   // Assign history variable
   Real hist_variable = _H_old[_qp];
@@ -180,4 +172,3 @@ ComputeCrystalPlasticityCreepDamage::computeHistoryVariable(Real & F_pos, Real &
   _d2Ed2c[_qp] = hist_variable * _d2Dd2c[_qp];
 
 }
-
