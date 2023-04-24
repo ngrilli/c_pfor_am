@@ -1410,7 +1410,7 @@ c	USES: Euler(:,:), ngrain
      &numgrain, nodeout, grainori, output_vars, resdef, tres,
      &creep_param, phasefielddamage, totphase, phases, phaseind,
      &maxnumslip, cpl_contribution_to_damage,
-     &plastic_work_contribution_to_damage
+     &plastic_work_contribution_to_damage, creepphasefieldflag
 
 	implicit none
       integer i, j, dummy, iele, ind, sa
@@ -1481,6 +1481,11 @@ c     0: NO / 1: YES
      & plastic_work_contribution_to_damage
       end if
 
+c     creep damage model flag
+c     0: NO / 1: YES
+      read(100,*) dum
+      creepphasefieldflag = int(dum)
+      write(6,*) 'creep damage: ', creepphasefieldflag
 
 c     residual stresses are defined: (0) no / (1) yes
       read(100,*) dum
@@ -2378,11 +2383,11 @@ c         linear hardening coefficient - "k" [MPa mm^0.5]
 
 c         grain boundary mismatch exponent - "C" [-]
       read(100,*) (da(i), i=1,totphase)
-      slipint_param(1:totphase,2) = da
+      grainsize_param(1:totphase,2) = da
 
 c         i.e. Dream3D output is in micrometers so, the conversion to mm is 1/1000
       read(100,*) (da(i), i=1,totphase)
-      slipint_param(1:totphase,3) = da
+      grainsize_param(1:totphase,3) = da
 
 
 
@@ -3504,6 +3509,8 @@ c	INPUTS: Element number; el, integration point number; ip
       use globalvars, only: global_pk2_pos
       use globalvars, only: global_Wp
       use globalvars, only: global_Wp_t
+      use globalvars, only: global_f_ep_c
+      use globalvars, only: global_f_ep_c_t
 
 	implicit none
 	integer i
@@ -3614,7 +3621,12 @@ c
       global_pk2_pos = 0.0d+0
 
       allocate(coords_init(numel,numip))
-	coords_init=0d+0
+      coords_init=0d+0
+    
+      allocate(global_f_ep_c(numel,numip))
+      global_f_ep_c = 1d+0
+      allocate(global_f_ep_c_t(numel,numip))
+      global_f_ep_c_t = 1d+0
 
 c     A large number is assigned since 1/X is used in the calculations
       allocate(grainmorph(numel,numip,maxnumslip))

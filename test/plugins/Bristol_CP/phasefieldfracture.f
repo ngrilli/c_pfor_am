@@ -239,6 +239,7 @@
       use globalvars, only : numstvar
       use globalvars, only : maxnumslip
       use globalvars, only : global_Wp
+      use globalvars, only : global_f_ep_c
 
       ! element and integration point numbers
 	  ! using moose convention, starting from zero
@@ -283,6 +284,9 @@
 
       ! output plastic work
       STATEV(numstvar*maxnumslip+13) = global_Wp(elem,ip)
+
+      ! output creep degradation
+      STATEV(numstvar*maxnumslip+14) = global_f_ep_c(elem,ip)
 
 	  return
       end subroutine moose_interface_output

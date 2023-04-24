@@ -14,12 +14,12 @@ c
       include "globalvars.f"
       include "globalsubs.f"
       include "phasefieldfracture.f"
+      include "creepphasefielddamage.f"
       include "lengthscale.f"
       include "gndslipgrad.f"
       include "initialization.f"
       include "slipratelaws.f"
       include "sliphardlaws.f"
-      include "creepphasefielddamage.f"
       include "calculations.f"
 c
 c
@@ -161,6 +161,7 @@ c
       use calculations, only: calcs
 
       use globalvars, only : phasefielddamage
+      use globalvars, only : creepphasefieldflag
 
       use phasefieldfracture, only : moose_interface_input
       use phasefieldfracture, only : moose_interface_output
@@ -238,7 +239,8 @@ c     through state variables
 c     9 state variables must be declared
 c     for the phase field damage model
 c
-      if (phasefielddamage.eq.1d+0) then
+      if (phasefielddamage.eq.1d+0 .or. 
+     & creepphasefieldflag.eq.1d+0) then
 c
           call moose_interface_input(NOEL,NPT,STATEV,NSTATV)
 c
@@ -296,7 +298,8 @@ c     Phase field damage model is added by Nicolò Grilli.
 c     Send information for moose
 c     Phase field damage model
 c
-      if (phasefielddamage.eq.1d+0) then
+      if (phasefielddamage.eq.1d+0 .or.
+     & creepphasefieldflag.eq.1d+0) then
 
           call moose_interface_output(NOEL,NPT,STATEV,NSTATV)
 
@@ -334,7 +337,7 @@ c
       use globalvars, only: global_gammadot,
      & global_state, numslip, numstvar, output_vars, global_gamma_sum,
      & global_sigma, numel, numip, foldername, grainmorph, maxnumslip,
-     & phaseind
+     & phaseind, global_f_ep_c
       use globalsubs, only: convert6to3x3, vonmises_stress
       use calculations, only: calculate_misorientation
       implicit none
@@ -400,7 +403,8 @@ c
 c
       call calculate_misorientation(NOEL,NPT,mis)
 c
-      UVAR(varno) = mis
+c      UVAR(varno) = mis
+      UVAR(varno) = global_f_ep_c(NOEL,NPT)
 c
       varno=varno + 1d+0
 c
