@@ -31,3 +31,4 @@ v.0.7. bug fix, calculations.f/SC_main - line 1861: index 'i' corrected to 'is'
 v.0.9. phase field fracture model and compatibility with gfortran
 v.0.10. fracture model with volumetric/deviatoric free energy, gnd model
 v.0.11. temperature dependence of the dislocation based model for creep
+v.0.15. R5 creep damage
