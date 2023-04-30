@@ -271,22 +271,22 @@
       STATEV(7) = global_pk2_pos(elem,ip,1,2)
       STATEV(8) = global_pk2_pos(elem,ip,1,3)
       STATEV(9) = global_pk2_pos(elem,ip,2,3)
+      
+      ! output creep degradation
+      STATEV(10) = global_f_ep_c(elem,ip)
 
       ! output model state variables and Euler angles
       do i = 1,3
-        STATEV(i+9) = Euler(elem,i)
+        STATEV(i+10) = Euler(elem,i)
       end do
       do i = 1,numstvar
         do j = 1,maxnumslip
-          STATEV((i-1)*maxnumslip+12+j) = global_state(elem,ip,j,i)
+          STATEV((i-1)*maxnumslip+13+j) = global_state(elem,ip,j,i)
         end do
       end do
 
       ! output plastic work
-      STATEV(numstvar*maxnumslip+13) = global_Wp(elem,ip)
-
-      ! output creep degradation
-      STATEV(numstvar*maxnumslip+14) = global_f_ep_c(elem,ip)
+      STATEV(numstvar*maxnumslip+14) = global_Wp(elem,ip)
 
 	  return
       end subroutine moose_interface_output
