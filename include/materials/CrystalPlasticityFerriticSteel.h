@@ -70,38 +70,30 @@ protected:
    */
   virtual void setSubstepConstitutiveVariableValues() override;
 
+  virtual bool calculateSlipRate() override;
+
+  virtual void calculateSlipResistance();
+  
+  virtual void calculateObstaclesDensity();
+
+  virtual void
+  calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
+
+
+
+  virtual void calculateConstitutiveSlipDerivative(std::vector<Real> & dslip_dtau) override;
+  
+  /*
+   * Determines if the state variables, e.g. defect densities, have converged
+   * by comparing the change in the values over the iteration period.
+   */
+  virtual bool areConstitutiveStateVariablesConverged() override;
+
   /**
    * Stores the current value of the slip system resistance into a separate
    * material property in case substepping is needed.
    */
   virtual void updateSubstepConstitutiveVariableValues() override;
-
-  virtual bool calculateSlipRate() override;
-
-  virtual void calculateSlipResistance();
-
-  virtual void calculateObstaclesDensity();
-
-  virtual void calculateObstaclesStrength();
-
-  virtual void calculateSelfInteractionSlipResistance();
-
-  virtual void calculateHallPetchSlipResistance();
-
-  virtual void calculateLineTensionSlipResistance();
-
-  virtual bool calculateDragSlipRate();
-
-  virtual bool calculateLatticeFrictionSlipRate();
-
-  virtual void
-  calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
-
-  virtual void calculateConstitutiveSlipDerivative(std::vector<Real> & dslip_dtau) override;
-
-  virtual void calculateDragSlipRateDerivative();
-
-  virtual void calculateLatticeFrictionSlipRateDerivative();
 
   // Cache the slip system value before the update for the diff in the convergence check
   virtual void cacheStateVariablesBeforeUpdate() override;
@@ -115,12 +107,6 @@ protected:
   // Calculate increment of SSD
   virtual void calculateSSDincrement();
 
-  // calculate dislocation mean free path in equation (19)
-  virtual void calculateMeanFreePath();
-
-  // calculate annihilation distance in equation (20)
-  virtual void calculateAnnihilationDistance();
-
   // calculate the irradiation dislocation loops increment based on equation (21)
   virtual void calculateDLincrement();
 
@@ -132,12 +118,6 @@ protected:
    * for the current timestep after convergence has been reached.
    */
   virtual bool updateStateVariables() override;
-
-  /*
-   * Determines if the state variables, e.g. defect densities, have converged
-   * by comparing the change in the values over the iteration period.
-   */
-  virtual bool areConstitutiveStateVariablesConverged() override;
 
   // model parameters
 
@@ -182,6 +162,9 @@ protected:
   // prefactor of the irradiation solute cluster evolution law (adimensional)
   // in equation (23)
   const Real _lambda_SC;
+  
+  // Skip irradiation calculations if false.
+  bool _is_irradiated;
 
   // slip rate coefficient (s^{-1}) for power law slip
   const Real _ao;

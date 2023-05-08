@@ -35,6 +35,7 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("a_SC",0.04,"Solute clusters interaction coefficient");
   params.addParam<Real>("lambda_DL", 1.0,"prefactor of the irradiation dislocation loops evolution law (adimensional)");
   params.addParam<Real>("lambda_SC", 1.0,"prefactor of the irradiation solute cluster evolution law (adimensional)");
+  params.addParam<bool>("is_irradiated", false, "Skip irradiation calculations if false.");
   
   // Slip rate parameters
   params.addParam<Real>("ao", 0.00001, "slip rate coefficient (s^{-1})");
@@ -86,6 +87,7 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _a_SC(getParam<Real>("a_SC")),
     _lambda_DL(getParam<Real>("lambda_DL")),
     _lambda_SC(getParam<Real>("lambda_SC")),
+    _is_irradiated(getParam<bool>("is_irradiated")),
 	_ao(getParam<Real>("ao")),
 	_xm(getParam<Real>("xm")),
     _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
@@ -431,7 +433,6 @@ CrystalPlasticityFerriticSteel::setInitialConstitutiveVariableValues()
 void
 CrystalPlasticityFerriticSteel::setSubstepConstitutiveVariableValues()
 {
-  // Would also set substepped dislocation densities here if included in this model
   _rho_ssd[_qp] = _previous_substep_rho_ssd;
   _rho_gnd_edge[_qp] = _previous_substep_rho_gnd_edge;
   _rho_gnd_screw[_qp] = _previous_substep_rho_gnd_screw;
@@ -474,15 +475,10 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
 
 }
 
-
-
-// DA FARE
-
-
 // Slip resistance
 void
 CrystalPlasticityFerriticSteel::calculateSlipResistance()
-{
+{		
   // temporary variable to sum the contributions
   // of different mechanisms for different slip systems
   Real temp_sqrt_argument;
@@ -490,32 +486,20 @@ CrystalPlasticityFerriticSteel::calculateSlipResistance()
   // Calculate total density of local obstacles
   calculateObstaclesDensity();
 
-  // Calculate logarithmic correction to slip-slip
-  // interaction matrix
-  logarithmicCorrectionInteractionMatrix();
-
-  // Calculate average obstacles strength
-  calculateObstaclesStrength();
-
-  // Calculate different contributions to the CRSS
-  calculateSelfInteractionSlipResistance();
-  calculateHallPetchSlipResistance();
-  calculateLineTensionSlipResistance();
-
   // sum the contributions to the CRSS based on equation (11)
   for (const auto i : make_range(_number_slip_systems))
   {
-    temp_sqrt_argument = _tau_self[i] * _tau_self[i]
-	                   + _tau_line_tension[i] * _tau_line_tension[i];		
-					   
-	_slip_resistance[_qp][i] = _tau_Hall_Petch + std::sqrt(temp_sqrt_argument);
 
+    _slip_resistance[_qp][i] = _const_slip_resistance[i];
+
+    _slip_resistance[_qp][i] += _burgers_vector_mag * _shear_modulus * std::sqrt(_rho_obstacles[i]);
+    
   }
 }
 
-// Calculate total density of local obstacles based on equation (5)
-// this function stores at the same time the sum of SSD and GND
-// which is needed later in the obstacles strength calculation
+// Calculate local obstacles density _rho_obstacles
+// which includes also the interaction strength
+// this function stores at the same time the sum of SSD and GND: _rho_tot
 void
 CrystalPlasticityFerriticSteel::calculateObstaclesDensity()
 {
@@ -536,172 +520,24 @@ CrystalPlasticityFerriticSteel::calculateObstaclesDensity()
     for (const auto j : make_range(_number_slip_systems))
     {
 
-      if (j != i) {
-
-	      _rho_obstacles[i] += _rho_tot[j];
-
-	    }
+      _rho_obstacles[i] += _a_ref(i,j) * _rho_tot[j];
+	      
     }
-  }
-
-  // Add carbide density
-  for (const auto i : make_range(_number_slip_systems)) {
-
-    _rho_obstacles[i] += _rho_carbide;
-
   }
 
   // Add irradiation defects densities
-  for (const auto i : make_range(_number_slip_systems)) {
+  // and their interaction coefficients
+  
+  if (_is_irradiated) {
+	  
+    for (const auto i : make_range(_number_slip_systems)) {
 
-    _rho_obstacles[i] += _C_DL_diameter * _C_DL[_qp][i];
-	  _rho_obstacles[i] += _C_SC_diameter * _C_SC[_qp][i];
+      _rho_obstacles[i] += _a_DL * _C_DL_diameter * _C_DL[_qp][i];
+	  _rho_obstacles[i] += _a_SC * _C_SC_diameter * _C_SC[_qp][i];
 
+    }	    
   }
 
-}
-
-// Calculate average obstacle strength \alpha^s based on equation (6)
-void
-CrystalPlasticityFerriticSteel::calculateObstaclesStrength()
-{
-  // temporary variable to sum the contributions
-  // of different mechanisms for different slip systems
-  Real temp_sqrt_argument;
-
-  for (const auto i : make_range(_number_slip_systems)) {
-
-    temp_sqrt_argument = 0.0;
-
-    // Other slip systems contribution
-    for (const auto j : make_range(_number_slip_systems)) {
-
-      if (j != i) {
-
-	    temp_sqrt_argument += _a_slip_slip_interaction(i,j) * _rho_tot[j];
-
-	    }
-	  }
-
-	  // carbide contribution
-	  temp_sqrt_argument += _a_carbide * _rho_carbide;
-
-    // irradiation damage contribution
-    // would be better to store rho_DL and rho_SC
-    // into state variables because the multiplication is repeated
-    temp_sqrt_argument += _a_DL * _C_DL_diameter * _C_DL[_qp][i];
-    temp_sqrt_argument += _a_SC	* _C_SC_diameter * _C_SC[_qp][i];
-
-    // may need to consider the case in which _rho_obstacles[i] = 0 separately
-    _obstacles_strength[i] = std::sqrt(temp_sqrt_argument) / std::sqrt(_rho_obstacles[i]);
-
-  }
-
-}
-
-// Self-interaction slip resistance based on equation (12)
-void
-CrystalPlasticityFerriticSteel::calculateSelfInteractionSlipResistance()
-{
-  for (const auto i : make_range(_number_slip_systems))	{
-
-    _tau_self[i] = _burgers_vector_mag * _shear_modulus
-	             * std::sqrt(_a_self * _rho_tot[i]);
-
-  }
-
-}
-
-// Hall-Petch slip resistance based on equation (13)
-// note that if GND are activated, part of the Hall-Petch effect
-// will be provided by the GNDs
-// note that this is a constant but I leave it here and not in initialization
-// because it can be easily extended to temperature changing behavior
-// for the shear modulus
-void
-CrystalPlasticityFerriticSteel::calculateHallPetchSlipResistance()
-{
-
-  _tau_Hall_Petch = (_shear_modulus / _RT_shear_modulus)
-                  * (_K_Hall_Petch / std::sqrt(_d_grain));
-
-}
-
-// Line tension slip resistance based on equation (15)
-// note that if GND are activated, part of the Hall-Petch effect
-// will be provided by the GNDs
-void
-CrystalPlasticityFerriticSteel::calculateLineTensionSlipResistance()
-{
-  for (const auto i : make_range(_number_slip_systems))	{
-
-    _tau_line_tension[i] = _obstacles_strength[i] * _shear_modulus * _burgers_vector_mag
-	                     * std::sqrt(_rho_obstacles[i]);
-
-  }
-}
-
-// calculate the drag contribution of slip rate
-// according to equation (2)
-bool
-CrystalPlasticityFerriticSteel::calculateDragSlipRate()
-{
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    _drag_slip_increment[i] =
-        _ao * std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm);
-
-    if (_tau[_qp][i] < 0.0)
-      _drag_slip_increment[i] *= -1.0;
-
-    if (std::abs(_drag_slip_increment[i]) * _substep_dt > _slip_incr_tol)
-    {
-      if (_print_convergence_message)
-        mooseWarning("Maximum allowable slip increment exceeded in calculateDragSlipRate ",
-                     std::abs(_drag_slip_increment[i]) * _substep_dt);
-
-      return false;
-    }
-  }
-  return true;
-}
-
-// Calculate temperature dependent lattice friction contribution
-// to the plastic slip rate in equation (3)
-bool
-CrystalPlasticityFerriticSteel::calculateLatticeFrictionSlipRate()
-{
-  // The constant mobile dislocation density to calculate the thermally activated
-  // slip rate is equated to the initial SSD density _init_rho_ssd
-  // as in table 1 of the article
-
-  // argument of the exponential function
-  // temporary variable
-  Real exp_argument;
-
-  for (const auto i : make_range(_number_slip_systems)) {
-
-    exp_argument = (-1.0) * _Gibbs_free_energy_slip / (_k * _temperature[_qp]);
-    exp_argument *= (1.0 - std::sqrt(_effective_RSS[i] / _const_slip_resistance[i]));
-
-    _lattice_friction_slip_increment[i] = _init_rho_ssd * _burgers_vector_mag
-                                        * _attack_frequency * _avg_length_screw[i]
-                                        * std::exp(exp_argument);
-
-    if (_tau[_qp][i] < 0.0)
-      _lattice_friction_slip_increment[i] *= -1.0;
-
-    if (std::abs(_lattice_friction_slip_increment[i]) * _substep_dt > _slip_incr_tol)
-    {
-      if (_print_convergence_message)
-        mooseWarning("Maximum allowable slip increment exceeded in calculateLatticeFrictionSlipRate ",
-                      std::abs(_lattice_friction_slip_increment[i]) * _substep_dt);
-
-      return false;
-    }
-  }
-
-  return true;
 }
 
 void
@@ -723,81 +559,29 @@ CrystalPlasticityFerriticSteel::calculateEquivalentSlipIncrement(
 // while this is called in calculateJacobian
 // therefore it is ok to call calculateSlipResistance
 // only inside calculateSlipRate
-// chain rule on equation (1)
-// (1/dotgamma^2) (d dotgamma / d tau) = (1/dotgammadrag^2) (d dotgammadrag / d tau) + (1/dotgammafric^2) (d dotgammafric / d tau)
 void
 CrystalPlasticityFerriticSteel::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
 {
-  // temporary variables to store the ratio between slip rates
-  Real temp_ratio;
-  Real temp_denominator;
-
-  // calculate the derivatives of the two terms in equations (2) and (3)
-  calculateDragSlipRateDerivative();
-  
-  if (_use_lattice_friction_slip) {
+  // Ratio between effective stress and CRSS
+  // temporary variable for each slip system
+  Real stress_ratio;
+	
+  for (const auto i : make_range(_number_slip_systems))
+  {  
 	  
-    calculateLatticeFrictionSlipRateDerivative();
-
-    for (const auto i : make_range(_number_slip_systems))
-    {
+    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0)) {
+		
       dslip_dtau[i] = 0.0;
+      		
+	} else {
+		
+	  stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
 
-      temp_denominator = _lattice_friction_slip_increment[i] + _drag_slip_increment[i];
-      temp_denominator = temp_denominator*temp_denominator;
-
-      if (temp_denominator > 1.0e-18) {
-
-        temp_ratio = _lattice_friction_slip_increment[i] * _lattice_friction_slip_increment[i];
-        temp_ratio /= temp_denominator;
-        dslip_dtau[i] += temp_ratio * _ddrag_slip_increment_dtau[i];
-
-        temp_ratio = _drag_slip_increment[i] * _drag_slip_increment[i];
-        temp_ratio /= temp_denominator;
-        dslip_dtau[i] += temp_ratio * _dlattice_friction_slip_increment_dtau[i];
-
-      }
-    }	  
-	  
-  } else { // Simple power law slip rate
-	   
-    for (const auto i : make_range(_number_slip_systems))
-    {
-	  dslip_dtau[i] = _ddrag_slip_increment_dtau[i];	
-	}	  
-	  
-  }
-  
-}
-
-// Calculate slip derivatives of the drag term in equation (2)
-void
-CrystalPlasticityFerriticSteel::calculateDragSlipRateDerivative()
-{
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
-      _ddrag_slip_increment_dtau[i] = 0.0;
-    else
-      _ddrag_slip_increment_dtau[i] = _ao / _xm *
-                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
+      dslip_dtau[i] = _ao / _xm *
+                      std::pow(stress_ratio, 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i];
-  }
-}
-
-// Calculate slip derivatives of the lattice friction term in equation (3)
-void
-CrystalPlasticityFerriticSteel::calculateLatticeFrictionSlipRateDerivative()
-{
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    if (_effective_RSS[i] < 1.0e-9)
-      _dlattice_friction_slip_increment_dtau[i] = 0.0;
-    else
-      _dlattice_friction_slip_increment_dtau[i] = std::abs(_lattice_friction_slip_increment[i])
-                                                * (_Gibbs_free_energy_slip / (2.0 * _k * _temperature[_qp]))
-                                                / std::sqrt(_const_slip_resistance[i] * _effective_RSS[i]);
+	}
   }
 }
 
@@ -808,14 +592,11 @@ CrystalPlasticityFerriticSteel::areConstitutiveStateVariablesConverged()
                                               _rho_ssd_before_update,
                                               _previous_substep_rho_ssd,
                                               _rho_tol);
-
-  // How do we check the tolerance of GNDs and is it needed?
 }
 
 void
 CrystalPlasticityFerriticSteel::updateSubstepConstitutiveVariableValues()
 {
-  // Would also set substepped dislocation densities here if included in this model
   _previous_substep_rho_ssd = _rho_ssd[_qp];
   _previous_substep_rho_gnd_edge = _rho_gnd_edge[_qp];
   _previous_substep_rho_gnd_screw = _rho_gnd_screw[_qp];
@@ -842,8 +623,12 @@ CrystalPlasticityFerriticSteel::calculateStateVariableEvolutionRateComponent()
   calculateSSDincrement();
 
   // Calculate increment of irradiation defects
-  calculateDLincrement();
-  calculateSCincrement();
+  if (_is_irradiated) {
+
+    calculateDLincrement();
+    calculateSCincrement();  
+      
+  }
 
   // GND dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -859,59 +644,14 @@ CrystalPlasticityFerriticSteel::calculateStateVariableEvolutionRateComponent()
 void
 CrystalPlasticityFerriticSteel::calculateSSDincrement()
 {
-  // Calculate mean free path and annihilation distance
-  calculateMeanFreePath();
-  calculateAnnihilationDistance();
-
   // Multiplication and annihilation
   // note that _slip_increment here is the rate
   // and _rho_ssd_increment is also the rate
   for (const auto i : make_range(_number_slip_systems)) {
+	  
+    _rho_ssd_increment[i] = _k_0 - _y_c * _rho_ssd[_qp][i];
+    _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
 
-    _rho_ssd_increment[i] = 1.0 / _dislocation_mean_free_path[i]
-	                      - _annihilation_distance[i] * _rho_ssd[_qp][i];
-
-	  _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
-
-  }
-}
-
-// calculate dislocation mean free path in equation (19)
-void
-CrystalPlasticityFerriticSteel::calculateMeanFreePath()
-{
-  // temporary variable representing the inverse
-  // of the mean free path for the current slip system
-  Real inverse_argument;
-
-  for (const auto i : make_range(_number_slip_systems)) {
-
-    inverse_argument = std::sqrt(_a_self * _rho_tot[i]) / _K_self;
-    inverse_argument += _obstacles_strength[i] * _obstacles_spacing[i] * _rho_obstacles[i] / _K_forest;
-    inverse_argument *= (1.0 - _effective_RSS[i] / _const_slip_resistance[i]);
-    inverse_argument += 1.0 / _d_grain;
-
-    _dislocation_mean_free_path[i] = 1.0 / inverse_argument;
-
-  }
-}
-
-// calculate annihilation distance in equation (20)
-void
-CrystalPlasticityFerriticSteel::calculateAnnihilationDistance()
-{
-  // temporary variable representing the inverse
-  // of the annihilation distance for the current slip system
-  Real inverse_argument;
-
-  for (const auto i : make_range(_number_slip_systems)) {
-
-    inverse_argument = 6.28318 * _effective_RSS[i]
-                     / (_burgers_vector_mag * _shear_modulus);
-
-    inverse_argument += 1.0 / _y_drag;
-
-    _annihilation_distance[i] = 1.0 / inverse_argument;
   }
 }
 
