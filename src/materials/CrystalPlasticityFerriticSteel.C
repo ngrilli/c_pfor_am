@@ -232,7 +232,7 @@ CrystalPlasticityFerriticSteel::initQpStatefulProperties()
   initializeReferenceInteractionMatrix();
 
   // Initialize the constant slip resistance \tau_0
-  intializeConstSlipResistance();
+  initializeConstSlipResistance();
 
   // Function to calculate slip resistance can be called
   // here because the state variables are already assigned
@@ -318,7 +318,7 @@ CrystalPlasticityFerriticSteel::initializeReferenceInteractionMatrix()
 // Hall-Petch effect must be included in these constants
 // Carbide-dislocation interaction must be included in these constants
 void
-CrystalPlasticityFerriticSteel::intializeConstSlipResistance() {
+CrystalPlasticityFerriticSteel::initializeConstSlipResistance() {
 
   // 110 slip planes
   for (const auto i : make_range(_number_slip_systems/2)) {
@@ -478,11 +478,7 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
 // Slip resistance
 void
 CrystalPlasticityFerriticSteel::calculateSlipResistance()
-{		
-  // temporary variable to sum the contributions
-  // of different mechanisms for different slip systems
-  Real temp_sqrt_argument;
-
+{
   // Calculate total density of local obstacles
   calculateObstaclesDensity();
 

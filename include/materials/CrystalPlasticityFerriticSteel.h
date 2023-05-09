@@ -40,7 +40,7 @@ protected:
   virtual void initializeReferenceInteractionMatrix();
 
   // Initialize the constant slip resistance \tau_0 in equation (3)
-  virtual void intializeConstSlipResistance();
+  virtual void initializeConstSlipResistance();
 
   /**
    * A helper method to rotate the a direction and plane normal system set into
