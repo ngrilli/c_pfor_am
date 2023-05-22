@@ -20,8 +20,6 @@
  * variables are updated using an iterative predictor-corrector algorithm. Backward Euler
  * integration rule is used for the rate equations.
  *
- * This material that is not called by MOOSE because of the compute=false flag
- * set in the parameter list.
  *
  * The only difference between this class and ComputeMultipleCrystalPlasticityStress
  * is that the _models variable here is an array of CrystalPlasticityDislocationUpdateBase
@@ -222,22 +220,26 @@ protected:
   /// Flag to print to console warning messages on stress, constitutive model convergence
   const bool _print_convergence_message;
   
-  // UserObject to read the initial plastic deformation gradient from file
-  // The file will have one row for each element
-  // each row will contain the components
-  // Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33}
-  // of the initial plastic deformation gradient
+  /// UserObject to read the initial plastic deformation gradient from file
+  /// The file will have one row for each element
+  /// each row will contain the components
+  /// Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33}
+  /// of the initial plastic deformation gradient
   const ElementPropertyReadFile * const _read_initial_Fp;
   
-  // Thermal expansion
-  // see stress formula, equations (10)-(11) in
-  // N. Grilli, D. Hu, D. Yushu, F. Chen, W. Yan
-  // Crystal plasticity model of residual stress in additive manufacturing using the element elimination and reactivation method
-  // Computational Mechanics, volume 69, pages 825–845 (2022)
+  /// Thermal expansion
+  /// see stress formula, equations (10)-(11) in
+  /// N. Grilli, D. Hu, D. Yushu, F. Chen, W. Yan
+  /// Crystal plasticity model of residual stress in additive manufacturing using the element elimination and reactivation method
+  /// Computational Mechanics, volume 69, pages 825–845 (2022)
   const VariableValue & _temperature;
   const Real _thermal_expansion;
   const Real _reference_temperature;
   const Real _dCTE_dT;
+  
+  /// Parameters used to deactivate thermal expansion above melting
+  const Real _melting_temperature_high;
+  const Real _melting_temperature_low;
 
   /// Flag to check whether convergence is achieved or if substepping is needed
   bool _convergence_failed;

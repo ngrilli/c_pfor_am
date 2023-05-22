@@ -64,6 +64,8 @@ ComputeDislocationCrystalPlasticityStress::validParams()
   params.addParam<Real>("thermal_expansion",0.0,"Thermal expansion coefficient");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
+  params.addParam<Real>("melting_temperature_high", 1673.15, "Melting temperature (liquidus) to activate/deactivate liquid thermal expansion.");
+  params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus temperature to activate/deactivate liquid thermal expansion.");
   return params;
 }
 
@@ -115,7 +117,11 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
 	_temperature(coupledValue("temperature")),     
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _reference_temperature(getParam<Real>("reference_temperature")),
-	_dCTE_dT(getParam<Real>("dCTE_dT"))
+	_dCTE_dT(getParam<Real>("dCTE_dT")),
+	
+	// Parameters used to deactivate thermal expansion above melting
+	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
+	_melting_temperature_low(getParam<Real>("melting_temperature_low"))
 {
   _convergence_failed = false;
 }
