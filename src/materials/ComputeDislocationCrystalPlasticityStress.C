@@ -780,7 +780,7 @@ ComputeDislocationCrystalPlasticityStress::calculateThermalEigenstrain(RankTwoTe
   Real deltaT;
   
   max_thermal_eigenstrain = 0.5 * (
-                                    std::exp( 
+                                    std::exp(
                                               (1.0 / 3.0) * _dCTE_dT * ( _temperature[_qp] - _reference_temperature ) * ( _temperature[_qp] - _reference_temperature )
                                             + (2.0 / 3.0) * _thermal_expansion * ( _temperature[_qp] - _reference_temperature ) 
                                             ) 
