@@ -66,6 +66,7 @@ ComputeDislocationCrystalPlasticityStress::validParams()
   params.addParam<Real>("dCTE_dT",0.0,"coefficient for the increase of thermal expansion coefficient");
   params.addParam<Real>("melting_temperature_high", 1673.15, "Melting temperature (liquidus) to activate/deactivate liquid thermal expansion.");
   params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus temperature to activate/deactivate liquid thermal expansion.");
+  params.addParam<bool>("liquid_thermal_expansion", true, "Liquid has thermal expansion above melting point.");
   return params;
 }
 
@@ -121,7 +122,8 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
 	
 	// Parameters used to deactivate thermal expansion above melting
 	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
-	_melting_temperature_low(getParam<Real>("melting_temperature_low"))
+	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
+	_liquid_thermal_expansion(getParam<bool>("liquid_thermal_expansion"))
 {
   _convergence_failed = false;
 }
@@ -570,10 +572,7 @@ ComputeDislocationCrystalPlasticityStress::calculateResidual()
   elastic_strain = ce - RankTwoTensor::Identity();
   elastic_strain *= 0.5;
   
-  thermal_eigenstrain = 0.5 * (
-                                  std::exp( (1.0 / 3.0) * _dCTE_dT * ( _temperature[_qp] - _reference_temperature ) * ( _temperature[_qp] - _reference_temperature )
-                                               + (2.0 / 3.0) * _thermal_expansion * ( _temperature[_qp] - _reference_temperature ) ) 
-								       - 1.0 ) * RankTwoTensor::Identity();
+  calculateThermalEigenstrain(thermal_eigenstrain);
 
   pk2_new = _elasticity_tensor[_qp] * (elastic_strain - thermal_eigenstrain);
   _residual_tensor = _pk2[_qp] - pk2_new;
@@ -769,3 +768,47 @@ ComputeDislocationCrystalPlasticityStress::calculateEigenstrainDeformationGrad()
   }
   (*_eigenstrain_deformation_gradient)[_qp] = _inverse_eigenstrain_deformation_grad.inverse();
 }
+
+// Calculate the thermal eigenstrain
+void
+ComputeDislocationCrystalPlasticityStress::calculateThermalEigenstrain(RankTwoTensor & thermal_eigenstrain)
+{
+  // thermal eigenstrain without considering liquid
+  RankTwoTensor max_thermal_eigenstrain;
+  
+  // difference between liquidus and solidus temperatures
+  Real deltaT;
+  
+  max_thermal_eigenstrain = 0.5 * (
+                                    std::exp( 
+                                              (1.0 / 3.0) * _dCTE_dT * ( _temperature[_qp] - _reference_temperature ) * ( _temperature[_qp] - _reference_temperature )
+                                            + (2.0 / 3.0) * _thermal_expansion * ( _temperature[_qp] - _reference_temperature ) 
+                                            ) 
+								    - 1.0
+								  ) * RankTwoTensor::Identity();
+
+  if (_liquid_thermal_expansion) { 
+	  
+    thermal_eigenstrain = max_thermal_eigenstrain;
+    
+  }	else { // degrade linearly the thermal expansion of the liquid above solidus temperature
+	  
+    if (_temperature[_qp] > _melting_temperature_high) { // above liquidus temperature
+	
+	  thermal_eigenstrain.zero();
+	
+	} else if (_temperature[_qp] > _melting_temperature_low) { // between solidus and liquidus temperature
+		
+      deltaT = _melting_temperature_high - _melting_temperature_low;
+      
+      thermal_eigenstrain = (_melting_temperature_high - _temperature[_qp]) * max_thermal_eigenstrain / deltaT;
+		
+	} else { // solid state
+
+      thermal_eigenstrain = max_thermal_eigenstrain;
+
+	} 
+  }
+}
+
+

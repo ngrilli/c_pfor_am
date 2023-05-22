@@ -114,13 +114,16 @@ protected:
    * Calculates the deformation gradient due to eigenstrain
    */
   void calculateEigenstrainDeformationGrad();
+  
+  /// Calculate the thermal eigenstrain
+  virtual void calculateThermalEigenstrain(RankTwoTensor & thermal_eigenstrain);
 
   /// number of plastic models
   const unsigned _num_models;
 
   /// The user supplied cyrstal plasticity consititutive models
-  // CrystalPlasticityDislocationUpdateBase is used in which
-  // the method calculateSchmidTensor is virtual
+  /// CrystalPlasticityDislocationUpdateBase is used in which
+  /// the method calculateSchmidTensor is virtual
   std::vector<CrystalPlasticityDislocationUpdateBase *> _models;
 
   /// number of eigenstrains
@@ -240,6 +243,7 @@ protected:
   /// Parameters used to deactivate thermal expansion above melting
   const Real _melting_temperature_high;
   const Real _melting_temperature_low;
+  const bool _liquid_thermal_expansion;
 
   /// Flag to check whether convergence is achieved or if substepping is needed
   bool _convergence_failed;
