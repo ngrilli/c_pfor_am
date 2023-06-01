@@ -45,7 +45,7 @@
 [AuxVariables]
 
   [./temperature]
-    order = FIRST
+    order = CONSTANT
     family = MONOMIAL
   [../]
 
@@ -981,7 +981,11 @@
 	growth_factor = 1.0
   [../]
   
-  end_time = 1700
+# run until time = 1700 to see the 
+# thermal expansion decreasing above melting temperature 
+  
+  start_time = 0
+  end_time = 1 
   dtmin = 0.000001
 
 []

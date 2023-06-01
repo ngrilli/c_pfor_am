@@ -4,4 +4,10 @@
     input = 'cryspTry.i'
     exodiff = 'cryspTry_out.e'
   [../]
+  
+  [./thermal_expansion_above_melt]
+    type = 'Exodiff'
+    input = 'thermal_expansion_above_melt.i'
+    exodiff = 'thermal_expansion_above_melt_out.e' 
+  [../]
 []
