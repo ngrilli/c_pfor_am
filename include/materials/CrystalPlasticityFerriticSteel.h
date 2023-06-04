@@ -171,6 +171,9 @@ protected:
 
   // exponent for slip rate calculated with power law slip
   const Real _xm;
+  
+  // Activate creep strain rate
+  bool _creep_activated;
 
   // Constant slip resistances of
   // 110 slip planes

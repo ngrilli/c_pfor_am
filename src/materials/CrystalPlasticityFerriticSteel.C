@@ -40,6 +40,7 @@ CrystalPlasticityFerriticSteel::validParams()
   // Slip rate parameters
   params.addParam<Real>("ao", 0.00001, "slip rate coefficient (s^{-1})");
   params.addParam<Real>("xm", 0.01, "exponent for slip rate");
+  params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
 
   // Constant slip resistances of the slip systems
   // Hall-Petch effect must be included in these constants
@@ -90,6 +91,7 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _is_irradiated(getParam<bool>("is_irradiated")),
 	_ao(getParam<Real>("ao")),
 	_xm(getParam<Real>("xm")),
+	_creep_activated(getParam<bool>("creep_activated")),
     _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
     _const_slip_resistance_112_TW(getParam<Real>("const_slip_resistance_112_TW")),
     _const_slip_resistance_112_AT(getParam<Real>("const_slip_resistance_112_AT")),
