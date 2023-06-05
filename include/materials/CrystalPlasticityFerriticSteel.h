@@ -174,6 +174,11 @@ protected:
   
   // Activate creep strain rate
   bool _creep_activated;
+  
+  // Creep rate constants
+  const Real _creep_ao;
+  const Real _creep_xm;
+  const Real _m_exponent;
 
   // Constant slip resistances of
   // 110 slip planes

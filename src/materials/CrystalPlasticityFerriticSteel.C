@@ -37,10 +37,13 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("lambda_SC", 1.0,"prefactor of the irradiation solute cluster evolution law (adimensional)");
   params.addParam<bool>("is_irradiated", false, "Skip irradiation calculations if false.");
   
-  // Slip rate parameters
+  // Slip and creep rate parameters
   params.addParam<Real>("ao", 0.00001, "slip rate coefficient (s^{-1})");
   params.addParam<Real>("xm", 0.01, "exponent for slip rate");
   params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
+  params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
+  params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
+  params.addParam<Real>("m_exponent", 0.0, "Exponent on time in power-law equation");
 
   // Constant slip resistances of the slip systems
   // Hall-Petch effect must be included in these constants
@@ -92,6 +95,9 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
 	_ao(getParam<Real>("ao")),
 	_xm(getParam<Real>("xm")),
 	_creep_activated(getParam<bool>("creep_activated")),
+    _creep_ao(getParam<Real>("creep_ao")),
+    _creep_xm(getParam<Real>("creep_xm")),
+    _m_exponent(getParam<Real>("m_exponent")),
     _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
     _const_slip_resistance_112_TW(getParam<Real>("const_slip_resistance_112_TW")),
     _const_slip_resistance_112_AT(getParam<Real>("const_slip_resistance_112_AT")),
@@ -460,6 +466,10 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
     stress_ratio = std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]);
     
     _slip_increment[_qp][i] = _ao * std::pow(stress_ratio, 1.0 / _xm);
+    
+    if (_creep_activated) { // add creep rate
+	  _slip_increment[_qp][i] += _creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * std::pow(_t, _m_exponent);
+	}
       
     if (_tau[_qp][i] < 0.0)
       _slip_increment[_qp][i] *= -1.0;
@@ -579,6 +589,11 @@ CrystalPlasticityFerriticSteel::calculateConstitutiveSlipDerivative(
       dslip_dtau[i] = _ao / _xm *
                       std::pow(stress_ratio, 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i];
+                      
+      if (_creep_activated) { // add creep rate
+	    dslip_dtau[i] += _creep_ao / _creep_xm * std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
+	                     _slip_resistance[_qp][i] * std::pow(_t, _m_exponent);
+	  }                
 	}
   }
 }
