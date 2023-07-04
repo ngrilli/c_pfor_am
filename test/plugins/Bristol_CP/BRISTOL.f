@@ -160,7 +160,7 @@ c
 c
       use calculations, only: calcs
 
-      use globalvars, only : phasefielddamage
+      use globalvars, only : phasefielddamage, creep_param
       use globalvars, only : creepphasefieldflag
 
       use phasefieldfracture, only : moose_interface_input
