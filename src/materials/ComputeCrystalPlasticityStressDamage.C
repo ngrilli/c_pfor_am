@@ -784,12 +784,16 @@ ComputeCrystalPlasticityStressDamage::computeHistoryVariable(Real & F_pos, Real 
 
 }
 
+// update jacobian_mult by taking into account of the exact elasto-plastic tangent moduli
+// it includes damage
 void
 ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor & jacobian_mult)
 {
   RankFourTensor tan_mod;
   RankTwoTensor pk2fet, fepk2, feiginvfpinv;
   RankFourTensor deedfe, dsigdpk2dfe, dfedf;
+  
+  const auto je = _elastic_deformation_gradient.det();
 
   // Fill in the matrix stiffness material property
   for (const auto i : make_range(Moose::dim))
@@ -801,9 +805,19 @@ ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor 
       }
 
   usingTensorIndices(i_, j_, k_, l_);
-  dsigdpk2dfe = _elastic_deformation_gradient.times<i_, k_, j_, l_>(_elastic_deformation_gradient) *
-                _elasticity_tensor[_qp] * deedfe;
+  
+  if (je >= 1.0) { // expansion
+	  
+    dsigdpk2dfe = _elastic_deformation_gradient.times<i_, k_, j_, l_>(_elastic_deformation_gradient) *
+                  _D[_qp] * _elasticity_tensor[_qp] * deedfe;
 
+  } else { // compression
+	
+    dsigdpk2dfe = _elastic_deformation_gradient.times<i_, k_, j_, l_>(_elastic_deformation_gradient) *
+                  _elasticity_tensor[_qp] * deedfe;
+
+  }
+  
   pk2fet = _pk2[_qp] * _elastic_deformation_gradient.transpose();
   fepk2 = _elastic_deformation_gradient * _pk2[_qp];
 
@@ -817,7 +831,6 @@ ComputeCrystalPlasticityStressDamage::elastoPlasticTangentModuli(RankFourTensor 
 
   tan_mod += dsigdpk2dfe;
 
-  const auto je = _elastic_deformation_gradient.det();
   if (je > 0.0)
     tan_mod /= je;
 
