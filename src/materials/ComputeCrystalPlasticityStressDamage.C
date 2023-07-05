@@ -596,11 +596,15 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
   _residual_tensor = _pk2[_qp] - pk2_new;
 }
 
+// Jacobian for the Newton-Raphson crystal plasticity algorithm
+// includes damage
 void
 ComputeCrystalPlasticityStressDamage::calculateJacobian()
 {
   // may not need to cache the dfpinvdpk2 here. need to double check
   RankFourTensor dfedfpinv, deedfe, dfpinvdpk2, dfpinvdpk2_per_model;
+  
+  Real Je; // Je is relative elastic volume change
 
   RankTwoTensor ffeiginv = _temporary_deformation_gradient * _inverse_eigenstrain_deformation_grad;
 
@@ -626,11 +630,19 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
         _num_eigenstrains);
     dfpinvdpk2 += dfpinvdpk2_per_model;
   }
-
-  _jacobian =
-      RankFourTensor::IdentityFour() - (_elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);
+  
+  Je = _elastic_deformation_gradient.det();
+  
+  if (Je >= 1.0) { // expansion
+	
+    _jacobian = RankFourTensor::IdentityFour() - (_D[_qp] * _elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);
+	  
+  } else { // compression
+	
+    _jacobian = RankFourTensor::IdentityFour() - (_elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);	
+		
+  }
 }
-
 
 void
 ComputeCrystalPlasticityStressDamage::computeStrainVolumetric(Real & F_pos, Real & F_neg, 
