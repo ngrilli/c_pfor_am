@@ -605,8 +605,19 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
   RankFourTensor dfedfpinv, deedfe, dfpinvdpk2, dfpinvdpk2_per_model;
   
   Real Je; // Je is relative elastic volume change
+  Real Je23; // Je^{2/3}
+  Real delta; // delta is the trace of volumetric part of elastic Green-Lagrange strain
 
   RankTwoTensor ffeiginv = _temporary_deformation_gradient * _inverse_eigenstrain_deformation_grad;
+  
+  RankTwoTensor ce, invce; // Green Lagrange elastic strain and its inverse
+  
+  // Derivative of second Piola-Kirchhoff stress with respect to the Green Lagrange elastic strain
+  // and its undamaged part
+  RankFourTensor dpk2dee;
+  RankFourTensor undamaged_dpk2dee;
+  
+  Real Kb = 0.0; // reference bulk modulus
 
   for (const auto i : make_range(Moose::dim))
     for (const auto j : make_range(Moose::dim))
@@ -633,14 +644,38 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
   
   Je = _elastic_deformation_gradient.det();
   
-  if (Je >= 1.0) { // expansion
+  if (Je >= 1.0) { // expansion: dpk2dee = _D[_qp] * _elasticity_tensor[_qp]
 	
     _jacobian = RankFourTensor::IdentityFour() - (_D[_qp] * _elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);
 	  
   } else { // compression
+	  
+    ce = _elastic_deformation_gradient.transpose() * _elastic_deformation_gradient;
+    invce = ce.inverse();
+	  
+    for (unsigned int i = 0; i < LIBMESH_DIM; ++i)
+      for (unsigned int j = 0; j < LIBMESH_DIM; ++j)
+        Kb += _elasticity_tensor[_qp](i, i, j, j);
+  
+    Kb = Kb / 9.0;
+    
+    Je23 = std::pow(Je,2.0/3.0);
+    delta = 1.5 * (Je23 - 1.0);
+	  
+    // damaged part
+    for (const auto i : make_range(Moose::dim))
+      for (const auto j : make_range(Moose::dim))
+        for (const auto k : make_range(Moose::dim))
+          for (const auto l : make_range(Moose::dim))
+            undamaged_dpk2dee(i,j,k,l) = Kb * Je23 * (1.0 + (4.0/3.0) * delta) * invce(i,j) * invce(k,l);
+            
+    dpk2dee = _D[_qp] * (_elasticity_tensor[_qp] - undamaged_dpk2dee);
+    
+    // undamaged part
+    dpk2dee += undamaged_dpk2dee;
 	
-    _jacobian = RankFourTensor::IdentityFour() - (_elasticity_tensor[_qp] * deedfe * dfedfpinv * dfpinvdpk2);	
-		
+    _jacobian = RankFourTensor::IdentityFour() - (dpk2dee * deedfe * dfedfpinv * dfpinvdpk2);	
+
   }
 }
 
