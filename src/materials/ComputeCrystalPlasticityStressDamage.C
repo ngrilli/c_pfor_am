@@ -667,7 +667,10 @@ ComputeCrystalPlasticityStressDamage::calculateJacobian()
       for (const auto j : make_range(Moose::dim))
         for (const auto k : make_range(Moose::dim))
           for (const auto l : make_range(Moose::dim))
-            undamaged_dpk2dee(i,j,k,l) = Kb * Je23 * (1.0 + (4.0/3.0) * delta) * invce(i,j) * invce(k,l);
+            undamaged_dpk2dee(i,j,k,l) = Kb * Je23 * (
+                                         (1.0 + (4.0/3.0) * delta) * invce(i,j) * invce(k,l)
+                                         - 2.0 * delta * invce(i,k) * invce(j,l)
+                                                     );
             
     dpk2dee = _D[_qp] * (_elasticity_tensor[_qp] - undamaged_dpk2dee);
     
