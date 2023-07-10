@@ -218,6 +218,9 @@ protected:
   const Real _thermal_expansion;
   const Real _dCTE_dT;
   
+  /// Output old values of pk2 and Fp if NR algorithm fails
+  bool _suppress_constitutive_failure;
+  
   /// Volumetric thermal expansion
   Real _volumetric_thermal_expansion;
   

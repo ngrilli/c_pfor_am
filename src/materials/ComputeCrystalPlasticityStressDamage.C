@@ -45,6 +45,7 @@ ComputeCrystalPlasticityStressDamage::validParams()
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("thermal_expansion",0.0,"Linear thermal expansion coefficient");
   params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature");
+  params.addParam<bool>("suppress_constitutive_failure", false, "Use old values of pk2 and Fp if NR algorithm fails.");
   return params;
 }
 
@@ -81,7 +82,8 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     _temperature(coupledValue("temperature")),
     _reference_temperature(getParam<Real>("reference_temperature")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
-    _dCTE_dT(getParam<Real>("dCTE_dT"))
+    _dCTE_dT(getParam<Real>("dCTE_dT")),
+    _suppress_constitutive_failure(getParam<bool>("suppress_constitutive_failure"))
 {
   _convergence_failed = false;
 }
@@ -267,8 +269,21 @@ ComputeCrystalPlasticityStressDamage::updateStress(RankTwoTensor & cauchy_stress
       }
     }
 
-    if (substep_iter > _max_substep_iter && _convergence_failed)
-      mooseException("ComputeMultipleCrystalPlasticityStress: Constitutive failure");
+    if (substep_iter > _max_substep_iter && _convergence_failed) {
+		
+      if (_suppress_constitutive_failure) {
+		  
+        _pk2[_qp] = _pk2_old[_qp];
+        _plastic_deformation_gradient[_qp] = _plastic_deformation_gradient_old[_qp];
+        _convergence_failed = false;
+		  
+	  } else {
+		  
+        mooseException("ComputeMultipleCrystalPlasticityStress: Constitutive failure");
+		  
+	  }
+	}
+      
   } while (_convergence_failed);
 
   postSolveQp(cauchy_stress, jacobian_mult);
@@ -370,7 +385,7 @@ ComputeCrystalPlasticityStressDamage::solveStateVariables()
       return;
 
     _plastic_deformation_gradient[_qp] =
-        _inverse_plastic_deformation_grad.inverse(); // the postSoveStress
+        _inverse_plastic_deformation_grad.inverse(); // the postSolveStress
 
     // Update slip system resistance and state variable after the stress has been finalized
     // We loop through all the models for each calculation
