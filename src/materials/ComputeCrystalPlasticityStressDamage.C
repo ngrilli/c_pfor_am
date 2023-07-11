@@ -273,7 +273,6 @@ ComputeCrystalPlasticityStressDamage::updateStress(RankTwoTensor & cauchy_stress
 		
       if (_suppress_constitutive_failure) {
 		  
-        _pk2[_qp] = _pk2_old[_qp];
         _plastic_deformation_gradient[_qp] = _plastic_deformation_gradient_old[_qp];
         _convergence_failed = false;
 		  
