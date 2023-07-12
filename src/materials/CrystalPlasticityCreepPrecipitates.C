@@ -18,8 +18,6 @@ CrystalPlasticityCreepPrecipitates::validParams()
                              "using the stress update code. "
                              "Includes slip, creep and backstress. "
                              "Exponential law for slip. ");
-  params.addParam<Real>("ao", 0.001, "slip rate coefficient");
-  params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
   params.addParam<Real>("creep_rate_prefactor", 0.0, "creep rate prefactor");
   params.addParam<Real>("activation_volume", 0.0, "activation volume in exponential law");
   params.addParam<Real>("kB", 1.381e-11, "Boltzmann constant");
@@ -61,8 +59,6 @@ CrystalPlasticityCreepPrecipitates::CrystalPlasticityCreepPrecipitates(
   : CrystalPlasticityDislocationUpdateBase(parameters),
   
     // Constitutive model parameters
-    _ao(getParam<Real>("ao")),
-    _xm(getParam<Real>("xm")),
     _creep_rate_prefactor(getParam<Real>("creep_rate_prefactor")),
     _activation_volume(getParam<Real>("activation_volume")),
     _kB(getParam<Real>("kB")),
@@ -87,7 +83,6 @@ CrystalPlasticityCreepPrecipitates::CrystalPlasticityCreepPrecipitates(
 	_rho_tol(getParam<Real>("rho_tol")),
 	
 	// State variables of the dislocation model
-	
     _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
     _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
     _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
@@ -96,12 +91,10 @@ CrystalPlasticityCreepPrecipitates::CrystalPlasticityCreepPrecipitates(
     _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
     
     // Backstress variable
-    
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
 
     // increments of state variables
-	
     _rho_ssd_increment(_number_slip_systems, 0.0),
     _rho_gnd_edge_increment(_number_slip_systems, 0.0),
     _rho_gnd_screw_increment(_number_slip_systems, 0.0),
@@ -352,12 +345,19 @@ CrystalPlasticityCreepPrecipitates::calculateSlipRate()
   
   for (const auto i : make_range(_number_slip_systems))
   {
+    _slip_increment[_qp][i] = 0.0;	  
+
     effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i] - _backstress[_qp][i];
     
-    _slip_increment[_qp][i] = _creep_rate_prefactor * std::exp(effective_stress * _activation_volume / (_kB * _temperature[_qp]));
-      
-    if (_tau[_qp][i] < 0.0)
-      _slip_increment[_qp][i] *= -1.0;
+    if (effective_stress > 0.0) {
+		
+      // sinh is an odd function, therefore change sign of effective_stress if negative RSS
+      if (_tau[_qp][i] < 0.0)
+        effective_stress *= -1.0;
+        
+      _slip_increment[_qp][i] = _creep_rate_prefactor * std::sinh(effective_stress * _activation_volume / (_kB * _temperature[_qp]));
+		
+	}
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
@@ -452,14 +452,24 @@ CrystalPlasticityCreepPrecipitates::calculateConstitutiveSlipDerivative(
   Real effective_stress;
   
   Real derivative_prefactor;
-  
-  derivative_prefactor = _creep_rate_prefactor * _activation_volume / (_kB * _temperature[_qp]);
 	
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i] - _backstress[_qp][i];	  
+    dslip_dtau[i] = 0.0;	  
 
-    dslip_dtau[i] = derivative_prefactor * std::exp(effective_stress * _activation_volume / (_kB * _temperature[_qp]));
+    effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i] - _backstress[_qp][i];	 
+    
+    if (effective_stress > 0.0) {
+		
+      // sinh is an odd function, therefore change sign of effective_stress if negative RSS
+      if (_tau[_qp][i] < 0.0)
+        effective_stress *= -1.0;
+        
+      derivative_prefactor = _creep_rate_prefactor * _activation_volume / (_kB * _temperature[_qp]);
+        
+      dslip_dtau[i] = derivative_prefactor * std::cosh(effective_stress * _activation_volume / (_kB * _temperature[_qp]));
+		
+	} 
   }
 }
 

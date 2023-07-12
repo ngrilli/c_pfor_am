@@ -102,10 +102,6 @@ protected:
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
   
-  // Slip rate constants
-  const Real _ao;
-  const Real _xm;
-  
   // Creep rate constants
   const Real _creep_rate_prefactor;
   const Real _activation_volume;
