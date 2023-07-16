@@ -204,7 +204,7 @@ CrystalPlasticityUndamagedStress::computeQpStress()
   for (unsigned int i = 0; i < _num_eigenstrains; ++i)
     _eigenstrains[i]->setQp(_qp);
 
-  updateStress(_stress[_qp], _Jacobian_mult[_qp]); // This is NOT the exact jacobian
+  updateStress(_stress[_qp], _Jacobian_mult[_qp]);
 }
 
 void
@@ -292,7 +292,6 @@ CrystalPlasticityUndamagedStress::preSolveQp()
     _dislocation_models[i]->setInitialConstitutiveVariableValues();
 
   _pk2[_qp] = _pk2_old[_qp];
-  // need to initialize _pk2_damaged here ???
   _inverse_plastic_deformation_grad_old = _plastic_deformation_gradient_old[_qp].inverse();
 }
 
@@ -424,7 +423,7 @@ CrystalPlasticityUndamagedStress::solveStateVariables()
     if (iter_flag)
     {
       if (_print_convergence_message)
-        mooseWarning("ComputeMultipleCrystalPlasticityStress: State variables (or the system "
+        mooseWarning("CrystalPlasticityUndamagedStress: State variables (or the system "
                      "resistance) did not converge at element ",
                      _current_elem->id(),
                      " and qp ",
@@ -438,7 +437,7 @@ CrystalPlasticityUndamagedStress::solveStateVariables()
   {
     if (_print_convergence_message)
       mooseWarning(
-          "ComputeMultipleCrystalPlasticityStress: Hardness Integration error. Reached the "
+          "CrystalPlasticityUndamagedStress: Hardness Integration error. Reached the "
           "maximum number of iterations to solve for the state variables at element ",
           _current_elem->id(),
           " and qp ",
@@ -479,6 +478,7 @@ CrystalPlasticityUndamagedStress::solveStress()
   while (rnorm > _rtol * rnorm0 && rnorm > _abs_tol && iteration < _maxiter)
   {
     // Calculate stress increment
+    // NR algorithm is based on the undamaged stress
     dpk2 = -_jacobian.invSymm() * _residual_tensor;
     _pk2[_qp] = _pk2[_qp] + dpk2;
 
@@ -502,7 +502,7 @@ CrystalPlasticityUndamagedStress::solveStress()
     if (_use_line_search && rnorm > rnorm_prev && !lineSearchUpdate(rnorm_prev, dpk2))
     {
       if (_print_convergence_message)
-        mooseWarning("ComputeCrystalPlasticityStressDamage: Failed with line search");
+        mooseWarning("CrystalPlasticityUndamagedStress: Failed with line search");
 
       _convergence_failed = true;
       return;
@@ -517,7 +517,7 @@ CrystalPlasticityUndamagedStress::solveStress()
   if (iteration >= _maxiter)
   {
     if (_print_convergence_message)
-      mooseWarning("ComputeCrystalPlasticityStressDamage: Stress Integration error rmax = ",
+      mooseWarning("CrystalPlasticityUndamagedStress: Stress Integration error rmax = ",
                    rnorm,
                    " and the tolerance is ",
                    _rtol * rnorm0,
@@ -564,6 +564,8 @@ CrystalPlasticityUndamagedStress::calculateResidual()
     equivalent_slip_increment_per_model.zero();
 
     // calculate shear stress with consideration of contribution from other physics
+    // resolved shear stress is calculated with the undamaged stress
+    // because it is used to calculate the plastic strain rate
     _dislocation_models[i]->calculateShearStress(
         _pk2[_qp], _inverse_eigenstrain_deformation_grad, _num_eigenstrains);
 
@@ -602,6 +604,7 @@ CrystalPlasticityUndamagedStress::calculateResidual()
   
   // Decompose ee into volumetric and non-volumetric
   // and calculate elastic energy and stress
+  // pk2_new is the undamaged stress
   computeStrainVolumetric(F_pos, F_neg, elastic_strain, ce, pk2_new);
   
   // calculate history variable and
@@ -794,7 +797,8 @@ CrystalPlasticityUndamagedStress::computeStrainVolumetric(Real & F_pos, Real & F
   }
 
   // Positive part of the stress is degraded by _D[_qp]
-  pk2_new = (_D[_qp] * pk2_pos) + pk2_neg;
+  _pk2_damaged[_qp] = (_D[_qp] * pk2_pos) + pk2_neg;
+  pk2_new = pk2_pos + pk2_neg;
   
   // Positive and negative parts of the free energy
   // Equations 13 and 14 in Grilli, Koslowski, 2019
@@ -803,9 +807,11 @@ CrystalPlasticityUndamagedStress::computeStrainVolumetric(Real & F_pos, Real & F
   F_neg = a_neg_vol;
   
   // Used in StressDivergencePFFracTensors off-diagonal Jacobian
+  // This is used for stress equilibrium, therefore it has to account for the damage
   _dstress_dc[_qp] = pk2_pos * _dDdc[_qp];
   
   // 2nd derivative wrt c and strain = 0.0 if we used the previous step's history variable
+  // This is used for phase field jacobian, therefore it has to account for the damage
   if (_use_current_hist)
     _d2Fdcdstrain[_qp] = pk2_pos * _dDdc[_qp];
   
