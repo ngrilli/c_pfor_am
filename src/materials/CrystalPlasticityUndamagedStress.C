@@ -39,6 +39,10 @@ CrystalPlasticityUndamagedStress::validParams()
   params.addParam<Real>("thermal_expansion",0.0,"Linear thermal expansion coefficient");
   params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature");
   params.addParam<bool>("suppress_constitutive_failure", false, "Use old values of Fp if NR algorithm fails.");
+  params.addParam<bool>("use_snes_vi_solver",
+                        false,
+                        "Use PETSc's SNES variational inequalities solver to enforce damage "
+                        "irreversibility condition and restrict damage value <= 1.");
   return params;
 }
 
@@ -76,7 +80,9 @@ CrystalPlasticityUndamagedStress::CrystalPlasticityUndamagedStress(
     _reference_temperature(getParam<Real>("reference_temperature")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _dCTE_dT(getParam<Real>("dCTE_dT")),
+    
     _suppress_constitutive_failure(getParam<bool>("suppress_constitutive_failure")),
+    _use_snes_vi_solver(getParam<bool>("use_snes_vi_solver")),
     
     // _pk2 is the undamaged stress used for the crystal plasticity NR algorithm
     _pk2_damaged(declareProperty<RankTwoTensor>("pk2_damaged"))
@@ -174,7 +180,7 @@ CrystalPlasticityUndamagedStress::initialSetup()
     }
     else
       mooseError("Model " + model_names[i] +
-                 " is not compatible with ComputeCrystalPlasticityStressDamage");
+                 " is not compatible with CrystalPlasticityUndamagedStress");
   }
 
   // get crystal plasticity eigenstrains
@@ -826,23 +832,26 @@ CrystalPlasticityUndamagedStress::computeHistoryVariable(Real & F_pos, Real & F_
   // Assign history variable
   Real hist_variable = _H_old[_qp];
   
-  // _use_snes_vi_solver option not implemented
-
-  if (F_pos > _H_old[_qp])
+  if (_use_snes_vi_solver) {
+	  
     _H[_qp] = F_pos;
-  else
-    _H[_qp] = _H_old[_qp];
+	  
+  } else {
+	  
+    if (F_pos > _H_old[_qp])
+      _H[_qp] = F_pos;
+    else
+      _H[_qp] = _H_old[_qp];
+  }
 
   if (_use_current_hist)
     hist_variable = _H[_qp];
 
-  // _barrier not implemented
-
   // Elastic free energy density and derivatives
+  // These are used by the phase field model, therefore they must include damage
   _E[_qp] = hist_variable * _D[_qp] + F_neg;
   _dEdc[_qp] = hist_variable * _dDdc[_qp];
   _d2Ed2c[_qp] = hist_variable * _d2Dd2c[_qp];
-
 }
 
 // update jacobian_mult by taking into account of the exact elasto-plastic tangent moduli

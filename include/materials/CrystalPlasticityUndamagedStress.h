@@ -213,6 +213,9 @@ protected:
   /// Output old values of pk2 and Fp if NR algorithm fails
   bool _suppress_constitutive_failure;
   
+  /// Use PETSc's VI (Reduced space active set solvers for variational inequalities based on Newton's method) solver
+  bool _use_snes_vi_solver;
+  
   /// _pk2 is the undamaged stress used for the crystal plasticity NR algorithm
   /// therefore another material property _pk2_damaged for the damaged stress is required
   MaterialProperty<RankTwoTensor> & _pk2_damaged;
