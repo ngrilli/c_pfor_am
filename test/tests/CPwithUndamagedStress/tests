@@ -1,0 +1,10 @@
+[Tests]
+  [./crystal_plasticity_ferritic]
+    type = 'Exodiff'
+    input = 'crystal_plasticity_ferritic.i'
+    exodiff = 'crystal_plasticity_ferritic_out.e'
+	heavy = false
+    rel_err = 1e-4
+    abs_zero = 1e-6
+  [../]
+[]
