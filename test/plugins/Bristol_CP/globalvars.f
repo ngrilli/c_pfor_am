@@ -49,6 +49,9 @@ c	Slip resistance at 't'
 c     2nd Piola-Kirchoff stress at 't' (vectorized)
 	real(8), allocatable, public ::  global_S(:,:,:)
 	real(8), allocatable, public ::  global_S_t(:,:,:)
+c   Damaged 2nd Piola-Kirchoff stress at 't' (vectorized)
+	real(8), allocatable, public ::  global_S_damaged(:,:,:)
+	real(8), allocatable, public ::  global_S_damaged_t(:,:,:)
 c	Global orientation matrix
 	real(8), allocatable, public ::  global_ori(:,:,:,:)
 c	Global total slip per slip system (-) --- output
@@ -67,6 +70,9 @@ c	Global current jacobian matrix
 c	Global current stress vector - Cauchy
       real(8), allocatable, public ::	 global_sigma(:,:,:)
       real(8), allocatable, public ::	 global_sigma_t(:,:,:)
+c   Global current damaged stress vector - Cauchy
+      real(8), allocatable, public ::    global_sigma_damaged(:,:,:)
+      real(8), allocatable, public ::    global_sigma_damaged_t(:,:,:)
 c     Global IP coordinates
       real(8), allocatable, public ::	 global_coords(:,:,:)
 

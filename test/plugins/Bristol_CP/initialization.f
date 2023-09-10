@@ -3494,8 +3494,11 @@ c	INPUTS: Element number; el, integration point number; ip
      &global_Fp_t,sliphard_param,global_Fe,
      &global_Fe_t,global_state_t,global_ori,
      &global_jacob_t,global_gamma,gradIP2IP,
-     &global_jacob,global_sigma,global_S,
-     &global_S_t,global_gammadot,coords_init,
+     &global_jacob,global_sigma,
+     &global_sigma_damaged,global_sigma_damaged_t,
+     &global_S,global_S_t,
+     &global_S_damaged,global_S_damaged_t,
+     &global_gammadot,coords_init,
      &global_gamma_t,global_gamma_sum,drhoGND,
      &global_gamma_sum_t,global_Fp,outerabstol,
      &global_sigma_t, grainsize_init,maxnumslip,
@@ -3554,12 +3557,19 @@ c
       global_S = 0.0d+0
       allocate (global_S_t(numel,numip,6))
       global_S_t = 0.0d+0
+      allocate (global_S_damaged(numel,numip,6))
+      global_S_damaged = 0.0d+0
+      allocate (global_S_damaged_t(numel,numip,6))
 	allocate (global_jacob_t(numel,numip,6,6))
 	global_jacob_t=0.0d+0
       allocate (global_jacob(numel,numip,6,6))
 	global_jacob=0.0d+0
       allocate (global_sigma(numel,numip,6))
 	global_sigma=0.0d+0
+      allocate (global_sigma_damaged(numel,numip,6))
+      global_sigma_damaged = 0.0d+0
+      allocate (global_sigma_damaged_t(numel,numip,6))
+      global_sigma_damaged_t = 0.0d+0
       allocate (global_sigma_t(numel,numip,6))
 	global_sigma_t=0.0d+0
 	allocate (global_ori(numel,numip,3,3))

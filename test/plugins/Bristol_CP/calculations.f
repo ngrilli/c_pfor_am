@@ -13,7 +13,7 @@ c
 c
 c	This subroutine calculates the two main variables: Stress and Consistent tangent
       subroutine calcs(F_t,F,t,dt,temp,inc,el_no,ip_no,
-     &sigma,jacob,pnewdt,coords)
+     &sigma,jacob,pnewdt,coords) ! sigma_damaged must be used for sigma
 	use globalvars, only: global_Fp,global_Fp_t,global_Fe,global_Fe_t,
      &global_state,global_state_t,I3,inc_old,elas66,global_coords,
      &global_ori,njaco,innoitmax,ounoitmax,global_gammadot_t,smallnum,
@@ -25,7 +25,9 @@ c	This subroutine calculates the two main variables: Stress and Consistent tange
      &tstep_back,numel,numip,global_Fr0,tres,resdef,mtdjaco,coords_init,
      &grainmorph,global_damage,global_F_pos,global_F_neg,global_pk2_pos,
      &phasefielddamage,phaseind,maxnumslip,global_Wp,global_Wp_t,
-     &global_f_ep_c,global_f_ep_c_t,creepphasefieldflag
+     &global_f_ep_c,global_f_ep_c_t,creepphasefieldflag,
+     &global_sigma_damaged,global_sigma_damaged_t,
+     &global_S_damaged,global_S_damaged_t
      
       use initialization, only: initialize_grainsize,
      &initialize_gndslipgradel
@@ -38,10 +40,12 @@ c	Inputs
       real(8) F_t(3,3),F(3,3),t,dt,temp
 c	Outputs
 	real(8) sigma(6),jacob(6,6),pnewdt,coords(3)
+      real(8) sigma_damaged(6)
 c	Variables used within this subroutine
 	real(8) Fp_t(3,3),Fe_t(3,3),tauc_t(maxnumslip), Fr(3,3),Fr_t(3,3)
 	real(8) Fp(3,3),Fe(3,3),tauc(maxnumslip),Cauchy(3,3)
 	real(8) S(6),S_t(6),det,C(3,3,maxnumslip)
+      real(8) S_damaged(6),S_damaged_t(6)
 	real(8) Lp(3,3),R(3,3),U(3,3),gammadot(maxnumslip)
 	real(8) dgammadot_dtau(maxnumslip)
 	integer is,el_no,ip_no,gr_no,ph_no
@@ -79,12 +83,15 @@ c         write(6,*) 'Updated the state variables'
          global_Fp_t(el_no,ip_no,:,:)=global_Fp(el_no,ip_no,:,:)
          global_Fe_t(el_no,ip_no,:,:)=global_Fe(el_no,ip_no,:,:)
          global_S_t(el_no,ip_no,:)=global_S(el_no,ip_no,:)
+      global_S_damaged_t(el_no,ip_no,:)=global_S_damaged(el_no,ip_no,:) 
          global_gammadot_t(el_no,ip_no,:)=global_gammadot(el_no,ip_no,:)
          global_gamma_t(el_no,ip_no,:)=global_gamma(el_no,ip_no,:)
          global_gamma_sum_t(el_no,ip_no)=global_gamma_sum(el_no,ip_no)
          global_state_t(el_no,ip_no,:,:)=global_state(el_no,ip_no,:,:)
          global_jacob_t(el_no,ip_no,:,:)=global_jacob(el_no,ip_no,:,:)
          global_sigma_t(el_no,ip_no,:)=global_sigma(el_no,ip_no,:)
+      global_sigma_damaged_t(el_no,ip_no,:) =
+     & global_sigma_damaged(el_no,ip_no,:)
          global_Wp_t(el_no,ip_no) = global_Wp(el_no,ip_no)
          global_f_ep_c_t(el_no,ip_no) = global_f_ep_c(el_no,ip_no)
       endif
@@ -434,6 +441,7 @@ c	    Assign the globally stored variables
         Fe_t = global_Fe_t(el_no,ip_no,:,:)
 	    Fp_t = global_Fp_t(el_no,ip_no,:,:)
 	    S_t = global_S_t(el_no,ip_no,:)
+        S_damaged_t = global_S_damaged_t(el_no,ip_no,:)
 	    state_t = global_state_t(el_no,ip_no,:,:)
         state0 = global_state0(el_no,ip_no,:,:)
         gint_t = global_gamma_t(el_no,ip_no,:)
@@ -466,7 +474,8 @@ c	    Calculate stress and shear resistance
 c	    Note: el_no and ip_no are needed to get the values of Schmid vectors and
 c	    elasticity tensor from the global variables
 
-          call SC_main(dt,F,Fp_t,Fr,S_t,state_t,gsum_t,gint_t,temp,
+          call SC_main(dt,F,Fp_t,Fr,S_t,S_damaged_t,state_t,gsum_t,
+     & gint_t,temp,
      & state0,Xdist,dam,damflag,ph_no,C,S,Lp,Fp,Fe,sigma,gammadot,
      & dgammadot_dtau,state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,
      & Wp_t)
@@ -660,7 +669,7 @@ c                 Note this also works when inc=1 since it is elasticity matrix
 c
             if (phasefielddamage.eq.1d+0) then
 
-	            call update_plastic_work(Fp,Fp_t,Fe,S,Wp_t,Wp)
+              call update_plastic_work(Fp,Fp_t,Fe,S_damaged_t,Wp_t,Wp)
 
             endif
 
@@ -676,6 +685,7 @@ c	    Store the important variables
           global_Fp(el_no,ip_no,:,:) = Fp
           global_Fe(el_no,ip_no,:,:) = Fe
           global_S(el_no,ip_no,:) = S
+          global_S_damaged(el_no,ip_no,:) = S_damaged
           global_state(el_no,ip_no,1:nss,1:numstvar) = state
           global_gammadot(el_no,ip_no,1:nss) = gammadot
           global_gamma(el_no,ip_no,1:nss) = gint
@@ -701,6 +711,7 @@ c	    Store the important variables
 
 c     Store the important results
       global_sigma(el_no,ip_no,:)=sigma
+      global_sigma_damaged(el_no,ip_no,:)=sigma_damaged
 
 c     Assign the value of jacobian even if there is no convergence
       global_jacob(el_no,ip_no,:,:)=jacob
@@ -1223,6 +1234,7 @@ c	This subroutine calculates consistent tangent
 c	Inputs
       real(8) F_t(3,3),F(3,3),S_vec_t(6),Cauchy_vec(6),dt,Fr(3,3)
 	real(8) Fp_t(3,3),Cauchy(3,3),gsum_t,gint_t(maxnumslip),temp
+      real(8) S_damaged_vec_t(6)
       real(8) Xdist(maxnumslip), dam
       integer damflag, ph_no
 c	Outputs
@@ -1268,7 +1280,8 @@ c		Convert the vector to a matrix
 		F_per=F+matmul(dFrel,F_t)
 c		Call the calculation procedure
 
-		call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,state_t,gsum_t,gint_t,
+		call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,S_damaged_vec_t,
+     &    state_t,gsum_t,gint_t,
      &    temp,state0,Xdist,dam,damflag,ph_no,dummy1,dummy2,dummy3,
      &    dummy4,dummy5,Cauchy_per_vec,dummy6,dummy7,state,dummy8,
      &    dummy9,dummy10,dummy11,dummy12,sconv,dummy13)
@@ -1405,7 +1418,7 @@ c     Step-3. Calculation of D
                       do m=1,3
                           do n=1,3
 
-      if (damflag.eq.1d+0 .and. Je>=1d+0) then
+      if (damflag.eq.1d+0 .and. Je>=1d+0) then ! remove this damage part
 
       sum = sum + 0.5d+0 * elas3333(ph_no,i,j,m,n) 
      & * L4(m,n,k,l) * (1.0 - dam) * (1.0 - dam)
@@ -1756,7 +1769,7 @@ c	OUPUTS: invFp_T(3,3), T_T_vec(6), gammadot(12), dgammadot_dtau(12),
 c			 Lp(3,3), tauc(12), initno, ouitno
 c	USES:	scale, innertol, outertol, innoitmax, ounoitmax
 
-      subroutine SC_main(dt,F,Fp_t,Fr,S_vec_t,state_t,
+      subroutine SC_main(dt,F,Fp_t,Fr,S_vec_t,S_damaged_vec_t,state_t,
      & gsum_t,gint_t,temp,state0,Xdist,dam,damflag,ph_no,C,
      & S_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,dgammadot_dtau,
      & state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,Wp)
@@ -1777,6 +1790,7 @@ c
       implicit none
 c	Input variable declarations
       real(8) dt,F(3,3),Fp_t(3,3),S_vec_t(6),gsum_t,temp
+      real(8) S_damaged_vec_t(6)
       real(8) Fr(3,3),Xdist(maxnumslip),dam,gint_t(maxnumslip)
       integer damflag, ph_no
 c	Output variable declarations
@@ -1848,25 +1862,25 @@ c      write(6,*) E_vec_tr
 
 c     Trial stress
 
-      if (damflag.eq.0d+0) then
+      !if (damflag.eq.0d+0) then
 
-        S_vec_tr = matmul(elas66(ph_no,:,:),E_vec_tr)
-        F_neg=0.0d+0
-        F_pos=0.0d+0
-        pk2_pos_mat=0.0d+0
+      S_vec_tr = matmul(elas66(ph_no,:,:),E_vec_tr)
+      F_neg=0.0d+0
+      F_pos=0.0d+0
+      pk2_pos_mat=0.0d+0
 
-      else ! phase field damage model
+      !else ! phase field damage model
 
 	  ! calculate original elastic deformation gradient
 	  ! and modify it for residual deformation
-          Fe = matmul(F,invFp_t)
-          Fe = matmul(Fe,invFr)
-		  call determinant(Fe, Je)
+      !Fe = matmul(F,invFp_t)
+      !Fe = matmul(Fe,invFr)
+      !call determinant(Fe, Je)
 
-          call computeStrainVolumetric(ph_no,E_tr,A,Fe,dam,
-     &S_vec_tr,F_pos,F_neg,pk2_pos_mat,Wp)
+      !call computeStrainVolumetric(ph_no,E_tr,A,Fe,dam,
+      !&S_vec_tr,F_pos,F_neg,pk2_pos_mat,Wp)
 
-      end if
+      !end if
 
 c     Calculation of constant C
 	C=0.0d+0
