@@ -666,7 +666,7 @@ c
 
             if (creepphasefieldflag .eq. 1d+0) then
               !sigma is the cauchy stress.
-              call update_creep_damage(Fp_t,Fp,sigma,f_ep_c,dt)
+              call update_creep_damage(Fp_t,Fp,sigma,f_ep_c,dt,ph_no)
             endif
 
           endif ! end of Regular time stepping

@@ -2,15 +2,15 @@
 // Università di Bristol
 // 26 Agosto 2023
 
-#include "PolycrystalSolidificationAction.h"
+#include "PolycrystalSolidificationKernelAction.h"
 #include "Factory.h"
 #include "Conversion.h"
 #include "FEProblem.h"
 
-registerMooseAction("PhaseFieldApp", PolycrystalSolidificationAction, "add_kernel");
+registerMooseAction("c_pfor_amApp", PolycrystalSolidificationKernelAction, "add_kernel");
 
 InputParameters
-PolycrystalSolidificationAction::validParams()
+PolycrystalSolidificationKernelAction::validParams()
 {
   InputParameters params = PolycrystalKernelAction::validParams();
   params.addClassDescription(
@@ -19,13 +19,13 @@ PolycrystalSolidificationAction::validParams()
   return params;
 }
 
-PolycrystalSolidificationAction::PolycrystalSolidificationAction(const InputParameters & params)
+PolycrystalSolidificationKernelAction::PolycrystalSolidificationKernelAction(const InputParameters & params)
   : PolycrystalKernelAction(params)  
 {
 }
 
 void
-PolycrystalSolidificationAction::act()
+PolycrystalSolidificationKernelAction::act()
 {
   // Create zeta solid-liquid variable name
   // The variable zeta must be added to the input file

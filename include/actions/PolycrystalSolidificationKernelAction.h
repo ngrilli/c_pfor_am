@@ -10,12 +10,12 @@
  * Action that sets up ACGrGrPoly, GrainSolidification, ACInterface, TimeDerivative, and ACGBPoly
  * kernels.
  */
-class PolycrystalSolidificationAction : public PolycrystalKernelAction
+class PolycrystalSolidificationKernelAction : public PolycrystalKernelAction
 {
 public:
   static InputParameters validParams();
 
-  PolycrystalSolidificationAction(const InputParameters & params);
+  PolycrystalSolidificationKernelAction(const InputParameters & params);
 
   virtual void act();
 
