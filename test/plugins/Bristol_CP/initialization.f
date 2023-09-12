@@ -3495,7 +3495,6 @@ c	INPUTS: Element number; el, integration point number; ip
      &global_Fe_t,global_state_t,global_ori,
      &global_jacob_t,global_gamma,gradIP2IP,
      &global_jacob,global_sigma,
-     &global_sigma_damaged,global_sigma_damaged_t,
      &global_S,global_S_t,
      &global_S_damaged,global_S_damaged_t,
      &global_gammadot,coords_init,
@@ -3566,10 +3565,6 @@ c
 	global_jacob=0.0d+0
       allocate (global_sigma(numel,numip,6))
 	global_sigma=0.0d+0
-      allocate (global_sigma_damaged(numel,numip,6))
-      global_sigma_damaged = 0.0d+0
-      allocate (global_sigma_damaged_t(numel,numip,6))
-      global_sigma_damaged_t = 0.0d+0
       allocate (global_sigma_t(numel,numip,6))
 	global_sigma_t=0.0d+0
 	allocate (global_ori(numel,numip,3,3))

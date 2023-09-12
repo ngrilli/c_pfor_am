@@ -70,9 +70,6 @@ c	Global current jacobian matrix
 c	Global current stress vector - Cauchy
       real(8), allocatable, public ::	 global_sigma(:,:,:)
       real(8), allocatable, public ::	 global_sigma_t(:,:,:)
-c   Global current damaged stress vector - Cauchy
-      real(8), allocatable, public ::    global_sigma_damaged(:,:,:)
-      real(8), allocatable, public ::    global_sigma_damaged_t(:,:,:)
 c     Global IP coordinates
       real(8), allocatable, public ::	 global_coords(:,:,:)
 

@@ -13,7 +13,7 @@ c
 c
 c	This subroutine calculates the two main variables: Stress and Consistent tangent
       subroutine calcs(F_t,F,t,dt,temp,inc,el_no,ip_no,
-     &sigma,jacob,pnewdt,coords) ! sigma_damaged must be used for sigma
+     &sigma,jacob,pnewdt,coords) ! damaged Cauchy stress must be used for sigma output
 	use globalvars, only: global_Fp,global_Fp_t,global_Fe,global_Fe_t,
      &global_state,global_state_t,I3,inc_old,elas66,global_coords,
      &global_ori,njaco,innoitmax,ounoitmax,global_gammadot_t,smallnum,
@@ -26,7 +26,6 @@ c	This subroutine calculates the two main variables: Stress and Consistent tange
      &grainmorph,global_damage,global_F_pos,global_F_neg,global_pk2_pos,
      &phasefielddamage,phaseind,maxnumslip,global_Wp,global_Wp_t,
      &global_f_ep_c,global_f_ep_c_t,creepphasefieldflag,
-     &global_sigma_damaged,global_sigma_damaged_t,
      &global_S_damaged,global_S_damaged_t
      
       use initialization, only: initialize_grainsize,
@@ -40,7 +39,6 @@ c	Inputs
       real(8) F_t(3,3),F(3,3),t,dt,temp
 c	Outputs
 	real(8) sigma(6),jacob(6,6),pnewdt,coords(3)
-      real(8) sigma_damaged(6)
 c	Variables used within this subroutine
 	real(8) Fp_t(3,3),Fe_t(3,3),tauc_t(maxnumslip), Fr(3,3),Fr_t(3,3)
 	real(8) Fp(3,3),Fe(3,3),tauc(maxnumslip),Cauchy(3,3)
@@ -90,8 +88,6 @@ c         write(6,*) 'Updated the state variables'
          global_state_t(el_no,ip_no,:,:)=global_state(el_no,ip_no,:,:)
          global_jacob_t(el_no,ip_no,:,:)=global_jacob(el_no,ip_no,:,:)
          global_sigma_t(el_no,ip_no,:)=global_sigma(el_no,ip_no,:)
-      global_sigma_damaged_t(el_no,ip_no,:) =
-     & global_sigma_damaged(el_no,ip_no,:)
          global_Wp_t(el_no,ip_no) = global_Wp(el_no,ip_no)
          global_f_ep_c_t(el_no,ip_no) = global_f_ep_c(el_no,ip_no)
       endif
@@ -476,7 +472,8 @@ c	    elasticity tensor from the global variables
 
           call SC_main(dt,F,Fp_t,Fr,S_t,S_damaged_t,state_t,gsum_t,
      & gint_t,temp,
-     & state0,Xdist,dam,damflag,ph_no,C,S,Lp,Fp,Fe,sigma,gammadot,
+     & state0,Xdist,dam,damflag,ph_no,C,S,S_damaged,Lp,Fp,Fe,sigma,
+     & gammadot,
      & dgammadot_dtau,state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,
      & Wp_t)
 
@@ -549,6 +546,7 @@ c             Assign the former values
               Fe = Fe_t
               Fp = Fp_t
               S = S_t
+              S_damaged = S_damaged_t
               gammadot = global_gammadot_t(el_no,ip_no,:)
               state=state_t
               gsum=gsum_t
@@ -605,7 +603,7 @@ c             Note, jacobian is needed at the first calculation
 c                 Calculate the material tangent (using perturbation)
                   if (mtdjaco.eq.1d+0) then
 
-      call SC_jacobian_per(dt,F_t,F,S_t,Fp_t,Fr,state_t,
+      call SC_jacobian_per(dt,F_t,F,S_t,S_damaged_t,Fp_t,Fr,state_t,
      & gsum_t,gint_t,temp,state0,Xdist,dam,damflag,ph_no,
      & sigma,jacob,jconv)
 
@@ -669,12 +667,12 @@ c                 Note this also works when inc=1 since it is elasticity matrix
 c
             if (phasefielddamage.eq.1d+0) then
 
-              call update_plastic_work(Fp,Fp_t,Fe,S_damaged_t,Wp_t,Wp)
+              call update_plastic_work(Fp,Fp_t,Fe,S_damaged,Wp_t,Wp)
 
             endif
 
             if (creepphasefieldflag .eq. 1d+0) then
-              !sigma is the cauchy stress.
+              !sigma is the damaged cauchy stress
               call update_creep_damage(Fp_t,Fp,sigma,f_ep_c,dt,ph_no)
             endif
 
@@ -711,7 +709,6 @@ c	    Store the important variables
 
 c     Store the important results
       global_sigma(el_no,ip_no,:)=sigma
-      global_sigma_damaged(el_no,ip_no,:)=sigma_damaged
 
 c     Assign the value of jacobian even if there is no convergence
       global_jacob(el_no,ip_no,:,:)=jacob
@@ -1223,7 +1220,7 @@ c
 c
 c
 c	This subroutine calculates consistent tangent
-      subroutine SC_jacobian_per(dt,F_t,F,S_vec_t,
+      subroutine SC_jacobian_per(dt,F_t,F,S_vec_t,S_damaged_vec_t,
      & Fp_t,Fr,state_t,gsum_t,gint_t,temp,state0,
      & Xdist,dam,damflag,ph_no,Cauchy_vec,jacob,jconv)
 
@@ -1244,11 +1241,11 @@ c	Variables used within this subroutine
       real(8) detF,Cauchy_per(3,3)
       real(8) F_per(3,3),dFrel_vec(6),dFrel(3,3),Cauchy_per_vec(6)
       real(8) S_per_vec(6),Fe_per(3,3)
-      real(8) invFp_per(3,3),dummy1(3,3,maxnumslip),dummy2(6)
-	  real(8) dummy3(3,3)
-      real(8) dummy4(3,3),dummy5(3,3),dummy9(maxnumslip)
-      real(8) dummy6(maxnumslip),dummy7(maxnumslip),dummy8
-      real(8) dummy10, dummy11, dummy12(3,3), dummy13
+      real(8) invFp_per(3,3),dummy1(3,3,maxnumslip),dummy2(6),dummy3(6)
+	  real(8) dummy4(3,3)
+      real(8) dummy5(3,3),dummy6(3,3),dummy10(maxnumslip)
+      real(8) dummy7(maxnumslip),dummy8(maxnumslip),dummy9
+      real(8) dummy11, dummy12, dummy13(3,3), dummy14
       integer i,j,sconv,nss
       real(8)	state(maxnumslip,numstvar), state_t(maxnumslip,numstvar)
       real(8) state0(maxnumslip,numstvar)
@@ -1282,9 +1279,10 @@ c		Call the calculation procedure
 
 		call SC_main(dt,F_per,Fp_t,Fr,S_vec_t,S_damaged_vec_t,
      &    state_t,gsum_t,gint_t,
-     &    temp,state0,Xdist,dam,damflag,ph_no,dummy1,dummy2,dummy3,
-     &    dummy4,dummy5,Cauchy_per_vec,dummy6,dummy7,state,dummy8,
-     &    dummy9,dummy10,dummy11,dummy12,sconv,dummy13)
+     &    temp,state0,Xdist,dam,damflag,ph_no,dummy1,dummy2,
+     &    dummy3,dummy4,
+     &    dummy5,dummy6,Cauchy_per_vec,dummy7,dummy8,state,dummy9,
+     &    dummy10,dummy11,dummy12,dummy13,sconv,dummy14)
 
 c
           if (sconv.eq.0d+0) jconv=0d+0
@@ -1418,7 +1416,7 @@ c     Step-3. Calculation of D
                       do m=1,3
                           do n=1,3
 
-      if (damflag.eq.1d+0 .and. Je>=1d+0) then ! remove this damage part
+      if (damflag.eq.1d+0 .and. Je>=1d+0) then
 
       sum = sum + 0.5d+0 * elas3333(ph_no,i,j,m,n) 
      & * L4(m,n,k,l) * (1.0 - dam) * (1.0 - dam)
@@ -1771,7 +1769,7 @@ c	USES:	scale, innertol, outertol, innoitmax, ounoitmax
 
       subroutine SC_main(dt,F,Fp_t,Fr,S_vec_t,S_damaged_vec_t,state_t,
      & gsum_t,gint_t,temp,state0,Xdist,dam,damflag,ph_no,C,
-     & S_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,dgammadot_dtau,
+     & S_vec,S_damaged_vec,Lp,Fp,Fe,Cauchy_vec,gammadot,dgammadot_dtau,
      & state,gsum,gint,F_pos,F_neg,pk2_pos_mat,sconv,Wp)
 c
 c
@@ -1795,6 +1793,7 @@ c	Input variable declarations
       integer damflag, ph_no
 c	Output variable declarations
       real(8) C(3,3,maxnumslip),S_vec(6),Lp(3,3)
+      real(8) S_damaged_vec(6)
       real(8) Fp(3,3),Fe(3,3),Cauchy(3,3),gsum
       real(8) Cauchy_vec(6), gammadot(maxnumslip)
       real(8) gint(maxnumslip),dgammadot_dtau(maxnumslip)
@@ -1862,25 +1861,13 @@ c      write(6,*) E_vec_tr
 
 c     Trial stress
 
-      !if (damflag.eq.0d+0) then
-
       S_vec_tr = matmul(elas66(ph_no,:,:),E_vec_tr)
       F_neg=0.0d+0
       F_pos=0.0d+0
       pk2_pos_mat=0.0d+0
 
-      !else ! phase field damage model
-
-	  ! calculate original elastic deformation gradient
-	  ! and modify it for residual deformation
-      !Fe = matmul(F,invFp_t)
-      !Fe = matmul(Fe,invFr)
-      !call determinant(Fe, Je)
-
       !call computeStrainVolumetric(ph_no,E_tr,A,Fe,dam,
       !&S_vec_tr,F_pos,F_neg,pk2_pos_mat,Wp)
-
-      !end if
 
 c     Calculation of constant C
 	C=0.0d+0
@@ -1888,27 +1875,17 @@ c     Calculation of constant C
 
       do is=1,nss
 
-	    ! include damage in the NR Jacobian
-        if (damflag.eq.1d+0 .and. Je>=1d+0) then
-
-      C_vec(:,is) = 0.5d+0*(1.0-dam)*(1.0-dam)
-     & *matmul(elas66(ph_no,:,:),B_vec(:,is))
-
-        else
-
-          C_vec(:,is) = 0.5d+0*matmul(elas66(ph_no,:,:),B_vec(:,is))
-
-        endif
+        C_vec(:,is) = 0.5d+0*matmul(elas66(ph_no,:,:),B_vec(:,is))
 
         call convert6to3x3(C_vec(:,is),C(:,:,is))
 
       enddo
 
 
-
 c	Assign initial variables
 	state=state_t
       S_vec=S_vec_t
+      S_damaged_vec = S_damaged_vec_t
 
 
 
@@ -2120,14 +2097,12 @@ c     Vectorize strains
 
 c     Calculate the stresses
 
-      if (damflag.eq.0d+0) then
+      S_vec = matmul(elas66(ph_no,:,:),Ee_vec)
 
-        S_vec = matmul(elas66(ph_no,:,:),Ee_vec)
+      if (damflag.eq.1d+0) then
 
-      else ! phase field damage model
-
-          call computeStrainVolumetric(ph_no,Ee,A,Fe,dam,
-     &S_vec,F_pos,F_neg,pk2_pos_mat,Wp)
+        call computeStrainVolumetric(ph_no,Ee,A,Fe,dam,
+     & S_damaged_vec,F_pos,F_neg,pk2_pos_mat,Wp)
 
       end if
 
@@ -2136,8 +2111,16 @@ c     Modifed for residual deformation
 
 c     Modifed for residual deformation
 c	Calculate Cauchy stress
-	call cauchystress(S_vec,Fsum,Cauchy,Cauchy_vec)
 
+      if (damflag.eq.1d+0) then
+      
+        call cauchystress(S_damaged_vec,Fsum,Cauchy,Cauchy_vec)
+      
+      else
+	
+        call cauchystress(S_vec,Fsum,Cauchy,Cauchy_vec)
+
+      end if
 
 c     Set flag for convergence
       sconv=1d+0
