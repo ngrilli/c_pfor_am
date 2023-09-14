@@ -22,6 +22,13 @@ c_pfor_amApp::c_pfor_amApp(InputParameters parameters) : MooseApp(parameters)
 
 c_pfor_amApp::~c_pfor_amApp() {}
 
+static void
+associateSyntaxInner(Syntax & syntax, ActionFactory & /*action_factory*/)
+{
+  registerSyntax("PolycrystalSolidificationKernelAction", "Kernels/PolycrystalSolidificationKernel");
+  registerSyntax("SolidificationVariablesAction", "Variables/SolidificationVariables");
+}
+
 void
 c_pfor_amApp::registerAll(Factory & f, ActionFactory & af, Syntax & s)
 {
@@ -30,12 +37,28 @@ c_pfor_amApp::registerAll(Factory & f, ActionFactory & af, Syntax & s)
   Registry::registerActionsTo(af, {"c_pfor_amApp"});
 
   /* register custom execute flags, action syntax, etc. here */
+  associateSyntaxInner(s, af);
 }
 
 void
 c_pfor_amApp::registerApps()
 {
   registerApp(c_pfor_amApp);
+}
+
+void
+c_pfor_amApp::registerObjects(Factory & factory)
+{
+  mooseDeprecated("use registerAll instead of registerObjects");
+  Registry::registerObjectsTo(factory, {"c_pfor_amApp"});
+}
+
+void
+c_pfor_amApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
+{
+  mooseDeprecated("use registerAll instead of associateSyntax");
+  Registry::registerActionsTo(action_factory, {"c_pfor_amApp"});
+  associateSyntaxInner(syntax, action_factory);
 }
 
 /***************************************************************************************************

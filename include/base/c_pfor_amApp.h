@@ -21,5 +21,9 @@ public:
 
   static void registerApps();
   static void registerAll(Factory & f, ActionFactory & af, Syntax & s);
+  
+  // Include Action syntax for input files
+  static void registerObjects(Factory & factory);
+  static void associateSyntax(Syntax & syntax, ActionFactory & action_factory);
 };
 
