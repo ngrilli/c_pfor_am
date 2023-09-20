@@ -165,7 +165,7 @@ ActDeactElementsUserObjectBase::finalize()
   initSolutions(elem_range, bnd_node_range);
 
   //  Initialize stateful material properties for the newly activated elements
-  _fe_problem.initElementStatefulProps(elem_range);
+  _fe_problem.initElementStatefulProps(elem_range, false);
 
   //  Clear the list
   _newly_activated_elem.clear();
@@ -322,7 +322,7 @@ ActDeactElementsUserObjectBase::getNewlyActivatedElementRange()
   const auto elems_end =
       MeshBase::const_element_iterator(elemend, elemend, Predicates::NotNull<Elem * const *>());
   if (!_activated_elem_range)
-    _activated_elem_range = libmesh_make_unique<ConstElemRange>(elems_begin, elems_end);
+    _activated_elem_range = std::make_unique<ConstElemRange>(elems_begin, elems_end);
 
   return _activated_elem_range.get();
 }
@@ -359,7 +359,7 @@ ActDeactElementsUserObjectBase::getNewlyActivatedBndNodeRange()
       nodeend, nodeend, Predicates::NotNull<BndNode * const *>());
 
   if (!_activated_bnd_node_range)
-    _activated_bnd_node_range = libmesh_make_unique<ConstBndNodeRange>(nodes_begin, nodes_end);
+    _activated_bnd_node_range = std::make_unique<ConstBndNodeRange>(nodes_begin, nodes_end);
 
   return _activated_bnd_node_range.get();
 }
@@ -397,7 +397,7 @@ ActDeactElementsUserObjectBase::getNewlyActivatedNodeRange()
       MeshBase::const_node_iterator(nodeend, nodeend, Predicates::NotNull<Node * const *>());
 
   if (!_activated_node_range)
-    _activated_node_range = libmesh_make_unique<ConstNodeRange>(nodes_begin, nodes_end);
+    _activated_node_range = std::make_unique<ConstNodeRange>(nodes_begin, nodes_end);
 
   return _activated_node_range.get();
 }
