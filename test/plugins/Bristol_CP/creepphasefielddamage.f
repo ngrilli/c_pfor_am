@@ -55,7 +55,7 @@ c     Update Creep Damage
 c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007  
         subroutine R5_SMDE(f_ep_c,sigma,E_vec,E_vec_t,dt,ph_no)
         
-        use globalvars, only: temp0,Rgas
+        use globalvars, only: temp0,Rgas,t_old
         !Cauchy Stress
         real(8) sigma(6)
         !Invariants Stresses
@@ -86,7 +86,7 @@ c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007
         !q_R5 = c_damage_param(ph_no,2)
         
         !From: doi:https://doi.org/10.1179/mht.2004.007 (For 304)
-        A = 70d+0
+        A = 30d+0
         Q = 51123.0
         n= 0.2971
         m = 1.2695
@@ -121,40 +121,53 @@ c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007
         
         !==== Von Mises creep strain rate: https://doi.org/10.1179/mht.2004.007
         epsilon_c_dot = (E_Eq-E_Eq_t)/dt
-        !If negative then no damage.
-        if  (epsilon_c_dot .le. 0d+0) then
-                epsilon_c_dot = 0d+0
-        endif
-        
-        
+
+
+c =======================================================
+        !If creep strain or max principal stress is negative then no damage.(as per epsilon_fu equation below)
+        if  (epsilon_c_dot .le. 0d+0 .or. sigmaMaxP .le. 0d+0)  then
+
+            f_ep_c = f_ep_c0
+
+
+        else
+    
         !==== Uniaxial Failure Strain: https://doi.org/10.1179/mht.2004.007
-            epsilon_fu = A*exp(Q/(Rgas*temp0))*(epsilon_c_dot**n)
-     1*(sigmaMaxP**(-1*m))
+            epsilon_fu = A*exp(Q/(Rgas*temp0))*((epsilon_c_dot)**n)
+     1*((sigmaMaxP)**(-1*m))
 
-
-            if (epsilon_fu .lt. 1e-6) then
-                epsilon_fu = 0.9
-            endif
-            
-            
-        !==== Multiaxial Failure Strain
-        epsilon_f=  epsilon_fu * 
+   
+    !==== Multiaxial Failure Strain
+            epsilon_f=  epsilon_fu * 
      1exp(p_R5*(1d+0 - (sigmaMaxP/sigmaEq))
      2+q_R5*(0.5d+0 - 1.5d+0*(sigmaH/sigmaEq)))
-        
-        
+                    
+                    
 
-        !==== Creep degradation function
+    !==== Creep degradation function
             dmg_inc = (epsilon_c_dot*dt)/epsilon_f
             dmg = dmg0+dmg_inc
             f_ep_c = 1-dmg
-            !f_ep_c = epsilon_f/(epsilon_f + epsilon_c)
-            
-            
-c     Damage cannot recover so stop the degradation function increasing: 
-        if (f_ep_c .gt. f_ep_c0) then
-            f_ep_c = f_ep_c0
+                        
+                        
+c     If damage somehow starts recovering then stop it.
+                if (f_ep_c .gt. f_ep_c0) then
+                    f_ep_c = f_ep_c0
+                end if
+
+
+        endif
+c ==================================================
+
+c   Stop damage dropping below 0.
+        if (f_ep_c .lt. 0d+0) then
+            f_ep_c = 0d+0
         end if
+
+c For Testing:
+c        if (t_old(1,1) .le. 1d+0) then
+c            f_ep_c = 1d+0
+c        endif        
 
 
         return
