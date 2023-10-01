@@ -116,6 +116,10 @@ protected:
   const ArrayVariableValue & _rho_edge_vector;
   const ArrayVariableValue & _rho_screw_vector;
   const ArrayVariableValue & _q_t_vector;
+  
+  // Forest dislocation density contributing to slip and hardening 
+  // on each slip system
+  const ArrayVariableValue & _rho_forest_vector;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;

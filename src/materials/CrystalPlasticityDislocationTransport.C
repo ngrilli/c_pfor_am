@@ -24,6 +24,7 @@ CrystalPlasticityDislocationTransport::validParams()
   params.addCoupledVar("rho_edge_vector","Total edge GND density vector: each component is the edge GND density on each slip system");
   params.addCoupledVar("rho_screw_vector","Total screw GND density vector: each component is the screw GND density on each slip system");
   params.addCoupledVar("q_t_vector","Curvature density vector: each component is the curvature on each slip system");
+  params.addCoupledVar("rho_forest","Forest dislocation density contributing to slip and hardening: each component is the rho_forest on each slip system");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.4,"Prefactor of Taylor hardening law, alpha");
@@ -65,6 +66,9 @@ CrystalPlasticityDislocationTransport::CrystalPlasticityDislocationTransport(
     _rho_edge_vector(coupledArrayValue("rho_edge_vector")),
     _rho_screw_vector(coupledArrayValue("rho_screw_vector")),
     _q_t_vector(coupledArrayValue("q_t_vector")),
+    
+    // Forest dislocation density contributing to slip and hardening
+    _rho_forest_vector(coupledArrayValue("rho_forest")),
   
     // Constitutive model parameters
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
@@ -127,6 +131,9 @@ CrystalPlasticityDislocationTransport::initQpStatefulProperties()
   for (const auto i : make_range(_number_slip_systems))
   {
     TotalRho += _rho_t_vector[_qp](i);
+    
+    // Add forest dislocation density
+    TotalRho += _rho_forest_vector[_qp](i);
     
     // Add Peierls stress to each slip system
     _slip_resistance[_qp][i] = _tau_c_0;
@@ -287,9 +294,9 @@ CrystalPlasticityDislocationTransport::calculateSlipRate()
   // _slip_increment is the strain rate
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (_rho_t_vector[_qp](i) > 0.0) {
+    if ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) > 0.0) {
 		
-      _slip_increment[_qp][i] = _rho_t_vector[_qp](i) *
+      _slip_increment[_qp][i] = (_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) *
         std::abs(_dislo_velocity[_qp][i]) * _burgers_vector_mag *
         std::copysign(1.0, _tau[_qp][i]);
 		
@@ -333,6 +340,9 @@ CrystalPlasticityDislocationTransport::calculateSlipResistance()
   for (const auto i : make_range(_number_slip_systems))
   {
     TotalRho += _rho_t_vector[_qp](i);
+    
+    // Add forest dislocation density
+    TotalRho += _rho_forest_vector[_qp](i);
     
     // Add Peierls stress to each slip system
     _slip_resistance[_qp][i] = _tau_c_0;
@@ -407,10 +417,10 @@ CrystalPlasticityDislocationTransport::getDisloVelocity()
 	  
 	  if (_rho_v_thres_flag) { // Case with density below threshold
 
-        if (_rho_t_vector[_qp](i) < _rho_v_thres) { // rescale dislocation velocity and derivative by a factor
+        if ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) < _rho_v_thres) { // rescale dislocation velocity and derivative by a factor
 
-          _dislo_velocity[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
-		  _ddislo_velocity_dtau[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
+          _dislo_velocity[_qp][i] *= ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) / _rho_v_thres);
+		  _ddislo_velocity_dtau[_qp][i] *= ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) / _rho_v_thres);
 		  
         }
 		  
@@ -426,10 +436,10 @@ CrystalPlasticityDislocationTransport::getDisloVelocity()
 		
 	  if (_rho_v_thres_flag) { // Case with density below threshold
 
-        if (_rho_t_vector[_qp](i) < _rho_v_thres) { // rescale dislocation velocity and derivative by a factor
+        if ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) < _rho_v_thres) { // rescale dislocation velocity and derivative by a factor
 
-          _dislo_velocity[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
-		  _ddislo_velocity_dtau[_qp][i] *= (_rho_t_vector[_qp](i) / _rho_v_thres);
+          _dislo_velocity[_qp][i] *= ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) / _rho_v_thres);
+		  _ddislo_velocity_dtau[_qp][i] *= ((_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) / _rho_v_thres);
 		  
         }
 		  
@@ -471,7 +481,7 @@ CrystalPlasticityDislocationTransport::calculateConstitutiveSlipDerivative(
 
   for (const auto i : make_range(_number_slip_systems))
   {
-    dslip_dtau[i] = _rho_t_vector[_qp](i) *
+    dslip_dtau[i] = (_rho_t_vector[_qp](i) + _rho_forest_vector[_qp](i)) *
       _ddislo_velocity_dtau[_qp][i] * _burgers_vector_mag;	  
   }	
 
