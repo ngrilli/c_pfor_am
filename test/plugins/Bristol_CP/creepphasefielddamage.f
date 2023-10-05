@@ -86,7 +86,7 @@ c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007
         !q_R5 = c_damage_param(ph_no,2)
         
         !From: doi:https://doi.org/10.1179/mht.2004.007 (For 304)
-        A = 30d+0
+        A = 1.0
         Q = 51123.0
         n= 0.2971
         m = 1.2695
