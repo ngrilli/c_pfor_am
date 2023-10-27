@@ -27,11 +27,6 @@ PolycrystalSolidificationKernelAction::PolycrystalSolidificationKernelAction(con
 void
 PolycrystalSolidificationKernelAction::act()
 {
-  // Create zeta solid-liquid variable name
-  // The variable zeta must be added to the input file
-  // or created by another action
-  VariableName zeta = "zeta";
-  
   for (unsigned int op = 0; op < _op_num; ++op)
   {
     //
@@ -63,6 +58,8 @@ PolycrystalSolidificationKernelAction::act()
     
     //
     // Set up GrainSolidification kernels
+    // The variable zeta must be added to the input file
+    // or created by another action
     //
     
     if (isParamValid("zeta"))
@@ -70,7 +67,7 @@ PolycrystalSolidificationKernelAction::act()
       InputParameters params = _factory.getValidParams("GrainSolidification");
       params.set<NonlinearVariableName>("variable") = var_name;
       params.set<std::vector<VariableName>>("v") = v;
-      params.set<VariableName>("zeta") = zeta;
+      params.set<std::vector<VariableName>>("zeta") = {getParam<VariableName>("zeta")};
       params.applyParameters(parameters());
       
       std::string kernel_name = "GrainSolidification_" + var_name;
