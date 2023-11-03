@@ -11,7 +11,7 @@ c
     
 c     Update Creep Damage
     
-        subroutine update_creep_damage(F_t,F,S,f_ep_c,dt,ph_no)
+        subroutine update_creep_damage(F_t,F,S,f_ep_c,dt,ph_no,t)
 
         use globalsubs, only: convert3x3to6
         use globalvars, only: I3
@@ -31,7 +31,7 @@ c     Update Creep Damage
         !2nd Piola Kirchoff Stress
         real(8) :: dt,PK2(3,3),PK2_vec(6)
         !Creep degradation function
-        real(8) :: f_ep_c
+        real(8) :: f_ep_c,t
 
         integer :: ph_no
 
@@ -45,7 +45,7 @@ c     Update Creep Damage
         call convert3x3to6(E,E_vec)
         call convert3x3to6(E_t,E_t_vec)
 
-        call R5_SMDE(f_ep_c,S,E_vec,E_t_vec,dt,ph_no)
+        call R5_SMDE(f_ep_c,S,E_vec,E_t_vec,dt,ph_no,t)
 
         return
 
@@ -53,16 +53,16 @@ c     Update Creep Damage
         
             
 c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007  
-        subroutine R5_SMDE(f_ep_c,sigma,E_vec,E_vec_t,dt,ph_no)
+        subroutine R5_SMDE(f_ep_c,sigma,E_vec,E_vec_t,dt,ph_no,t)
         
-        use globalvars, only: temp0,Rgas,t_old
+        use globalvars, only: temp0,Rgas,c_damage_param
         !Cauchy Stress
-        real(8) sigma(6)
+        real(8) sigma(6),t
         !Invariants Stresses
         real(8) sigmaMaxP,sigmaEq,sigmaH
         !Green-Lagrange Strain:
         real(8) E_vec(6),E_vec_t(6)
-        real(8) p_R5,q_R5, A,Q,n,m
+        real(8) A,Q,n,m,CGF
         
         ! Creep degradation function
         real(8) f_ep_c0,f_ep_c
@@ -80,21 +80,16 @@ c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007
         
         
         ! ==== CONSTANTS ===== for 316
-        p_R5 = 0.15
-        q_R5 = 1.25
-        !p_R5 = c_damage_param(ph_no,1)
-        !q_R5 = c_damage_param(ph_no,2)
-        
         !From: doi:https://doi.org/10.1179/mht.2004.007 (For 304)
-        A = 1.0
-        Q = 51123.0
-        n= 0.2971
-        m = 1.2695
+        !A = 1d+0
+        !Q = 51123.0
+        !n= 0.2971
+        !m = 1.2695
         !From NIMS Data - 316H @ 650C
-        !A = c_damage_param(ph_no,3)
-        !Q = c_damage_param(ph_no,4)
-        !n = c_damage_param(ph_no,5)
-        !m = c_damage_param(ph_no,6)
+        A = c_damage_param(ph_no,1)
+        Q = c_damage_param(ph_no,2)
+        n = c_damage_param(ph_no,3)
+        m = c_damage_param(ph_no,4)
 
         ! ==== CALCULATIONS =====
         f_ep_c0 = f_ep_c
@@ -137,10 +132,11 @@ c =======================================================
      1*((sigmaMaxP)**(-1*m))
 
    
+    !==== CGF 
+            CGF = sigmaEq/sigmaMaxP*exp(0.5-1.5*sigmaH/sigmaEq)
     !==== Multiaxial Failure Strain
-            epsilon_f=  epsilon_fu * 
-     1exp(p_R5*(1d+0 - (sigmaMaxP/sigmaEq))
-     2+q_R5*(0.5d+0 - 1.5d+0*(sigmaH/sigmaEq)))
+            epsilon_f=  epsilon_fu * CGF
+
                     
                     
 
@@ -159,16 +155,15 @@ c     If damage somehow starts recovering then stop it.
         endif
 c ==================================================
 
+
 c   Stop damage dropping below 0.
         if (f_ep_c .lt. 0d+0) then
             f_ep_c = 0d+0
         end if
-
-c For Testing:
-c        if (t_old(1,1) .le. 1d+0) then
+c   stops any creep damage until steady state reached. For testing
+c        if (t .lt. 1d+0) then
 c            f_ep_c = 1d+0
-c        endif        
-
+c        end if
 
         return
         end subroutine R5_SMDE

@@ -232,6 +232,8 @@ c
 c	Strain hardening parameters (1:param)
       real(8), allocatable, public :: slipint_param(:,:)
 c
+c     Creep damage parameters (1:param)
+      real(8), allocatable, public :: c_damage_param(:,:)
 c	Hardening interaction matrix
       real(8), allocatable, public :: intmat(:,:,:)
 c	Irradiated Hardening matrices for gnds and DLs

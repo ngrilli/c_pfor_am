@@ -1410,7 +1410,8 @@ c	USES: Euler(:,:), ngrain
      &numgrain, nodeout, grainori, output_vars, resdef, tres,
      &creep_param, phasefielddamage, totphase, phases, phaseind,
      &maxnumslip, cpl_contribution_to_damage,
-     &plastic_work_contribution_to_damage, creepphasefieldflag
+     &plastic_work_contribution_to_damage, creepphasefieldflag,
+     &c_damage_param
 
 	implicit none
       integer i, j, dummy, iele, ind, sa
@@ -2395,7 +2396,25 @@ c         i.e. Dream3D output is in micrometers so, the conversion to mm is 1/10
 
       endif
 
+c creep damage parameters:
+      if (creepphasefieldflag .eq. 1) then
+            allocate (c_damage_param(totphase,4))
+            c_damage_param = 0.0
 
+            !A
+            read(100,*) (da(i), i=1,totphase)
+            c_damage_param(1:totphase,1) = da
+            !Q
+            read(100,*) (da(i), i=1,totphase)
+            c_damage_param(1:totphase,2) = da
+            !m
+            read(100,*) (da(i), i=1,totphase)
+            c_damage_param(1:totphase,3) = da
+            !n
+            read(100,*) (da(i), i=1,totphase)
+            c_damage_param(1:totphase,4) = da
+            
+      endif
 
 
 
@@ -2607,7 +2626,7 @@ c         Other slip rate laws are to be added here!
 c     write slip rate parameters
 c     Power Law
       if (creepno.eq.1d+0) then
-
+          write(6,*) 'Creep Damage Parameters:'
 
           do i=1,totphase
 
@@ -3046,7 +3065,20 @@ c             self and latent hardening coefficients
 
       endif
 
+c     Creep damage:
 
+c creep damage parameters:
+      if (creepphasefieldflag .eq. 1) then
+
+      do i=1,totphase
+            write(6,*) 'creep dmg param(1):',c_damage_param(i,1)
+            write(6,*) 'creep dmg param(2):',c_damage_param(i,2)
+            write(6,*) 'creep dmg param(3):',c_damage_param(i,3)
+            write(6,*) 'creep dmg param(4):',c_damage_param(i,4)
+
+      enddo
+            
+      endif
 
 
 c     write length scale parameters
