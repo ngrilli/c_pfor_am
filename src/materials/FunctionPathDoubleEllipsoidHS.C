@@ -72,9 +72,15 @@ FunctionPathDoubleEllipsoidHS::computeQpProperties()
   Real q_f;
   Real q_r;
 
-  _volumetric_heat[_qp] = 6.0 * std::sqrt(3.0) * _P * _eta * _f_f /
-                          (_b * _b * _b * std::pow(libMesh::pi, 1.5)) *
-                          std::exp(-(3.0 * std::pow(x - x_t, 2.0) / std::pow(_b, 2.0) +
-                                     3.0 * std::pow(y - y_t, 2.0) / std::pow(_b, 2.0) +
-                                     3.0 * std::pow(z - z_t, 2.0) / std::pow(_b, 2.0)));
+  q_f = 3.0 * std::sqrt(3.0) * _P * _eta * _f_f / (_b * _c * _a_f * std::pow(libMesh::pi, 1.5)) *
+        std::exp(-3.0 * std::pow(x - x_t, 2.0) / std::pow(_a_f, 2.0) 
+                 -3.0 * std::pow(y - y_t, 2.0) / std::pow(_b, 2.0) 
+                 -3.0 * std::pow(z - z_t, 2.0) / std::pow(_c, 2.0));
+  
+  q_r = 3.0 * std::sqrt(3.0) * _P * _eta * _f_r / (_b * _c * _a_r * std::pow(libMesh::pi, 1.5)) *
+        std::exp(-3.0 * std::pow(x - x_t, 2.0) / std::pow(_a_r, 2.0) 
+                 -3.0 * std::pow(y - y_t, 2.0) / std::pow(_b,2.0) 
+                 -3.0 * std::pow(z - z_t, 2.0) / std::pow(_c, 2.0));
+                                     
+  _volumetric_heat[_qp] = q_f + q_r;
 }
