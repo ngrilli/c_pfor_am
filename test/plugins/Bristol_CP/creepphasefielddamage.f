@@ -11,7 +11,7 @@ c
     
 c     Update Creep Damage
     
-        subroutine update_creep_damage(F_t,F,S,f_ep_c,dt,ph_no,t)
+        subroutine update_creep_damage(F_t,F,S,f_ep_c,dt,ph_no)
 
         use globalsubs, only: convert3x3to6
         use globalvars, only: I3
@@ -31,7 +31,7 @@ c     Update Creep Damage
         !2nd Piola Kirchoff Stress
         real(8) :: dt,PK2(3,3),PK2_vec(6)
         !Creep degradation function
-        real(8) :: f_ep_c,t
+        real(8) :: f_ep_c
 
         integer :: ph_no
 
@@ -45,7 +45,7 @@ c     Update Creep Damage
         call convert3x3to6(E,E_vec)
         call convert3x3to6(E_t,E_t_vec)
 
-        call R5_SMDE(f_ep_c,S,E_vec,E_t_vec,dt,ph_no,t)
+        call R5_SMDE(f_ep_c,S,E_vec,E_t_vec,dt,ph_no)
 
         return
 
@@ -53,11 +53,11 @@ c     Update Creep Damage
         
             
 c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007  
-        subroutine R5_SMDE(f_ep_c,sigma,E_vec,E_vec_t,dt,ph_no,t)
+        subroutine R5_SMDE(f_ep_c,sigma,E_vec,E_vec_t,dt,ph_no)
         
         use globalvars, only: temp0,Rgas,c_damage_param
         !Cauchy Stress
-        real(8) sigma(6),t
+        real(8) sigma(6)
         !Invariants Stresses
         real(8) sigmaMaxP,sigmaEq,sigmaH
         !Green-Lagrange Strain:
@@ -67,7 +67,7 @@ c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007
         ! Creep degradation function
         real(8) f_ep_c0,f_ep_c
         !various strains
-        real(8) epsilon_c, epsilon_f,  epsilon_fu
+        real(8) epsilon_c, epsilon_f,  epsilon_fu, epsilon_lower
         !Used for calculating Von Mises creep rate.
         real(8) E_MaxP_t,E_MaxP,epsilon_c_dot,E_Eq, E_Eq_t
         
@@ -90,7 +90,7 @@ c ==========    R5 - SMDE Model:     https://doi.org/10.1179/mht.2004.007
         Q = c_damage_param(ph_no,2)
         n = c_damage_param(ph_no,3)
         m = c_damage_param(ph_no,4)
-
+        epsilon_lower = 0.026
         ! ==== CALCULATIONS =====
         f_ep_c0 = f_ep_c
         dmg0 = 1-f_ep_c
@@ -137,6 +137,8 @@ c =======================================================
     !==== Multiaxial Failure Strain
             epsilon_f=  epsilon_fu * CGF
 
+    !==== Lower shelf considered
+            epsilon_f = max(epsilon_f,epsilon_lower)  
                     
                     
 
@@ -160,10 +162,10 @@ c   Stop damage dropping below 0.
         if (f_ep_c .lt. 0d+0) then
             f_ep_c = 0d+0
         end if
-c   stops any creep damage until steady state reached. For testing
-c        if (t .lt. 1d+0) then
-c            f_ep_c = 1d+0
-c        end if
+        
+C        if (t_old .lt. 1d+0) then
+C            f_ep_c = 1
+C        end if
 
         return
         end subroutine R5_SMDE
