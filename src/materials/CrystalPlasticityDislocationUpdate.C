@@ -20,8 +20,8 @@ CrystalPlasticityDislocationUpdate::validParams()
                              "Includes slip, creep and backstress. ");
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
-  params.addParam<MaterialPropertyName>("xm_name", "xm",
-    "Optional xm material property name for exponent for slip rate. ");
+  params.addParam<MaterialPropertyName>("xm_matprop",
+    "Optional xm material property for exponent for slip rate. ");
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
   params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
   params.addParam<FunctionName>("creep_ao_function",
@@ -67,8 +67,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     // Constitutive model parameters
     _ao(getParam<Real>("ao")),
     _xm(getParam<Real>("xm")),
-    _xm_matprop(isParamValid("xm_name")
-                ? &getMaterialProperty<Real>("xm")
+    _include_xm_matprop(parameters.isParamValid("xm_matprop")),
+    _xm_matprop(_include_xm_matprop
+                ? &getMaterialProperty<Real>("xm_matprop")
                 : nullptr),
     _creep_ao(getParam<Real>("creep_ao")),
     _creep_xm(getParam<Real>("creep_xm")),
