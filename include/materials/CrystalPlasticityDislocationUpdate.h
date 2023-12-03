@@ -118,6 +118,9 @@ protected:
   const Real _ao;
   const Real _xm;
   
+  // Optional xm material property name for exponent for slip rate
+  const MaterialProperty<Real> * _xm_matprop;
+  
   // Creep rate constants
   const Real _creep_ao;
   const Real _creep_xm;
