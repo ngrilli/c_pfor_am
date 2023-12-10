@@ -378,6 +378,20 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
 	  
   }
   
+  // Strain rate sensitivity: if material property is not given
+  // the constant value is used
+  Real xm;
+  
+  if (_include_xm_matprop) {
+	  
+    xm = (*_xm_matprop)[_qp];	  
+	  
+  } else {
+	  
+    xm = _xm;
+	  
+  }
+  
   for (const auto i : make_range(_number_slip_systems))
   {
     effective_stress = _tau[_qp][i] - _backstress[_qp][i];
@@ -385,7 +399,7 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
     _slip_increment[_qp][i] =
-        _ao * std::pow(stress_ratio, 1.0 / _xm)
+        _ao * std::pow(stress_ratio, 1.0 / xm)
       + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
       
     if (effective_stress < 0.0)
@@ -500,6 +514,20 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
     creep_ao = _creep_ao;
 	  
   }	
+  
+  // Strain rate sensitivity: if material property is not given
+  // the constant value is used
+  Real xm;
+  
+  if (_include_xm_matprop) {
+	  
+    xm = (*_xm_matprop)[_qp];	  
+	  
+  } else {
+	  
+    xm = _xm;
+	  
+  }
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -513,8 +541,8 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
 		
 	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
-      dslip_dtau[i] = _ao / _xm *
-                      std::pow(stress_ratio, 1.0 / _xm - 1.0) /
+      dslip_dtau[i] = _ao / xm *
+                      std::pow(stress_ratio, 1.0 / xm - 1.0) /
                       _slip_resistance[_qp][i]
                     + creep_ao / _creep_xm *
                       std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
