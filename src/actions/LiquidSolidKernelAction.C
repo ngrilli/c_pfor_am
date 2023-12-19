@@ -90,6 +90,18 @@ LiquidSolidKernelAction::act()
   _k_p = (3.0/4.0) * _sigma_p * _l_p;
   _k_g = _a_k * _sigma_g0 * _l_g;
   
+  // Create phase field variable names
+  std::vector<VariableName> phase_fields;
+  phase_fields.resize(_op_num);
+  
+  unsigned int ind = 0;
+  
+  for (unsigned int j = 0; j < _op_num; ++j) {
+	 
+    phase_fields[ind++] = _var_name_base + Moose::stringify(j);
+	  
+  }
+  
   // Add the zeta variable
   if (_current_task == "add_variable")
   { 
@@ -103,7 +115,7 @@ LiquidSolidKernelAction::act()
   }	
   
   if (_current_task == "add_kernel") {
-    // Add the time derivative kernel, LHS term: zeta_dot
+    // Add the time derivative kernel, LHS term: \dot{\zeta}
     InputParameters params_TimeDerivative = _factory.getValidParams("TimeDerivative");
     params_TimeDerivative.set<NonlinearVariableName>("variable") = zeta_var_name;
     params_TimeDerivative.set<bool>("implicit") = true;
@@ -112,7 +124,7 @@ LiquidSolidKernelAction::act()
     std::string kernel_name_TimeDerivative = "TimeDerivative_" + zeta_var_name;
     _problem->addKernel("TimeDerivative", kernel_name_TimeDerivative, params_TimeDerivative); 
 	  
-    // Add the reaction kernel, LHS term: + 2 m_p L_p zeta
+    // Add the reaction kernel, LHS term: + 2 m_p L_p \zeta
     InputParameters params_Reaction = _factory.getValidParams("Reaction");
     params_Reaction.set<NonlinearVariableName>("variable") = zeta_var_name;
     params_Reaction.set<Real>("rate") = 2.0 * _m_p * _L_p;
@@ -137,7 +149,29 @@ LiquidSolidKernelAction::act()
     params_CoupledTanh.set<Real>("A") = _m_p * _L_p;
     params_CoupledTanh.set<Real>("theta") = _theta;
     params_CoupledTanh.set<Real>("vn") = _T_l;
+    params_CoupledTanh.applyParameters(parameters());
     
-    // Add the diffusion kernel, term:
+    std::string kernel_name_CoupledTanh = "CoupledTanh_" + zeta_var_name;
+    _problem->addKernel("CoupledTanh", kernel_name_CoupledTanh, params_CoupledTanh);
+    
+    // Add the diffusion kernel, LHS term: - L_p k_p \nabla^2 \zeta
+    InputParameters params_Diffusion = _factory.getValidParams("CoefDiffusion");
+    params_Diffusion.set<NonlinearVariableName>("variable") = zeta_var_name;
+    params_Diffusion.set<Real>("coef") = _L_p * _k_p;
+    params_Diffusion.applyParameters(parameters());
+    
+    std::string kernel_name_Diffusion = "Diffusion_" + zeta_var_name;
+    _problem->addKernel("CoefDiffusion", kernel_name_Diffusion, params_Diffusion);
+    
+    // Add the coupled phase and grain kernel, LHS term: -2 L_p m_g (1 - \zeta) \sum \eta_i^2
+    InputParameters params_CoupledPhaseGrain = _factory.getValidParams("CoupledPhaseGrain");
+    params_CoupledPhaseGrain.set<NonlinearVariableName>("variable") = zeta_var_name;
+    params_CoupledPhaseGrain.set<std::vector<VariableName>>("v") = phase_fields;
+    params_CoupledPhaseGrain.set<Real>("A") = -2.0 * _L_p * _m_g;
+    params_CoupledPhaseGrain.applyParameters(parameters());
+    
+    std::string kernel_name_CoupledPhaseGrain = "CoupledPhaseGrain_" + zeta_var_name;
+    _problem->addKernel("CoupledPhaseGrain", kernel_name_CoupledPhaseGrain, params_CoupledPhaseGrain);
+    
   }
 }

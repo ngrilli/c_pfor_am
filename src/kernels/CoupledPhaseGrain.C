@@ -22,7 +22,7 @@ CoupledPhaseGrain::validParams()
 
 CoupledPhaseGrain::CoupledPhaseGrain(const InputParameters & parameters)
   : Kernel(parameters), 
-    _op_num(coupledComponents("v")),
+    _op_num(coupledComponents("v")), // total number of phase fields
     _vals(coupledValues("v")),
     _vals_var(coupledIndices("v")),
     _A(getParam<Real>("A"))
