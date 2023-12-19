@@ -1,5 +1,8 @@
 // Nicolò Grilli
+// Parsa Esmati
 // Università di Bristol
+// Fernando Valiente Dies
+// ANSTO
 // 10 Dicembre 2023
 
 #pragma once
@@ -21,5 +24,28 @@ public:
   virtual void act();
 
 protected:
+  
+  /// number of grains
+  const unsigned int _op_num;
 
+  /// base name for the order parameter variables
+  const std::string _var_name_base;
+  
+  /// Model parameters
+  const Real _sigma_p;
+  const Real _delta_f_p;
+  const Real _l_p;
+  const Real _sigma_g0;
+  const Real _delta_f_g;
+  const Real _l_g;
+  const Real _a_k;
+  const Real _L_p;
+  const Real _theta;
+  const Real _T_l;
+  
+  Real _m_p;
+  Real _m_g;
+  Real _k_p;
+  Real _k_g;
+  
 };
