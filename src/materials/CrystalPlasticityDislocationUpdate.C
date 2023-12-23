@@ -410,11 +410,17 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
-      if (_print_convergence_message)
+      if (_cap_slip_increment) {
+		  
+        _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i]);
+                                
+	  } else if (_print_convergence_message) {
+		  
         mooseWarning("Maximum allowable slip increment exceeded ",
                      std::abs(_slip_increment[_qp][i]) * _substep_dt);
 
-      return false;
+        return false;
+	  }
     }
   }
   return true;
