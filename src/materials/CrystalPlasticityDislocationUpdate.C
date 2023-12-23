@@ -412,7 +412,8 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     {
       if (_cap_slip_increment) {
 		  
-        _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i]);
+        _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i])
+                                / _substep_dt;
                                 
 	  } else if (_print_convergence_message) {
 		  
