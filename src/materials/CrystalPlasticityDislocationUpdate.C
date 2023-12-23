@@ -27,6 +27,8 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<FunctionName>("creep_ao_function",
     "Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time. "
     "This is useful for an initial plastic deformation followed by creep load. ");
+  params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
+                                                     "in one time step to _slip_incr_tol. ");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
@@ -76,6 +78,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _creep_ao_function(this->isParamValid("creep_ao_function")
                        ? &this->getFunction("creep_ao_function")
                        : NULL),
+    _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_alpha_0(getParam<Real>("alpha_0")),

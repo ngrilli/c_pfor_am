@@ -129,6 +129,9 @@ protected:
   // Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time
   // This is useful for an initial plastic deformation followed by creep load
   const Function * const _creep_ao_function;
+  
+  // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
+  const bool _cap_slip_increment;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
