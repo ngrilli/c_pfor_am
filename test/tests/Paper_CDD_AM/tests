@@ -1,0 +1,8 @@
+[Tests]
+  [./test_CDD_AM]
+    type = 'Exodiff'
+    input = 'grain146ReferenceDG.i'
+    exodiff = 'grain146ReferenceDG_out.e'
+	heavy = true
+  [../]
+[]
