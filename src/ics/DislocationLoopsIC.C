@@ -14,13 +14,13 @@ InputParameters
 DislocationLoopsIC::validParams()
 {
   InputParameters params = InitialCondition::validParams();
-  params.addParam<std::vector<Real>>("centrex", "X coordinates of the centres of the loops");
-  params.addParam<std::vector<Real>>("centrey", "Y coordinates of the centres of the loops");
-  params.addParam<std::vector<Real>>("radii", "Radii of the loops, signed for positive/negative loops");
-  params.addParam<std::vector<Real>>("width", "Width of the loops");
-  params.addParam<std::vector<Real>>("rho_max", "Max dislocation density in one loop");
-  params.addParam<std::vector<Real>>("depth", "Depth at which slip planes are placed");
-  params.addParam<std::vector<Real>>("thickness", "Thickness of the slip planes");
+  params.addParam<std::vector<Real>>("centrex", {}, "X coordinates of the centres of the loops");
+  params.addParam<std::vector<Real>>("centrey", {}, "Y coordinates of the centres of the loops");
+  params.addParam<std::vector<Real>>("radii", {}, "Radii of the loops, signed for positive/negative loops");
+  params.addParam<std::vector<Real>>("width", {}, "Width of the loops");
+  params.addParam<std::vector<Real>>("rho_max", {}, "Max dislocation density in one loop");
+  params.addParam<std::vector<Real>>("depth", {}, "Depth at which slip planes are placed");
+  params.addParam<std::vector<Real>>("thickness", {}, "Thickness of the slip planes");
   MooseEnum var_options("rhotot rhoedgegnd rhoscrewgnd qtot", "rhotot");
   params.addParam<MooseEnum>("variable_type",
                              var_options,
