@@ -26,6 +26,7 @@ static void
 associateSyntaxInner(Syntax & syntax, ActionFactory & /*action_factory*/)
 {
   registerSyntax("PolycrystalSolidificationKernelAction", "Kernels/PolycrystalSolidificationKernel");
+  registerSyntax("LiquidSolidKernelAction", "Kernels/LiquidSolidKernel");
   registerSyntax("SolidificationVariablesAction", "Variables/SolidificationVariables");
 }
 
