@@ -6,7 +6,6 @@
 // 10 Dicembre 2023
 
 #include "LiquidSolidKernelAction.h"
-//#include "AddVariableAction.h"
 #include "Conversion.h"
 #include "Factory.h"
 #include "FEProblem.h"
@@ -14,7 +13,7 @@
 
 #include "libmesh/string_to_enum.h"
 
-registerMooseAction("c_pfor_amApp", LiquidSolidKernelAction, "add_variable");
+//registerMooseAction("c_pfor_amApp", LiquidSolidKernelAction, "add_variable");
 registerMooseAction("c_pfor_amApp", LiquidSolidKernelAction, "add_kernel");
 
 InputParameters
@@ -24,26 +23,14 @@ LiquidSolidKernelAction::validParams()
   params.addClassDescription(
       "Set up Reaction, BodyForce, CoupledTanh, ..., Diffusion kernels "
       "for the zeta variable, which is 0 in the liquid phase and 1 in the solid phase. ");
-      
-  // Get MooseEnums for the possible order/family options for the zeta variable
-  //MooseEnum families(AddVariableAction::getNonlinearVariableFamilies());
-  //MooseEnum orders(AddVariableAction::getNonlinearVariableOrders());
-  //params.addParam<MooseEnum>("family",
-  //                           families,
-  //                           "Specifies the family of FE "
-  //                           "shape function to use for the zeta variable");
-  //params.addParam<MooseEnum>("order",
-  //                           orders,
-  //                           "Specifies the order of the FE "
-  //                           "shape function to use for the zeta variable");
-                             
+
   // Coupled variables: temperature and phase fields
   params.addParam<VariableName>("temperature", "Temperature. ");
   params.addRequiredParam<unsigned int>(
       "op_num", "specifies the total number of grains (deformed + recrystallized) to create. ");
   params.addRequiredParam<std::string>("var_name_base", "specifies the base name "
                                                         "of the phase field variables. ");
-                             
+                                                      
   // Model parameters
   params.addParam<Real>("sigma_p", 1.0, "Liquid-solid interfacial energy. ");
   params.addParam<Real>("delta_f_p", 1.0, "The maximum height of the barrier in the free energy density"
@@ -101,19 +88,7 @@ LiquidSolidKernelAction::act()
     phase_fields[ind++] = _var_name_base + Moose::stringify(j);
 	  
   }
-  
-  // Add the zeta variable
-  //if (_current_task == "add_variable")
-  //{ 
-  //  auto fe_type = AddVariableAction::feType(_pars);
-  //  auto type = AddVariableAction::variableType(fe_type);
-  //  auto var_params = _factory.getValidParams(type);
-  //
-  //  var_params.applySpecificParameters(_pars, {"order", "family", "block"});
-  //  var_params.set<std::vector<Real>>("scaling") = {_pars.get<Real>("scaling")};
-  //  _problem->addVariable(type, zeta_var_name, var_params);
-  //}	
-  
+
   if (_current_task == "add_kernel") {
     // Add the time derivative kernel, LHS term: \dot{\zeta}
     InputParameters params_TimeDerivative = _factory.getValidParams("TimeDerivative");
