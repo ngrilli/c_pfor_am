@@ -13,7 +13,6 @@
 
 #include "libmesh/string_to_enum.h"
 
-//registerMooseAction("c_pfor_amApp", LiquidSolidKernelAction, "add_variable");
 registerMooseAction("c_pfor_amApp", LiquidSolidKernelAction, "add_kernel");
 
 InputParameters
