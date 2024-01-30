@@ -31,18 +31,17 @@ LiquidSolidKernelAction::validParams()
                                                         "of the phase field variables. ");
                                                       
   // Model parameters
-  params.addParam<Real>("sigma_p", 1.0, "Liquid-solid interfacial energy. ");
-  params.addParam<Real>("delta_f_p", 1.0, "The maximum height of the barrier in the free energy density"
+  params.addParam<Real>("sigma_p", 0.385e-12, "Liquid-solid interfacial energy (J/micron^2). ");
+  params.addParam<Real>("delta_f_p", 0.25, "The maximum height of the barrier in the free energy density"
                                           " between two minima for liquid-solid system. ");
-  params.addParam<Real>("l_p", 1.0, "Liquid-solid interfacial width. ");
-  params.addParam<Real>("sigma_g0", 1.0, "Grain boundary interfacial energy. ");
-  params.addParam<Real>("delta_f_g", 1.0, "The maximum height of the barrier in the free energy density"
+  params.addParam<Real>("l_p", 9.6, "Liquid-solid interfacial width (micron). ");
+  params.addParam<Real>("sigma_g0", 0.385e-12, "Grain boundary interfacial energy (J/micron^2). ");
+  params.addParam<Real>("delta_f_g", 0.125, "The maximum height of the barrier in the free energy density"
                                           " between two minima for grains. ");
-  params.addParam<Real>("l_g", 1.0, "Grain boundary width. ");
-  params.addParam<Real>("a_k", 1.0, "Anisotropic grain boundary model parameter. ");
+  params.addParam<Real>("l_g", 9.6, "Grain boundary width (micron). ");
   params.addParam<Real>("L_p", 1.0, "Kinetic coefficient for phase transformation. ");
-  params.addParam<Real>("theta", 1.0, "Theta coefficient for hyperbolic tangent for liquid-solid. ");
-  params.addParam<Real>("T_l", 1373.0, "Liquidus temperature (K). ");
+  params.addParam<Real>("theta", 21.0, "Theta coefficient for hyperbolic tangent for liquid-solid. ");
+  params.addParam<Real>("T_l", 1723.0, "Liquidus temperature (K). ");
   
   return params;
 }
@@ -57,7 +56,6 @@ LiquidSolidKernelAction::LiquidSolidKernelAction(const InputParameters & params)
     _sigma_g0(getParam<Real>("sigma_g0")),
     _delta_f_g(getParam<Real>("delta_f_g")),
     _l_g(getParam<Real>("l_g")),
-    _a_k(getParam<Real>("a_k")),
     _L_p(getParam<Real>("L_p")),
     _theta(getParam<Real>("theta")),
     _T_l(getParam<Real>("T_l"))
@@ -72,9 +70,7 @@ LiquidSolidKernelAction::act()
   // Material constant calculations
   _m_p = (3.0/4.0) * _sigma_p / (_delta_f_p * _l_p);
   _m_g = (3.0/4.0) * _sigma_g0 / (_delta_f_g * _l_g);
-  
   _k_p = (3.0/4.0) * _sigma_p * _l_p;
-  _k_g = _a_k * _sigma_g0 * _l_g;
   
   // Create phase field variable names
   std::vector<VariableName> phase_fields;

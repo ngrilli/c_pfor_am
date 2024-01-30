@@ -38,7 +38,6 @@ protected:
   const Real _sigma_g0;
   const Real _delta_f_g;
   const Real _l_g;
-  const Real _a_k;
   const Real _L_p;
   const Real _theta;
   const Real _T_l;
