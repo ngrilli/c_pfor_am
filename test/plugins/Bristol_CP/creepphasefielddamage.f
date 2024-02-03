@@ -162,10 +162,6 @@ c   Stop damage dropping below 0.
         if (f_ep_c .lt. 0d+0) then
             f_ep_c = 0d+0
         end if
-        
-C        if (t_old .lt. 1d+0) then
-C            f_ep_c = 1
-C        end if
 
         return
         end subroutine R5_SMDE
