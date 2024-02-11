@@ -5,6 +5,9 @@
 #pragma once
 
 #include "ACInterface.h"
+#include "DelimitedFileReader.h"
+#include "RotationTensor.h"
+#include "RankTwoTensor.h"
 
 /**
  * Compute the anisotropic Allen-Cahn interface term with the weak form residual
@@ -23,13 +26,30 @@ public:
   ACInterfaceAniso(const InputParameters & parameters);
 
 protected:
+
+  virtual void assignEulerAngles();
+
   virtual Real computeAnisotropy();
 
   virtual Real computeQpResidual();
-  virtual Real computeQpJacobian();
-  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
   
   /// Grain boundary energy anisotropy coefficient
   const Real _e_anisotropy;
+  
+  /// Phase field index used to select the Euler angles
+  /// and total number of phase fields
+  const unsigned int _op;
+  const unsigned int _op_num;
+  
+  /// Euler angles file (in degrees) 
+  /// each row must contain three Euler angles 
+  /// which correspond to each grain orientation
+  std::string _Euler_angles_file_name;
+  
+  /// Euler angles in degrees for the current grain orientation
+  /// and rotation matrices
+  RealVectorValue _Euler_angles;
+  RotationTensor _R;
+  RankTwoTensor _crysrot;
 
 };

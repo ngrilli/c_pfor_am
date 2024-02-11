@@ -8,7 +8,11 @@
 
 /**
  * Action that sets up ACGrGrPoly, GrainSolidification, ACInterface, TimeDerivative, and ACGBPoly
- * kernels.
+ * kernels, based on (5) in:
+ * Min Yang, Lu Wang and Wentao Yan
+ * Phase-ﬁeld modeling of grain evolutions in additive
+ * manufacturing from nucleation, growth, to coarsening
+ * npj Computational Materials volume 7, 56 (2021)
  */
 class PolycrystalSolidificationKernelAction : public PolycrystalKernelAction
 {

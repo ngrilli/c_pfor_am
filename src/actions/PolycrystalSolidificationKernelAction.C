@@ -20,13 +20,14 @@ PolycrystalSolidificationKernelAction::validParams()
 }
 
 PolycrystalSolidificationKernelAction::PolycrystalSolidificationKernelAction(const InputParameters & params)
-  : PolycrystalKernelAction(params)  
-{
+  : PolycrystalKernelAction(params)
+{ 
 }
 
 void
 PolycrystalSolidificationKernelAction::act()
 {
+	
   for (unsigned int op = 0; op < _op_num; ++op)
   {
     //
