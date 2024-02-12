@@ -88,14 +88,12 @@ ACInterfaceAniso::computeAnisotropy()
 {
   std::vector<RealVectorValue> cubic_directions; // in the crystal reference frame
   std::vector<RealVectorValue> rotated_cubic_directions; // in the model reference frame
-  std::vector<Real> cos_phi_inc; // cosine of inclination angle
-  std::vector<Real> sin_phi_inc; // sine of the inclination angle
-  Real max_cos_phi_inc; // cosine with largest magnitude
-  Real max_sin_phi_inc; // sine with largest magnitude
+  Real cos_phi_inc = 0.0; // cosine of inclination angle
+  Real temp_abs_cos_phi_inc = 0.0; // and temporary variable to store its absolute value
+  Real cos_min_phi_inc = 0.0; // cosine of the minimum angle between grain boundary normal and <001>
+  Real sin_min_phi_inc = 1.0; // sine of the minimum angle between grain boundary normal and <001>
   cubic_directions.resize(2*LIBMESH_DIM);
   rotated_cubic_directions.resize(2*LIBMESH_DIM);
-  cos_phi_inc.resize(2*LIBMESH_DIM);
-  sin_phi_inc.resize(2*LIBMESH_DIM);
   
   // Assign cubic directions and calculate rotated directions
   for (const auto i : make_range(6))
@@ -120,16 +118,25 @@ ACInterfaceAniso::computeAnisotropy()
 
   if (_grad_u[_qp].norm() > 1.0e-12) { // avoid division by zero
 	  
-    return 1.0; //+ _e_anisotropy * (std::pow(coseno,4) + std::pow(seno,4));
+    for (const auto i : make_range(2*LIBMESH_DIM)) { // identify the maximum among the cosines
+		
+      cos_phi_inc = _grad_u[_qp] * rotated_cubic_directions[i] / _grad_u[_qp].norm();
+      
+      if (std::abs(cos_phi_inc) > temp_abs_cos_phi_inc) { // this <001> direction is closer to GB normal
+		  
+        temp_abs_cos_phi_inc = std::abs(cos_phi_inc);
+        cos_min_phi_inc = cos_phi_inc;
+	  }
+	}
+	
+	sin_min_phi_inc = std::sqrt(1.0 - std::pow(cos_min_phi_inc,2));
+	  
+    return 1.0 + _e_anisotropy * (std::pow(cos_min_phi_inc,4) + std::pow(sin_min_phi_inc,4));
     	  
-  } else {
+  } else { // not near a grain boundary, therefore no need for anisotropy 
 	  
     return 1.0;
   }
-	  
-//  }
-//  Real coseno = _grad_u[_qp] * direzione / _grad_u[_qp].norm();
-//  Real seno = std::sqrt(1.0 - coseno*coseno);
 }
 
 Real
