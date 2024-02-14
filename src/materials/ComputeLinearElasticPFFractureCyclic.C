@@ -131,7 +131,7 @@ ComputeLinearElasticPFFractureCyclic::computeStrainSpectral(Real & F_pos, Real &
   F_pos = lambda * etrpos * etrpos / 2.0 + mu * pval;
   F_neg = -lambda * etrneg * etrneg / 2.0 + mu * nval;
 
-  // 2nd derivative wrt c and strain = 0.0 if we used the previous step's history varible
+  // 2nd derivative wrt c and strain = 0.0 if we used the previous step's history variable
   if (_use_current_hist)
     _d2Fdcdstrain[_qp] = stress0pos * _dDdc[_qp];
 
