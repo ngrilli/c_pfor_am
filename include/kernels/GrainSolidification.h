@@ -32,4 +32,7 @@ protected:
   const VariableValue & _zeta;
   const bool _zeta_coupled;
   unsigned int _zeta_var;
+  
+  /// Interaction coefficient between zeta and eta variables
+  const Real _gamma_interaction;
 };

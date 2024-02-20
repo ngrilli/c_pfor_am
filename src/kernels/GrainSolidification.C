@@ -18,15 +18,18 @@ GrainSolidification::validParams()
   InputParameters params = ACGrGrBase::validParams();
   params.addClassDescription("Solidification term in the grain free energy");
   params.addRequiredCoupledVar("zeta","Phase field representing liquid (0) or solid (1)");
+  params.addParam<Real>("gamma_interaction",1.0,
+                        "Interaction coefficient between zeta and eta variables. ");
   return params;
 }
 
 GrainSolidification::GrainSolidification(const InputParameters & parameters)
-  : ACGrGrBase(parameters), 
+  : ACGrGrBase(parameters),
   _gamma(getMaterialProperty<Real>("gamma_asymm")),
   _zeta(coupledValue("zeta")),
   _zeta_coupled(isCoupled("zeta")),
-  _zeta_var(_zeta_coupled ? coupled("zeta") : 0)
+  _zeta_var(_zeta_coupled ? coupled("zeta") : 0),
+  _gamma_interaction(getParam<Real>("gamma_interaction"))
 {
 }
 
@@ -38,12 +41,14 @@ GrainSolidification::computeDFDOP(PFFunctionType type)
   {
     case Residual:
     {
-      return _mu[_qp] * (1.0 - _zeta[_qp]) * (1.0 - _zeta[_qp]) * 2.0 * _u[_qp];
+      return _mu[_qp] * _gamma_interaction 
+             * (1.0 - _zeta[_qp]) * (1.0 - _zeta[_qp]) * 2.0 * _u[_qp];
     }
 
     case Jacobian:
     {
-      return _mu[_qp] * (1.0 - _zeta[_qp]) * (1.0 - _zeta[_qp]) * 2.0 * _phi[_j][_qp];
+      return _mu[_qp] * _gamma_interaction 
+             * (1.0 - _zeta[_qp]) * (1.0 - _zeta[_qp]) * 2.0 * _phi[_j][_qp];
     }
 
     default:
@@ -61,7 +66,7 @@ GrainSolidification::computeQpOffDiagJacobian(unsigned int jvar)
 
     dDFDOP = (-4.0) * (1.0 - _zeta[_qp]) * _u[_qp] * _phi[_j][_qp];
 
-    return _L[_qp] * _test[_i][_qp] * dDFDOP;
+    return _L[_qp] * _gamma_interaction * _test[_i][_qp] * dDFDOP;
   }
 
   return 0.0;
