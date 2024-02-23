@@ -14,7 +14,7 @@ ACInterfaceAniso::validParams()
   params.addParam<Real>("e_anisotropy",0.0,"Grain boundary energy anisotropy coefficient. ");
   params.addParam<int>("op",0,"Phase field index used to select the Euler angles. ");
   params.addParam<int>("op_num",0,"Total number of phase fields. ");
-  params.addRequiredParam<FileName>(
+  params.addParam<FileName>(
       "Euler_angles_file_name",
       "Name of the file containing the Euler angles, each row must contain three Euler angles "
       "which correspond to each grain orientation. ");
@@ -26,7 +26,6 @@ ACInterfaceAniso::ACInterfaceAniso(const InputParameters & parameters)
   _e_anisotropy(getParam<Real>("e_anisotropy")),
   _op(getParam<int>("op")),
   _op_num(getParam<int>("op_num")),
-  _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name")),
   _Euler_angles(0,0,0),
   _R(_Euler_angles)
 {
@@ -57,7 +56,14 @@ ACInterfaceAniso::ACInterfaceAniso(const InputParameters & parameters)
       _d2Ldarg2[i][j] = &getMaterialPropertyDerivative<Real>("mob_name", i, j);
   }
   
-  assignEulerAngles();
+  if (this->isParamValid("Euler_angles_file_name")) {
+	  
+    _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name"));
+    assignEulerAngles();
+	  
+  } // otherwise Euler angles are zero
+  
+  computeRotationMatrix();
 }
 
 void
@@ -78,7 +84,11 @@ ACInterfaceAniso::assignEulerAngles()
   {
     _Euler_angles(j) = _reader.getData(_op)[j];
   }
-  
+}
+
+void
+ACInterfaceAniso::computeRotationMatrix()
+{
   _R.update(_Euler_angles); // this is passive rotation, see RotationTensor.C
   _crysrot = _R.transpose(); // therefore needs to be transposed
 }

@@ -28,6 +28,8 @@ public:
 protected:
 
   virtual void assignEulerAngles();
+  
+  virtual void computeRotationMatrix();
 
   virtual Real computeAnisotropy();
 

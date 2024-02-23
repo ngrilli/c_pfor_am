@@ -11,7 +11,7 @@
 #include "Action.h"
 
 /**
- * Action that sets up Reaction, BodyForce, CoupledTanh, ..., Diffusion kernels,
+ * Action that sets up TimeDerivative, Reaction, BodyForce, CoupledTanh, Diffusion, CoupledPhaseGrain kernels,
  * for the zeta variable, which is 0 in the liquid phase and 1 in the solid phase.
  */
 class LiquidSolidKernelAction : public Action

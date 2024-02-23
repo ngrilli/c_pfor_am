@@ -20,7 +20,7 @@ LiquidSolidKernelAction::validParams()
 {
   InputParameters params = Action::validParams();
   params.addClassDescription(
-      "Set up Reaction, BodyForce, CoupledTanh, ..., Diffusion kernels "
+      "Set up TimeDerivative, Reaction, BodyForce, CoupledTanh, Diffusion, CoupledPhaseGrain kernels "
       "for the zeta variable, which is 0 in the liquid phase and 1 in the solid phase. ");
 
   // Coupled variables: temperature and phase fields
