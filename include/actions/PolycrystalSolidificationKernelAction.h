@@ -25,4 +25,15 @@ public:
 
 protected:
 
+  /// Flag to activate grain boundary anisotropy
+  const bool _GB_anisotropy;
+  
+  /// Grain boundary energy anisotropy coefficient
+  const Real _e_anisotropy;
+
+  /// Euler angles file (in degrees) 
+  /// each row must contain three Euler angles 
+  /// which correspond to each grain orientation
+  std::string _Euler_angles_file_name;
+
 };

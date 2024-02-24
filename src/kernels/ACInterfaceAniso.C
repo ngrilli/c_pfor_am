@@ -26,6 +26,7 @@ ACInterfaceAniso::ACInterfaceAniso(const InputParameters & parameters)
   _e_anisotropy(getParam<Real>("e_anisotropy")),
   _op(getParam<int>("op")),
   _op_num(getParam<int>("op_num")),
+  _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name")),
   _Euler_angles(0,0,0),
   _R(_Euler_angles)
 {
@@ -57,8 +58,7 @@ ACInterfaceAniso::ACInterfaceAniso(const InputParameters & parameters)
   }
   
   if (this->isParamValid("Euler_angles_file_name")) {
-	  
-    _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name"));
+
     assignEulerAngles();
 	  
   } // otherwise Euler angles are zero
@@ -106,7 +106,8 @@ ACInterfaceAniso::computeAnisotropy()
   rotated_cubic_directions.resize(2*LIBMESH_DIM);
   
   // Assign cubic directions and calculate rotated directions
-  for (const auto i : make_range(6))
+  // checking for only 3 directions may be enough
+  for (const auto i : make_range(2*LIBMESH_DIM))
   {
     cubic_directions[i].zero();
     rotated_cubic_directions[i].zero();
