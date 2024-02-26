@@ -89,6 +89,7 @@ ACInterfaceAniso::assignEulerAngles()
 void
 ACInterfaceAniso::computeRotationMatrix()
 {
+  // update function takes angles in degrees
   _R.update(_Euler_angles); // this is passive rotation, see RotationTensor.C
   _crysrot = _R.transpose(); // therefore needs to be transposed
 }
@@ -127,7 +128,8 @@ ACInterfaceAniso::computeAnisotropy()
 	}
   }
 
-  if (_grad_u[_qp].norm() > 1.0e-12) { // avoid division by zero
+  // avoid division by zero and check if current grain exists at this _qp
+  if (_grad_u[_qp].norm() > 1.0e-12 && _u[_qp] > 1.0e-12) {
 	  
     for (const auto i : make_range(2*LIBMESH_DIM)) { // identify the maximum among the cosines
 		
