@@ -25,6 +25,9 @@ public:
 
 protected:
 
+  /// Interaction coefficient between zeta and eta variables
+  const Real _gamma_p;
+
   /// Flag to activate grain boundary anisotropy
   const bool _GB_anisotropy;
   

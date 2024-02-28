@@ -34,5 +34,5 @@ protected:
   unsigned int _zeta_var;
   
   /// Interaction coefficient between zeta and eta variables
-  const Real _gamma_interaction;
+  const Real _gamma_p;
 };

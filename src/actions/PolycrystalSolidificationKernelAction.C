@@ -16,6 +16,7 @@ PolycrystalSolidificationKernelAction::validParams()
   params.addClassDescription(
       "Set up ACGrGrPoly, GrainSolidification, ACInterface, TimeDerivative, and ACGBPoly kernels. ");
   params.addParam<VariableName>("zeta", "Phase field representing liquid (0) or solid (1). ");
+  params.addParam<Real>("gamma_p", 1.0, "Interaction coefficient between zeta and eta variables. ");
   params.addParam<bool>("GB_anisotropy", false, "Flag to activate grain boundary anisotropy. ");
   params.addParam<Real>("e_anisotropy", 0.0, "Grain boundary energy anisotropy coefficient. ");
   params.addParam<FileName>(
@@ -27,6 +28,7 @@ PolycrystalSolidificationKernelAction::validParams()
 
 PolycrystalSolidificationKernelAction::PolycrystalSolidificationKernelAction(const InputParameters & params)
   : PolycrystalKernelAction(params),
+    _gamma_p(getParam<Real>("gamma_p")),
     _GB_anisotropy(this->template getParam<bool>("GB_anisotropy")),
     _e_anisotropy(getParam<Real>("e_anisotropy")),
     _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name"))
@@ -78,6 +80,7 @@ PolycrystalSolidificationKernelAction::act()
       params.set<NonlinearVariableName>("variable") = var_name;
       params.set<std::vector<VariableName>>("v") = v;
       params.set<std::vector<VariableName>>("zeta") = {getParam<VariableName>("zeta")};
+      params.set<Real>("gamma_p") = _gamma_p;
       params.applyParameters(parameters());
       
       std::string kernel_name = "GrainSolidification_" + var_name;
