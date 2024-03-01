@@ -1,0 +1,8 @@
+[Tests]
+  [./test_CP_PFF]
+    type = 'Exodiff'
+    input = 'polycrystal_right_elastoplastic_variableGc.i'
+    exodiff = 'polycrystal_right_elastoplastic_variableGc_out.e'
+	heavy = true
+  [../]
+[]

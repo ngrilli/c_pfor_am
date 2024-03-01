@@ -1180,8 +1180,8 @@
   
   solve_type = 'PJFNK'
 
-  petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold -pc_hypre_boomeramg_agg_nl -pc_hypre_boomeramg_agg_num_paths -pc_hypre_boomeramg_max_levels -pc_hypre_boomeramg_coarsen_type -pc_hypre_boomeramg_interp_type -pc_hypre_boomeramg_P_max -pc_hypre_boomeramg_truncfactor -pc_hypre_boomeramg_print_statistics'
-  petsc_options_value = 'hypre boomeramg 51 0.7 4 5 25 PMIS ext+i 2 0.3 0'
+  petsc_options_iname = '-pc_type  -snes_type'
+  petsc_options_value = 'lu vinewtonrsls'
 
   line_search = 'none'
 
@@ -1190,8 +1190,7 @@
   nl_max_its = 20
   l_max_its = 50
   
-  nl_abs_tol = 1e-6
-  nl_rel_tol = 1e-6
+  nl_rel_tol = 1e-8
   
   [TimeStepper]
     type = IterationAdaptiveDTMax
@@ -1200,11 +1199,11 @@
     growth_factor = 1.25
   	reject_large_step = True
     cutback_factor = 0.5
-    dt = 0.001
-	upper_limit_dt = 0.002
+    dt = 0.0005
+	upper_limit_dt = 0.0005
   []
   
-  end_time = 0.001 # run until 12503.8
+  end_time = 0.005 # run until 12503.8
   dtmin = 1.0e-20
 []
 
@@ -1218,7 +1217,7 @@
 [Outputs]
   [./out]
     type = Exodus
-    sync_times = '0.001 0.002 0.1 0.5 1.0 1.4 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0 9.5 10.0 10.5 11.0 11.5 12.0 12.5 13.0 13.5 14.0 14.5 15.0 50 150 500 1000 1500 12503.8'
+    sync_times = '0.005 0.1 0.5 1.0 1.4 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0 9.5 10.0 10.5 11.0 11.5 12.0 12.5 13.0 13.5 14.0 14.5 15.0 50 150 500 1000 1500 12503.8'
 	sync_only = true
   [../]
 []
