@@ -42,6 +42,7 @@ LiquidSolidKernelAction::validParams()
   params.addParam<Real>("L_p", 1.0, "Kinetic coefficient for phase transformation. ");
   params.addParam<Real>("theta", 21.0, "Theta coefficient for hyperbolic tangent for liquid-solid. ");
   params.addParam<Real>("T_l", 1723.0, "Liquidus temperature (K). ");
+  params.addParam<Real>("gamma_p", 1.0, "Interaction coefficient between zeta and eta variables. ");
   
   return params;
 }
@@ -58,7 +59,8 @@ LiquidSolidKernelAction::LiquidSolidKernelAction(const InputParameters & params)
     _l_g(getParam<Real>("l_g")),
     _L_p(getParam<Real>("L_p")),
     _theta(getParam<Real>("theta")),
-    _T_l(getParam<Real>("T_l"))
+    _T_l(getParam<Real>("T_l")),
+    _gamma_p(getParam<Real>("gamma_p"))
 {
 }
 
@@ -133,11 +135,11 @@ LiquidSolidKernelAction::act()
     std::string kernel_name_Diffusion = "Diffusion_" + zeta_var_name;
     _problem->addKernel("CoefDiffusion", kernel_name_Diffusion, params_Diffusion);
     
-    // Add the coupled phase and grain kernel, LHS term: -2 L_p m_g (1 - \zeta) \sum \eta_i^2
+    // Add the coupled phase and grain kernel, LHS term: -2 L_p m_g gamma_p (1 - \zeta) \sum \eta_i^2
     InputParameters params_CoupledPhaseGrain = _factory.getValidParams("CoupledPhaseGrain");
     params_CoupledPhaseGrain.set<NonlinearVariableName>("variable") = zeta_var_name;
     params_CoupledPhaseGrain.set<std::vector<VariableName>>("v") = phase_fields;
-    params_CoupledPhaseGrain.set<Real>("A") = -2.0 * _L_p * _m_g;
+    params_CoupledPhaseGrain.set<Real>("A") = -2.0 * _L_p * _m_g * _gamma_p;
     params_CoupledPhaseGrain.applyParameters(parameters());
     
     std::string kernel_name_CoupledPhaseGrain = "CoupledPhaseGrain_" + zeta_var_name;

@@ -42,6 +42,9 @@ protected:
   const Real _theta;
   const Real _T_l;
   
+  /// Interaction coefficient between zeta and eta variables
+  const Real _gamma_p;
+  
   Real _m_p;
   Real _m_g;
   Real _k_p;
