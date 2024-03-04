@@ -15,7 +15,7 @@ ACInterfaceAniso::validParams()
   params.addParam<int>("op",0,"Phase field index used to select the Euler angles. ");
   params.addParam<int>("op_num",0,"Total number of phase fields. ");
   params.addParam<FileName>(
-      "Euler_angles_file_name",
+      "Euler_angles_file_name","",
       "Name of the file containing the Euler angles, each row must contain three Euler angles "
       "which correspond to each grain orientation. ");
   return params;
