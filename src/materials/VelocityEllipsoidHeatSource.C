@@ -4,7 +4,7 @@
 
 #include "VelocityEllipsoidHeatSource.h"
 
-registerMooseObject("HeatConductionApp", VelocityEllipsoidHeatSource);
+registerMooseObject("c_pfor_amApp", VelocityEllipsoidHeatSource);
 
 InputParameters
 VelocityEllipsoidHeatSource::validParams()
