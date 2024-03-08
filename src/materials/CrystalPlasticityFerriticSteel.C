@@ -1,5 +1,5 @@
-// Michael Salvini
 // Nicolò Grilli
+// Michael Salvini
 // University of Bristol
 // 8 Maggio 2023
 
@@ -36,6 +36,7 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("lambda_DL", 1.0,"prefactor of the irradiation dislocation loops evolution law (adimensional)");
   params.addParam<Real>("lambda_SC", 1.0,"prefactor of the irradiation solute cluster evolution law (adimensional)");
   params.addParam<bool>("is_irradiated", false, "Skip irradiation calculations if false.");
+  params.addParam<bool>("annihilate_DL_on_all_slip_systems", false, "Irradiation dislocation loops annihilated by slip activity on all slip systems");
   
   // Slip and creep rate parameters
   params.addParam<Real>("ao", 0.00001, "slip rate coefficient (s^{-1})");
@@ -94,6 +95,7 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _lambda_DL(getParam<Real>("lambda_DL")),
     _lambda_SC(getParam<Real>("lambda_SC")),
     _is_irradiated(getParam<bool>("is_irradiated")),
+    _annihilate_DL_on_all_slip_systems(getParam<bool>("annihilate_DL_on_all_slip_systems")),
 	_ao(getParam<Real>("ao")),
 	_xm(getParam<Real>("xm")),
 	_creep_activated(getParam<bool>("creep_activated")),
@@ -666,7 +668,7 @@ CrystalPlasticityFerriticSteel::calculateStateVariableEvolutionRateComponent()
   }
 }
 
-// Calculate the SSD increment based on equation (18)
+// Calculate the SSD increment
 void
 CrystalPlasticityFerriticSteel::calculateSSDincrement()
 {
@@ -681,21 +683,44 @@ CrystalPlasticityFerriticSteel::calculateSSDincrement()
   }
 }
 
-// calculate the irradiation dislocation loops increment based on equation (21)
+// calculate the irradiation dislocation loops increment
 void
 CrystalPlasticityFerriticSteel::calculateDLincrement()
 {
+  Real total_slip_increment = 0.0; // sum over all slip systems	
+  Real temp_C_DL_increment;
+	
+  if (_annihilate_DL_on_all_slip_systems) {
+	  
+    for (const auto i : make_range(_number_slip_systems)) {
+		
+      total_slip_increment += std::abs(_slip_increment[_qp][i]);
+		
+	}
+	
+	// In this case, all slip systems have the same _C_DL
+	temp_C_DL_increment = (-1.0) * _lambda_DL * total_slip_increment
+                        * _C_DL[_qp][0] * _C_DL_diameter / _burgers_vector_mag / _number_slip_systems;
+	  
+    for (const auto i : make_range(_number_slip_systems)) {
+		
+      _C_DL_increment[i] = temp_C_DL_increment;
+		
+	}    	  
+	  
+  } else {
 
-  // note that _slip_increment here is the rate
-  for (const auto i : make_range(_number_slip_systems)) {
+    // note that _slip_increment here is the rate
+    for (const auto i : make_range(_number_slip_systems)) {
 
-    _C_DL_increment[i] = (-1.0) * _lambda_DL * std::abs(_slip_increment[_qp][i])
-                       * _C_DL[_qp][i] * _C_DL_diameter / _burgers_vector_mag;
+      _C_DL_increment[i] = (-1.0) * _lambda_DL * std::abs(_slip_increment[_qp][i])
+                         * _C_DL[_qp][i] * _C_DL_diameter / _burgers_vector_mag;
 
+    }  
   }
 }
 
-// calculate the irradiation solute cluster increment based on equation (23)
+// calculate the irradiation solute cluster increment
 void
 CrystalPlasticityFerriticSteel::calculateSCincrement() {
 

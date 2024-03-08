@@ -165,6 +165,9 @@ protected:
   
   // Skip irradiation calculations if false.
   bool _is_irradiated;
+  
+  // Irradiation dislocation loops annihilated by slip activity on all slip systems
+  bool _annihilate_DL_on_all_slip_systems;
 
   // slip rate coefficient (s^{-1}) for power law slip
   const Real _ao;
