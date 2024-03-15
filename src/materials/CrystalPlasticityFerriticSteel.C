@@ -13,7 +13,7 @@
 #include "libmesh/int_range.h"
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityFerriticSteel);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityFerriticSteel);
 
 InputParameters
 CrystalPlasticityFerriticSteel::validParams()

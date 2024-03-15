@@ -17,7 +17,7 @@
 #include <fstream>
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainCrystalPlasticityUranium);
+registerMooseObject("c_pfor_amApp", FiniteStrainCrystalPlasticityUranium);
 
 InputParameters
 FiniteStrainCrystalPlasticityUranium::validParams()

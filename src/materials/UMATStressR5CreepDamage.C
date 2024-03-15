@@ -4,7 +4,7 @@
 
 #include "UMATStressR5CreepDamage.h"
 
-registerMooseObject("TensorMechanicsApp", UMATStressR5CreepDamage);
+registerMooseObject("c_pfor_amApp", UMATStressR5CreepDamage);
 
 InputParameters
 UMATStressR5CreepDamage::validParams()

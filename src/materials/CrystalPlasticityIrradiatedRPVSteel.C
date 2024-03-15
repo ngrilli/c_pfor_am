@@ -17,7 +17,7 @@
 #include "libmesh/int_range.h"
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityIrradiatedRPVSteel);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityIrradiatedRPVSteel);
 
 InputParameters
 CrystalPlasticityIrradiatedRPVSteel::validParams()

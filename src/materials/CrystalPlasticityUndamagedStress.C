@@ -10,7 +10,7 @@
 #include "Conversion.h"
 #include "MooseException.h"
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityUndamagedStress);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityUndamagedStress);
 
 InputParameters
 CrystalPlasticityUndamagedStress::validParams()

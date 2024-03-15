@@ -5,7 +5,7 @@
 #include "HyperElasticThermalDamage.h"
 #include "libmesh/utility.h"
 
-registerMooseObject("TensorMechanicsApp", HyperElasticThermalDamage);
+registerMooseObject("c_pfor_amApp", HyperElasticThermalDamage);
 
 InputParameters
 HyperElasticThermalDamage::validParams()

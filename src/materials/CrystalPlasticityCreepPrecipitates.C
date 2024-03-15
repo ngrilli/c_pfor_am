@@ -8,7 +8,7 @@
 #include <cmath>
 #include "Function.h"
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityCreepPrecipitates);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityCreepPrecipitates);
 
 InputParameters
 CrystalPlasticityCreepPrecipitates::validParams()

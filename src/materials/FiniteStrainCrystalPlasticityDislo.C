@@ -10,7 +10,7 @@
 #include <fstream>
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainCrystalPlasticityDislo);
+registerMooseObject("c_pfor_amApp", FiniteStrainCrystalPlasticityDislo);
 
 InputParameters
 FiniteStrainCrystalPlasticityDislo::validParams()

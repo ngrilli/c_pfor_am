@@ -4,7 +4,7 @@
 
 #include "FileParsedMaterial.h"
 
-registerMooseObject("TensorMechanicsApp", FileParsedMaterial);
+registerMooseObject("c_pfor_amApp", FileParsedMaterial);
 
 InputParameters
 FileParsedMaterial::validParams()

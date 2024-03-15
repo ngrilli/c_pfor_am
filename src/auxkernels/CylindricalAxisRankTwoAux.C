@@ -4,7 +4,7 @@
 
 #include "CylindricalAxisRankTwoAux.h"
 
-registerMooseObject("TensorMechanicsApp", CylindricalAxisRankTwoAux);
+registerMooseObject("c_pfor_amApp", CylindricalAxisRankTwoAux);
 
 InputParameters
 CylindricalAxisRankTwoAux::validParams()

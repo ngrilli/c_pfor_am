@@ -12,7 +12,7 @@
 #include "Conversion.h"
 #include "MooseException.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeCrystalPlasticityStressDamage);
+registerMooseObject("c_pfor_amApp", ComputeCrystalPlasticityStressDamage);
 
 InputParameters
 ComputeCrystalPlasticityStressDamage::validParams()

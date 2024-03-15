@@ -8,7 +8,7 @@
 #include "MooseException.h"
 #include "MathUtils.h"
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamageVol);
+registerMooseObject("c_pfor_amApp", FiniteStrainUObasedCPDamageVol);
 
 InputParameters
 FiniteStrainUObasedCPDamageVol::validParams()

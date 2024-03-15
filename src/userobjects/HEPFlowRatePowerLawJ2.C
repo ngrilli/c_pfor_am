@@ -4,7 +4,7 @@
 
 #include "HEPFlowRatePowerLawJ2.h"
 
-registerMooseObject("TensorMechanicsApp", HEPFlowRatePowerLawJ2);
+registerMooseObject("c_pfor_amApp", HEPFlowRatePowerLawJ2);
 
 InputParameters
 HEPFlowRatePowerLawJ2::validParams()

@@ -5,8 +5,8 @@
 
 #include "SA508CreepStressUpdate.h"
 
-registerMooseObject("TensorMechanicsApp", SA508CreepStressUpdate);
-registerMooseObject("TensorMechanicsApp", ADSA508CreepStressUpdate);
+registerMooseObject("c_pfor_amApp", SA508CreepStressUpdate);
+registerMooseObject("c_pfor_amApp", ADSA508CreepStressUpdate);
 
 template <bool is_ad>
 InputParameters

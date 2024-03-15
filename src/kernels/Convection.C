@@ -9,7 +9,7 @@
 
 #include "Convection.h"
 
-registerMooseObject("TensorMechanicsApp", Convection);
+registerMooseObject("c_pfor_amApp", Convection);
 
 InputParameters
 Convection::validParams()

@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityStateVarRateBackstress);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityStateVarRateBackstress);
 
 InputParameters
 CrystalPlasticityStateVarRateBackstress::validParams()

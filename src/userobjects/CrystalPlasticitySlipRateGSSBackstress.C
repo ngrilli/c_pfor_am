@@ -6,7 +6,7 @@
 
 #include <fstream>
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticitySlipRateGSSBackstress);
+registerMooseObject("c_pfor_amApp", CrystalPlasticitySlipRateGSSBackstress);
 
 InputParameters
 CrystalPlasticitySlipRateGSSBackstress::validParams()

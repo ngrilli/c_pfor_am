@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", LaserTempReadFileAux);
+registerMooseObject("c_pfor_amApp", LaserTempReadFileAux);
 
 InputParameters
 LaserTempReadFileAux::validParams()

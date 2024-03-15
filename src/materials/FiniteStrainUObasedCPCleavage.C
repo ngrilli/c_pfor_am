@@ -8,7 +8,7 @@
 #include "MooseException.h"
 #include "MathUtils.h"
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPCleavage);
+registerMooseObject("c_pfor_amApp", FiniteStrainUObasedCPCleavage);
 
 InputParameters
 FiniteStrainUObasedCPCleavage::validParams()

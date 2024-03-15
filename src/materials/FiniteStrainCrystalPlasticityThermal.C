@@ -10,7 +10,7 @@
 #include <fstream>
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainCrystalPlasticityThermal);
+registerMooseObject("c_pfor_amApp", FiniteStrainCrystalPlasticityThermal);
 
 InputParameters
 FiniteStrainCrystalPlasticityThermal::validParams()

@@ -13,7 +13,7 @@
 #include "CrystalPlasticityStateVarRateComponent.h"
 #include "MathUtils.h"
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainUObasedCPDamage);
+registerMooseObject("c_pfor_amApp", FiniteStrainUObasedCPDamage);
 
 InputParameters
 FiniteStrainUObasedCPDamage::validParams()

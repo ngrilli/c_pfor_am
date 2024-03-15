@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", TempActDeactElemsCFDStepsAux);
+registerMooseObject("c_pfor_amApp", TempActDeactElemsCFDStepsAux);
 
 InputParameters
 TempActDeactElemsCFDStepsAux::validParams()

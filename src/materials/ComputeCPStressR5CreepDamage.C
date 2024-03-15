@@ -5,7 +5,7 @@
 
 #include "ComputeCPStressR5CreepDamage.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeCPStressR5CreepDamage);
+registerMooseObject("c_pfor_amApp", ComputeCPStressR5CreepDamage);
 
 InputParameters
 ComputeCPStressR5CreepDamage::validParams()

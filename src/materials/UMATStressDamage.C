@@ -16,7 +16,7 @@
 
 #define QUOTE(macro) stringifyName(macro)
 
-registerMooseObject("TensorMechanicsApp", UMATStressDamage);
+registerMooseObject("c_pfor_amApp", UMATStressDamage);
 
 InputParameters
 UMATStressDamage::validParams()

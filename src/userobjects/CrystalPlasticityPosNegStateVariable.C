@@ -6,7 +6,7 @@
 
 #include <fstream>
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityPosNegStateVariable);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityPosNegStateVariable);
 
 InputParameters
 CrystalPlasticityPosNegStateVariable::validParams()

@@ -8,7 +8,7 @@
 
 #include <fstream>
 
-registerMooseObject("TensorMechanicsApp", LaserTempReadFile);
+registerMooseObject("c_pfor_amApp", LaserTempReadFile);
 
 InputParameters
 LaserTempReadFile::validParams()

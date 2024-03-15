@@ -13,7 +13,7 @@
 
 #include "ComputeCrystalPlasticityResidualEigenstrain.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeCrystalPlasticityResidualEigenstrain);
+registerMooseObject("c_pfor_amApp", ComputeCrystalPlasticityResidualEigenstrain);
 
 InputParameters
 ComputeCrystalPlasticityResidualEigenstrain::validParams()

@@ -5,7 +5,7 @@
 #include "ComputeElasticityTensorMelting.h"
 #include "RotationTensor.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeElasticityTensorMelting);
+registerMooseObject("c_pfor_amApp", ComputeElasticityTensorMelting);
 
 InputParameters
 ComputeElasticityTensorMelting::validParams()

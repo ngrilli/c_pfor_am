@@ -5,7 +5,7 @@
 #include "ComputeElasticityTensorCPGrain.h"
 #include "RotationTensor.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeElasticityTensorCPGrain);
+registerMooseObject("c_pfor_amApp", ComputeElasticityTensorCPGrain);
 
 InputParameters
 ComputeElasticityTensorCPGrain::validParams()

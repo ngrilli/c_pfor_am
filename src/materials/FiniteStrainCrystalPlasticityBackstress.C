@@ -18,7 +18,7 @@
 #include <fstream>
 #include <cmath>
 
-registerMooseObject("TensorMechanicsApp", FiniteStrainCrystalPlasticityBackstress);
+registerMooseObject("c_pfor_amApp", FiniteStrainCrystalPlasticityBackstress);
 
 InputParameters
 FiniteStrainCrystalPlasticityBackstress::validParams()

@@ -9,7 +9,7 @@
 #include <cmath>
 #include "Function.h"
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticityDislocationTransport);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityDislocationTransport);
 
 InputParameters
 CrystalPlasticityDislocationTransport::validParams()

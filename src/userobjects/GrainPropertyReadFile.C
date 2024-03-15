@@ -8,7 +8,7 @@
 
 #include <fstream>
 
-registerMooseObject("TensorMechanicsApp", GrainPropertyReadFile);
+registerMooseObject("c_pfor_amApp", GrainPropertyReadFile);
 
 InputParameters
 GrainPropertyReadFile::validParams()

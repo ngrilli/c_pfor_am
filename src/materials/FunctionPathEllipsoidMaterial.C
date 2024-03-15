@@ -4,7 +4,7 @@
 
 #include "FunctionPathEllipsoidMaterial.h"
 
-registerMooseObject("TensorMechanicsApp", FunctionPathEllipsoidMaterial);
+registerMooseObject("c_pfor_amApp", FunctionPathEllipsoidMaterial);
 
 InputParameters
 FunctionPathEllipsoidMaterial::validParams()

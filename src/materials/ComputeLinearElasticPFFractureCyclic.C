@@ -6,7 +6,7 @@
 #include "ComputeLinearElasticPFFractureCyclic.h"
 #include "MathUtils.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeLinearElasticPFFractureCyclic);
+registerMooseObject("c_pfor_amApp", ComputeLinearElasticPFFractureCyclic);
 
 InputParameters
 ComputeLinearElasticPFFractureCyclic::validParams()

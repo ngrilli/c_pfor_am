@@ -10,7 +10,7 @@
 
 #include <fstream>
 
-registerMooseObject("TensorMechanicsApp", CrystalPlasticitySlipRateCleavage);
+registerMooseObject("c_pfor_amApp", CrystalPlasticitySlipRateCleavage);
 
 InputParameters
 CrystalPlasticitySlipRateCleavage::validParams()

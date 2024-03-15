@@ -9,7 +9,7 @@
 #include "Conversion.h"
 #include "MooseException.h"
 
-registerMooseObject("TensorMechanicsApp", ComputeDislocationCrystalPlasticityStress);
+registerMooseObject("c_pfor_amApp", ComputeDislocationCrystalPlasticityStress);
 
 InputParameters
 ComputeDislocationCrystalPlasticityStress::validParams()

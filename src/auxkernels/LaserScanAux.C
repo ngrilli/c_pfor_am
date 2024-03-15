@@ -4,7 +4,7 @@
 
 #include "LaserScanAux.h"
 
-registerMooseObject("TensorMechanicsApp", LaserScanAux);
+registerMooseObject("c_pfor_amApp", LaserScanAux);
 
 InputParameters
 LaserScanAux::validParams()
