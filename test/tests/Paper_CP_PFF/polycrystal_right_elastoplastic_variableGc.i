@@ -46,7 +46,7 @@
 
   [pull_y]
     type = PiecewiseLinear
-    data_file = 'Right_Slip_Creep.csv'
+    data_file = 'Right_Slip_Creep.txt'
     format = columns
   []
 
