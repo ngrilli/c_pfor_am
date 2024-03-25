@@ -124,7 +124,6 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
     
     // Backstress variable
-    
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
 

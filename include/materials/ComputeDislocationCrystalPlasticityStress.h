@@ -244,6 +244,10 @@ protected:
   const Real _melting_temperature_high;
   const Real _melting_temperature_low;
   const bool _liquid_thermal_expansion;
+  
+  /// cumulative effective small plastic strain
+  MaterialProperty<Real> & _epsilon_p_eff_cum;
+  const MaterialProperty<Real> & _epsilon_p_eff_cum_old;
 
   /// Flag to check whether convergence is achieved or if substepping is needed
   bool _convergence_failed;

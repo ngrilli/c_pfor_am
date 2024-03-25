@@ -124,7 +124,11 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
 	// Parameters used to deactivate thermal expansion above melting
 	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
 	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
-	_liquid_thermal_expansion(getParam<bool>("liquid_thermal_expansion"))
+	_liquid_thermal_expansion(getParam<bool>("liquid_thermal_expansion")),
+
+    // cumulative effective small plastic strain
+    _epsilon_p_eff_cum(declareProperty<Real>("epsilon_p_eff_cum")),
+    _epsilon_p_eff_cum_old(getMaterialPropertyOld<Real>("epsilon_p_eff_cum"))
 {
   _convergence_failed = false;
 }
@@ -188,6 +192,10 @@ ComputeDislocationCrystalPlasticityStress::initQpStatefulProperties()
     _eigenstrains[i]->setQp(_qp);
     _eigenstrains[i]->initQpStatefulProperties();
   }
+  
+  // Initialize cumulative effective small plastic strain
+  _epsilon_p_eff_cum[_qp] = 0.0;
+  
 }
 
 void
@@ -348,6 +356,12 @@ ComputeDislocationCrystalPlasticityStress::postSolveQp(RankTwoTensor & cauchy_st
                   _elastic_deformation_gradient.transpose() / _elastic_deformation_gradient.det();
 
   calcTangentModuli(jacobian_mult);
+  
+  // update the cumulative effective small plastic strain here
+  // equivalent_slip_increment in calculateResidual is Lp * dt
+  // need to add _Lpdt as a RankTwoTensor class attribute
+  // use doubleContraction function and sqrt and factor 3/2
+  _epsilon_p_eff_cum[_qp] = _epsilon_p_eff_cum_old[_qp] + 0.5 * (0.0 + 0.0);
 
   _total_lagrangian_strain[_qp] =
       _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] -
