@@ -19,14 +19,7 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
                              "using the stress update code. "
                              "Includes slip, creep and backstress. ");
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
-  params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
-  params.addParam<MaterialPropertyName>("xm_matprop",
-    "Optional xm material property for exponent for slip rate. ");
-  params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
-  params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
-  params.addParam<FunctionName>("creep_ao_function",
-    "Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time. "
-    "This is useful for an initial plastic deformation followed by creep load. ");
+  params.addParam<Real>("xm", 0.1, "exponent for slip rate");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol. ");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
@@ -65,15 +58,6 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     // Constitutive model parameters
     _ao(getParam<Real>("ao")),
     _xm(getParam<Real>("xm")),
-    _include_xm_matprop(parameters.isParamValid("xm_matprop")),
-    _xm_matprop(_include_xm_matprop
-                ? &getMaterialProperty<Real>("xm_matprop")
-                : nullptr),
-    _creep_ao(getParam<Real>("creep_ao")),
-    _creep_xm(getParam<Real>("creep_xm")),
-    _creep_ao_function(this->isParamValid("creep_ao_function")
-                       ? &this->getFunction("creep_ao_function")
-                       : NULL),
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
@@ -385,34 +369,6 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
   // temporary variable for each slip system
   Real effective_stress;
   
-  // Creep prefactor: if function is not given
-  // the constant value is used
-  Real creep_ao;
-  
-  if (_creep_ao_function) {
-	  
-    creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
-	  
-  } else {
-	  
-    creep_ao = _creep_ao;
-	  
-  }
-  
-  // Strain rate sensitivity: if material property is not given
-  // the constant value is used
-  Real xm;
-  
-  if (_include_xm_matprop) {
-	  
-    xm = (*_xm_matprop)[_qp];	  
-	  
-  } else {
-	  
-    xm = _xm;
-	  
-  }
-  
   for (const auto i : make_range(_number_slip_systems))
   {
     effective_stress = _tau[_qp][i] - _backstress[_qp][i];
@@ -420,8 +376,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
     _slip_increment[_qp][i] =
-        _ao * std::pow(stress_ratio, 1.0 / xm)
-      + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
+        _ao * std::pow(stress_ratio, 1.0 / _xm);
       
     if (effective_stress < 0.0)
       _slip_increment[_qp][i] *= -1.0;
@@ -478,8 +433,6 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
 		          + std::abs(_rho_gnd_edge[_qp][j])
 				  + std::abs(_rho_gnd_screw[_qp][j])));
 
-        		  
-		  
 	  }
     }
 	
@@ -520,34 +473,6 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
   // Difference between RSS and backstress
   // temporary variable for each slip system
   Real effective_stress;
-  
-  // Creep prefactor: if function is not given
-  // the constant value is used
-  Real creep_ao;
-  
-  if (_creep_ao_function) {
-	  
-    creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
-	  
-  } else {
-	  
-    creep_ao = _creep_ao;
-	  
-  }	
-  
-  // Strain rate sensitivity: if material property is not given
-  // the constant value is used
-  Real xm;
-  
-  if (_include_xm_matprop) {
-	  
-    xm = (*_xm_matprop)[_qp];	  
-	  
-  } else {
-	  
-    xm = _xm;
-	  
-  }
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -561,11 +486,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
 		
 	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
-      dslip_dtau[i] = _ao / xm *
-                      std::pow(stress_ratio, 1.0 / xm - 1.0) /
-                      _slip_resistance[_qp][i]
-                    + creep_ao / _creep_xm *
-                      std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
+      dslip_dtau[i] = _ao / _xm *
+                      std::pow(stress_ratio, 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i];		
 	}
   }
@@ -574,13 +496,10 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
 bool
 CrystalPlasticityCyclicDislocationStructures::areConstitutiveStateVariablesConverged()
 {
-  return isConstitutiveStateVariableConverged(_rho_ssd[_qp],
-                                              _rho_ssd_before_update,
-                                              _previous_substep_rho_ssd,
+  return isConstitutiveStateVariableConverged(_rho_c[_qp],
+                                              _rho_c_before_update,
+                                              _previous_substep_rho_c,
                                               _rho_tol);
-
-  // How do we check the tolerance of GNDs and is it needed?
-											  
 }
 
 void

@@ -106,18 +106,6 @@ protected:
   const Real _ao;
   const Real _xm;
   
-  // Optional xm material property for exponent for slip rate
-  const bool _include_xm_matprop;
-  const MaterialProperty<Real> * _xm_matprop;
-  
-  // Creep rate constants
-  const Real _creep_ao;
-  const Real _creep_xm;
-  
-  // Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time
-  // This is useful for an initial plastic deformation followed by creep load
-  const Function * const _creep_ao_function;
-  
   // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
   const bool _cap_slip_increment;
 
