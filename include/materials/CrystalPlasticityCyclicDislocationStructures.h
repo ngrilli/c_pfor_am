@@ -240,13 +240,6 @@ protected:
   const ArrayVariableValue & _dslip_increment_dedge;
   const ArrayVariableValue & _dslip_increment_dscrew;
   
-  // Temperature dependent properties
-  const VariableValue & _temperature;
-  const Real _reference_temperature;
-  const Real _dCRSS_dT_A;
-  const Real _dCRSS_dT_B;
-  const Real _dCRSS_dT_C;
-  
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
   // it indicates the edge dislocation velocity direction for all slip systems
