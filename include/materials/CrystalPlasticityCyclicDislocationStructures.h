@@ -114,25 +114,14 @@ protected:
   
   // Initial values of the dislocation density
   const Real _init_rho_c;
-  const Real _init_rho_w;
-  
-  const Real _init_rho_ssd;
-  
-  // Tolerance on dislocation density update
-  const Real _rho_tol;
   
   // Dislocation densities
   MaterialProperty<std::vector<Real>> & _rho_c;
   const MaterialProperty<std::vector<Real>> & _rho_c_old;
-  MaterialProperty<std::vector<Real>> & _rho_w;
-  const MaterialProperty<std::vector<Real>> & _rho_w_old;
   
   // Walls fraction
   MaterialProperty<Real> & _f_w;
   const MaterialProperty<Real> & _f_w_old;
-
-  MaterialProperty<std::vector<Real>> & _rho_ssd;
-  const MaterialProperty<std::vector<Real>> & _rho_ssd_old;
   
   // Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
@@ -140,9 +129,6 @@ protected:
   
   /// Increment of dislocation densities and backstress
   std::vector<Real> _rho_c_increment;
-  std::vector<Real> _rho_w_increment;
-  
-  std::vector<Real> _rho_ssd_increment;
 
   std::vector<Real> _backstress_increment;
 
@@ -153,9 +139,6 @@ protected:
    * substep vectors will be required.
    */
   std::vector<Real> _previous_substep_rho_c;
-  std::vector<Real> _previous_substep_rho_w;
-   
-  std::vector<Real> _previous_substep_rho_ssd;
 
   std::vector<Real> _previous_substep_backstress;
 
@@ -166,9 +149,6 @@ protected:
    * only one substep is taken) for the convergence check tolerance comparison.
    */
   std::vector<Real> _rho_c_before_update;
-  std::vector<Real> _rho_w_before_update;   
-   
-  std::vector<Real> _rho_ssd_before_update;
 
   std::vector<Real> _backstress_before_update;
   

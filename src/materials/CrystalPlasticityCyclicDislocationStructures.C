@@ -31,12 +31,7 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
   params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
-  params.addParam<Real>("rho_tol",1.0,"Tolerance on dislocation density update");
-  
   params.addParam<Real>("init_rho_c",1.0,"Initial channel dislocation density");
-  params.addParam<Real>("init_rho_w",1.0,"Initial walls dislocation density");  
-  
-  params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   return params;
 }
 
@@ -62,25 +57,14 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	
 	// Initial values of the state variables
     _init_rho_c(getParam<Real>("init_rho_c")),
-    _init_rho_w(getParam<Real>("init_rho_w")),	
-	
-    _init_rho_ssd(getParam<Real>("init_rho_ssd")),
-	
-	// Tolerance on dislocation density update
-	_rho_tol(getParam<Real>("rho_tol")),
 	
 	// State variables of the dislocation model
     _rho_c(declareProperty<std::vector<Real>>("rho_c")),
     _rho_c_old(getMaterialPropertyOld<std::vector<Real>>("rho_c")),
-    _rho_w(declareProperty<std::vector<Real>>("rho_w")),
-    _rho_w_old(getMaterialPropertyOld<std::vector<Real>>("rho_w")),
     
     // Walls fraction
     _f_w(declareProperty<Real>("f_w")),
     _f_w_old(declareProperty<Real>("f_w")),
-	
-    _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
-    _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
     
     // Backstress variable
     _backstress(declareProperty<std::vector<Real>>("backstress")),
@@ -88,24 +72,15 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 
     // increments of state variables
     _rho_c_increment(_number_slip_systems, 0.0),
-    _rho_w_increment(_number_slip_systems, 0.0),
-	
-    _rho_ssd_increment(_number_slip_systems, 0.0),
 
     _backstress_increment(_number_slip_systems, 0.0),
 	
 	// resize local caching vectors used for substepping
 	_previous_substep_rho_c(_number_slip_systems, 0.0),
-	_previous_substep_rho_w(_number_slip_systems, 0.0),
-	
-    _previous_substep_rho_ssd(_number_slip_systems, 0.0),
     
 	_previous_substep_backstress(_number_slip_systems, 0.0),
 	
     _rho_c_before_update(_number_slip_systems, 0.0),
-    _rho_w_before_update(_number_slip_systems, 0.0),	
-	
-    _rho_ssd_before_update(_number_slip_systems, 0.0),
       	
     _backstress_before_update(_number_slip_systems, 0.0)
     
@@ -122,9 +97,6 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 
   // Initialize the dislocation density size
   _rho_c[_qp].resize(_number_slip_systems);
-  _rho_w[_qp].resize(_number_slip_systems);
-  
-  _rho_ssd[_qp].resize(_number_slip_systems);
   
   // Initialize the backstress size
   _backstress[_qp].resize(_number_slip_systems);
@@ -136,9 +108,6 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   for (const auto i : make_range(_number_slip_systems))
   {
     _rho_c[_qp][i] = _init_rho_c;
-    _rho_w[_qp][i] = _init_rho_w;	  
-	  
-    _rho_ssd[_qp][i] = _init_rho_ssd;
 	
 	_backstress[_qp][i] = 0.0;	
   }
@@ -162,11 +131,11 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
       if (iplane == jplane) { // self vs. latent hardening
 	  
 	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += _rho_ssd[_qp][j]; 
+	    taylor_hardening += _rho_c[_qp][j]; 
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * _rho_ssd[_qp][j]);	  
+	    taylor_hardening += (_r * _rho_c[_qp][j]);	  
 		  
 	  }
     }
@@ -190,12 +159,8 @@ CrystalPlasticityCyclicDislocationStructures::setInitialConstitutiveVariableValu
   // Initialize state variables with the value at the previous time step
   _rho_c[_qp] = _rho_c_old[_qp];
   _previous_substep_rho_c = _rho_c_old[_qp];
-  _rho_w[_qp] = _rho_w_old[_qp];
-  _previous_substep_rho_w = _rho_w_old[_qp];
+
   _f_w[_qp] = _f_w_old[_qp];
-  
-  _rho_ssd[_qp] = _rho_ssd_old[_qp];
-  _previous_substep_rho_ssd = _rho_ssd_old[_qp];
 
   _backstress[_qp] = _backstress_old[_qp];
   _previous_substep_backstress = _backstress_old[_qp];
@@ -207,9 +172,6 @@ CrystalPlasticityCyclicDislocationStructures::setSubstepConstitutiveVariableValu
   // Inialize state variable of the next substep
   // with the value at the previous substep
   _rho_c[_qp] = _previous_substep_rho_c;
-  _rho_w[_qp] = _previous_substep_rho_w;
-  
-  _rho_ssd[_qp] = _previous_substep_rho_ssd;
 
   _backstress[_qp] = _previous_substep_backstress;
 }
@@ -284,11 +246,11 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
       if (iplane == jplane) { // self vs. latent hardening
 	  
 	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += _rho_ssd[_qp][j]; 
+	    taylor_hardening += _rho_c[_qp][j]; 
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * _rho_ssd[_qp][j]);
+	    taylor_hardening += (_r * _rho_c[_qp][j]);
 
 	  }
     }
@@ -341,9 +303,6 @@ CrystalPlasticityCyclicDislocationStructures::updateSubstepConstitutiveVariableV
 {
   // Update temporary variables at the end of the substep
   _previous_substep_rho_c = _rho_c[_qp];
-  _previous_substep_rho_w = _rho_w[_qp];
-  
-  _previous_substep_rho_ssd = _rho_ssd[_qp];
 
   _previous_substep_backstress = _backstress[_qp];
 }
@@ -352,9 +311,6 @@ void
 CrystalPlasticityCyclicDislocationStructures::cacheStateVariablesBeforeUpdate()
 {
   _rho_c_before_update = _rho_c[_qp];
-  _rho_w_before_update = _rho_w[_qp];
-	
-  _rho_ssd_before_update = _rho_ssd[_qp];
 
   _backstress_before_update = _backstress[_qp];
 }
@@ -368,13 +324,13 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
   for (const auto i : make_range(_number_slip_systems))
   {
     
-    rho_sum = _rho_ssd[_qp][i];
+    rho_sum = _rho_c[_qp][i];
 
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
 	// and the rate equation gets multiplied by time step in updateStateVariables
-    _rho_ssd_increment[i] = _k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
-    _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
+    _rho_c_increment[i] = _k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_c[_qp][i];
+    _rho_c_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
 
   }
   
@@ -400,15 +356,15 @@ CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
   // SSD
   for (const auto i : make_range(_number_slip_systems))
   { 
-    _rho_ssd_increment[i] *= _substep_dt;
+    _rho_c_increment[i] *= _substep_dt;
 
     // force positive SSD density
-    if (_previous_substep_rho_ssd[i] < _zero_tol && _rho_ssd_increment[i] < 0.0)
-      _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i];
+    if (_previous_substep_rho_c[i] < _zero_tol && _rho_c_increment[i] < 0.0)
+      _rho_c[_qp][i] = _previous_substep_rho_c[i];
     else
-      _rho_ssd[_qp][i] = _previous_substep_rho_ssd[i] + _rho_ssd_increment[i];
+      _rho_c[_qp][i] = _previous_substep_rho_c[i] + _rho_c_increment[i];
 
-    if (_rho_ssd[_qp][i] < 0.0)
+    if (_rho_c[_qp][i] < 0.0)
       return false;
   }
   
