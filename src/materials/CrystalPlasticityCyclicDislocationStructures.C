@@ -37,14 +37,6 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("init_rho_w",1.0,"Initial walls dislocation density");  
   
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
-  params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
-  params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
-  params.addParam<UserObjectName>("read_initial_gnd_density",
-                                  "The ElementReadPropertyFile "
-                                  "GeneralUserObject to read element value "
-                                  "of the initial GND density");
-  params.addCoupledVar("dslip_increment_dedge",0.0,"Directional derivative of the slip rate along the edge motion direction.");
-  params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   return params;
 }
 
@@ -73,8 +65,6 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     _init_rho_w(getParam<Real>("init_rho_w")),	
 	
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
-    _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
-    _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
 	
 	// Tolerance on dislocation density update
 	_rho_tol(getParam<Real>("rho_tol")),
@@ -91,10 +81,6 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	
     _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
     _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
-    _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
-   	_rho_gnd_edge_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_edge")),
-  	_rho_gnd_screw(declareProperty<std::vector<Real>>("rho_gnd_screw")),
-    _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
     
     // Backstress variable
     _backstress(declareProperty<std::vector<Real>>("backstress")),
@@ -105,8 +91,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     _rho_w_increment(_number_slip_systems, 0.0),
 	
     _rho_ssd_increment(_number_slip_systems, 0.0),
-    _rho_gnd_edge_increment(_number_slip_systems, 0.0),
-    _rho_gnd_screw_increment(_number_slip_systems, 0.0),
+
     _backstress_increment(_number_slip_systems, 0.0),
 	
 	// resize local caching vectors used for substepping
@@ -114,31 +99,16 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_previous_substep_rho_w(_number_slip_systems, 0.0),
 	
     _previous_substep_rho_ssd(_number_slip_systems, 0.0),
-	_previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
-	_previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
+    
 	_previous_substep_backstress(_number_slip_systems, 0.0),
 	
     _rho_c_before_update(_number_slip_systems, 0.0),
     _rho_w_before_update(_number_slip_systems, 0.0),	
 	
     _rho_ssd_before_update(_number_slip_systems, 0.0),
-    _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
-    _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
-    _backstress_before_update(_number_slip_systems, 0.0),
-
-    // UserObject to read the initial GND density from file						
-    _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
-                               ? &getUserObject<ElementPropertyReadFile>("read_initial_gnd_density")
-                               : nullptr),
-									
-    // Directional derivatives of the slip rate
-    _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
-    _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
-	
-    // store edge and screw slip directions to calculate directional derivatives
-    // of the plastic slip rate	
-    _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
-	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
+      	
+    _backstress_before_update(_number_slip_systems, 0.0)
+    
 {
 }
 
@@ -155,8 +125,6 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   _rho_w[_qp].resize(_number_slip_systems);
   
   _rho_ssd[_qp].resize(_number_slip_systems);
-  _rho_gnd_edge[_qp].resize(_number_slip_systems);
-  _rho_gnd_screw[_qp].resize(_number_slip_systems);
   
   // Initialize the backstress size
   _backstress[_qp].resize(_number_slip_systems);
@@ -171,18 +139,6 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
     _rho_w[_qp][i] = _init_rho_w;	  
 	  
     _rho_ssd[_qp][i] = _init_rho_ssd;
-	
-	if (_read_initial_gnd_density) { // Read initial GND density from file
-	
-    _rho_gnd_edge[_qp][i] = _read_initial_gnd_density->getData(_current_elem, i);
-	_rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
-	
-	} else { // Initialize uniform GND density
-		
-    _rho_gnd_edge[_qp][i] = _init_rho_gnd_edge;
-    _rho_gnd_screw[_qp][i] = _init_rho_gnd_screw;
-	
-	}
 	
 	_backstress[_qp][i] = 0.0;	
   }
@@ -206,15 +162,11 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
       if (iplane == jplane) { // self vs. latent hardening
 	  
 	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])); 
+	    taylor_hardening += _rho_ssd[_qp][j]; 
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));	  
+	    taylor_hardening += (_r * _rho_ssd[_qp][j]);	  
 		  
 	  }
     }
@@ -229,85 +181,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   {
     _slip_increment[_qp][i] = 0.0;
   }
-  
-  // Initialize vectors size here because they are used by AuxKernels
-  // that are called just after initialization  
-  _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-  _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
 
-}
-
-// Calculate Schmid tensor and
-// store edge and screw slip directions to calculate directional derivatives
-// of the plastic slip rate
-void
-CrystalPlasticityCyclicDislocationStructures::calculateSchmidTensor(
-    const unsigned int & number_slip_systems,
-    const std::vector<RealVectorValue> & plane_normal_vector,
-    const std::vector<RealVectorValue> & direction_vector,
-    std::vector<RankTwoTensor> & schmid_tensor,
-    const RankTwoTensor & crysrot)
-{
-  std::vector<RealVectorValue> local_direction_vector, local_plane_normal;
-  local_direction_vector.resize(number_slip_systems);
-  local_plane_normal.resize(number_slip_systems);
-  
-  // Temporary directions and normals to calculate
-  // screw dislocation slip direction
-  RealVectorValue temp_mo;
-  RealVectorValue temp_no;
-  RealVectorValue temp_screw_mo;
-
-  // Update slip direction and normal with crystal orientation
-  for (const auto i : make_range(_number_slip_systems))
-  {
-    local_direction_vector[i].zero();
-    local_plane_normal[i].zero();
-
-    for (const auto j : make_range(LIBMESH_DIM))
-      for (const auto k : make_range(LIBMESH_DIM))
-      {
-        local_direction_vector[i](j) =
-            local_direction_vector[i](j) + crysrot(j, k) * direction_vector[i](k);
-
-        local_plane_normal[i](j) =
-            local_plane_normal[i](j) + crysrot(j, k) * plane_normal_vector[i](k);
-      }
-
-    // Calculate Schmid tensor
-    for (const auto j : make_range(LIBMESH_DIM))
-      for (const auto k : make_range(LIBMESH_DIM))
-      {
-        schmid_tensor[i](j, k) = local_direction_vector[i](j) * local_plane_normal[i](k);
-      }
-  }
-  
-  // Calculate and store edge and screw slip directions are also assigned
-  _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-  _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-  
-  for (const auto i : make_range(_number_slip_systems)) {
-	for (const auto j : make_range(LIBMESH_DIM)) {
-	  _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = local_direction_vector[i](j);
-	} 
-  }
-  
-  for (const auto i : make_range(_number_slip_systems)) {
-    for (const auto j : make_range(LIBMESH_DIM)) {
-	  // assign temporary slip direction and normal for this slip system
-      temp_mo(j) = local_direction_vector[i](j);
-	  temp_no(j) = local_plane_normal[i](j);
-    }  
-	
-	// calculate screw slip direction for this slip system
-	// and store it in the screw slip direction vector
-	temp_screw_mo = temp_mo.cross(temp_no);
-	
-	for (const auto j : make_range(LIBMESH_DIM)) {
-	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
-	}
-  }
-  
 }
 
 void
@@ -322,10 +196,7 @@ CrystalPlasticityCyclicDislocationStructures::setInitialConstitutiveVariableValu
   
   _rho_ssd[_qp] = _rho_ssd_old[_qp];
   _previous_substep_rho_ssd = _rho_ssd_old[_qp];
-  _rho_gnd_edge[_qp] = _rho_gnd_edge_old[_qp];
-  _previous_substep_rho_gnd_edge = _rho_gnd_edge_old[_qp];
-  _rho_gnd_screw[_qp] = _rho_gnd_screw_old[_qp];
-  _previous_substep_rho_gnd_screw = _rho_gnd_screw_old[_qp];
+
   _backstress[_qp] = _backstress_old[_qp];
   _previous_substep_backstress = _backstress_old[_qp];
 }
@@ -339,8 +210,7 @@ CrystalPlasticityCyclicDislocationStructures::setSubstepConstitutiveVariableValu
   _rho_w[_qp] = _previous_substep_rho_w;
   
   _rho_ssd[_qp] = _previous_substep_rho_ssd;
-  _rho_gnd_edge[_qp] = _previous_substep_rho_gnd_edge;
-  _rho_gnd_screw[_qp] = _previous_substep_rho_gnd_screw;
+
   _backstress[_qp] = _previous_substep_backstress;
 }
 
@@ -414,15 +284,11 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
       if (iplane == jplane) { // self vs. latent hardening
 	  
 	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])); 
+	    taylor_hardening += _rho_ssd[_qp][j]; 
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));
+	    taylor_hardening += (_r * _rho_ssd[_qp][j]);
 
 	  }
     }
@@ -478,8 +344,7 @@ CrystalPlasticityCyclicDislocationStructures::updateSubstepConstitutiveVariableV
   _previous_substep_rho_w = _rho_w[_qp];
   
   _previous_substep_rho_ssd = _rho_ssd[_qp];
-  _previous_substep_rho_gnd_edge = _rho_gnd_edge[_qp];
-  _previous_substep_rho_gnd_screw = _rho_gnd_screw[_qp];
+
   _previous_substep_backstress = _backstress[_qp];
 }
 
@@ -490,8 +355,7 @@ CrystalPlasticityCyclicDislocationStructures::cacheStateVariablesBeforeUpdate()
   _rho_w_before_update = _rho_w[_qp];
 	
   _rho_ssd_before_update = _rho_ssd[_qp];
-  _rho_gnd_edge_before_update = _rho_gnd_edge[_qp];
-  _rho_gnd_screw_before_update = _rho_gnd_screw[_qp];
+
   _backstress_before_update = _backstress[_qp];
 }
 
@@ -504,7 +368,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
   for (const auto i : make_range(_number_slip_systems))
   {
     
-    rho_sum = _rho_ssd[_qp][i] + std::abs(_rho_gnd_edge[_qp][i]) + std::abs(_rho_gnd_screw[_qp][i]);
+    rho_sum = _rho_ssd[_qp][i];
 
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
@@ -512,15 +376,6 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
     _rho_ssd_increment[i] = _k_0 * sqrt(rho_sum) - 2 * _y_c * _rho_ssd[_qp][i];
     _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
 
-  }
-  
-  // GND dislocation density increment
-  for (const auto i : make_range(_number_slip_systems)) 
-  {
-
-    _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
-    _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
-		
   }
   
   // backstress increment
@@ -555,20 +410,6 @@ CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
 
     if (_rho_ssd[_qp][i] < 0.0)
       return false;
-  }
-  
-  // GND edge: can be both positive or negative
-  for (const auto i : make_range(_number_slip_systems))
-  { 
-    _rho_gnd_edge_increment[i] *= _substep_dt;
-    _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i] + _rho_gnd_edge_increment[i];
-  }
-  
-  // GND screw: can be both positive or negative
-  for (const auto i : make_range(_number_slip_systems))
-  { 
-    _rho_gnd_screw_increment[i] *= _substep_dt;
-    _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i] + _rho_gnd_screw_increment[i];
   }
   
   // Backstress: can be both positive or negative

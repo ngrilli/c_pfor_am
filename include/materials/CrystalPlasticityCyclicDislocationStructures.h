@@ -37,19 +37,6 @@ protected:
    * stress, plastic deformation gradient, slip system resistances, etc.
    */
   virtual void initQpStatefulProperties() override;
-  
-  /**
-   * A helper method to rotate the a direction and plane normal system set into
-   * the local crystal lattice orientation as defined by the crystal rotation
-   * tensor from the Elasticity tensor class.
-   * Edge and screw slip directions are also assigned
-   */
-  virtual void calculateSchmidTensor(const unsigned int & number_dislocation_systems,
-                             const std::vector<RealVectorValue> & plane_normal_vector,
-                             const std::vector<RealVectorValue> & direction_vector,
-                             std::vector<RankTwoTensor> & schmid_tensor,
-                             const RankTwoTensor & crysrot);
-
 
   /**
    * Sets the value of the current and previous substep iteration slip system
@@ -130,8 +117,6 @@ protected:
   const Real _init_rho_w;
   
   const Real _init_rho_ssd;
-  const Real _init_rho_gnd_edge;
-  const Real _init_rho_gnd_screw;
   
   // Tolerance on dislocation density update
   const Real _rho_tol;
@@ -148,10 +133,6 @@ protected:
 
   MaterialProperty<std::vector<Real>> & _rho_ssd;
   const MaterialProperty<std::vector<Real>> & _rho_ssd_old;
-  MaterialProperty<std::vector<Real>> & _rho_gnd_edge;
-  const MaterialProperty<std::vector<Real>> & _rho_gnd_edge_old;
-  MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
-  const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
   
   // Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
@@ -162,8 +143,7 @@ protected:
   std::vector<Real> _rho_w_increment;
   
   std::vector<Real> _rho_ssd_increment;
-  std::vector<Real> _rho_gnd_edge_increment;
-  std::vector<Real> _rho_gnd_screw_increment;
+
   std::vector<Real> _backstress_increment;
 
   /**
@@ -176,8 +156,7 @@ protected:
   std::vector<Real> _previous_substep_rho_w;
    
   std::vector<Real> _previous_substep_rho_ssd;
-  std::vector<Real> _previous_substep_rho_gnd_edge;
-  std::vector<Real> _previous_substep_rho_gnd_screw;
+
   std::vector<Real> _previous_substep_backstress;
 
   /**
@@ -190,27 +169,7 @@ protected:
   std::vector<Real> _rho_w_before_update;   
    
   std::vector<Real> _rho_ssd_before_update;
-  std::vector<Real> _rho_gnd_edge_before_update; 
-  std::vector<Real> _rho_gnd_screw_before_update;
+
   std::vector<Real> _backstress_before_update;
-  
-  /**
-   * UserObject to read the initial GND density from file
-   */
-  const ElementPropertyReadFile * const _read_initial_gnd_density;
-  
-  // Directional derivative of the slip rate along the edge dislocation motion direction
-  // and along the screw dislocation motion direction
-  const ArrayVariableValue & _dslip_increment_dedge;
-  const ArrayVariableValue & _dslip_increment_dscrew;
-  
-  // Rotated slip direction to calculate the directional derivative
-  // of the plastic strain rate
-  // it indicates the edge dislocation velocity direction for all slip systems
-  MaterialProperty<std::vector<Real>> & _edge_slip_direction;
-  
-  // edge dislocation line direction
-  // corresponding to direction of motion of screw dislocations
-  MaterialProperty<std::vector<Real>> & _screw_slip_direction;
   
 };
