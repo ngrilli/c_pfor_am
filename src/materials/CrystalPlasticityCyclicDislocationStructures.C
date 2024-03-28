@@ -39,9 +39,6 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
-  params.addParam<MaterialPropertyName>(
-      "total_twin_volume_fraction",
-      "Total twin volume fraction, if twinning is considered in the simulation");
   params.addParam<UserObjectName>("read_initial_gnd_density",
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element value "
@@ -128,12 +125,6 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
     _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
     _backstress_before_update(_number_slip_systems, 0.0),
-
-    // Twinning contributions, if used
-    _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
-    _twin_volume_fraction_total(_include_twinning_in_Lp
-                                    ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
-                                    : nullptr),
 
     // UserObject to read the initial GND density from file						
     _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
@@ -443,20 +434,6 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
 
 }
 
-void
-CrystalPlasticityCyclicDislocationStructures::calculateEquivalentSlipIncrement(
-    RankTwoTensor & equivalent_slip_increment)
-{
-  if (_include_twinning_in_Lp)
-  {
-    for (const auto i : make_range(_number_slip_systems))
-      equivalent_slip_increment += (1.0 - (*_twin_volume_fraction_total)[_qp]) *
-                                   _flow_direction[_qp][i] * _slip_increment[_qp][i] * _substep_dt;
-  }
-  else // if no twinning volume fraction material property supplied, use base class
-    CrystalPlasticityDislocationUpdateBase::calculateEquivalentSlipIncrement(equivalent_slip_increment);
-}
-
 // Note that this is always called after calculateSlipRate
 // because calculateSlipRate is called in calculateResidual
 // while this is called in calculateJacobian
@@ -491,15 +468,6 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
                       _slip_resistance[_qp][i];		
 	}
   }
-}
-
-bool
-CrystalPlasticityCyclicDislocationStructures::areConstitutiveStateVariablesConverged()
-{
-  return isConstitutiveStateVariableConverged(_rho_c[_qp],
-                                              _rho_c_before_update,
-                                              _previous_substep_rho_c,
-                                              _rho_tol);
 }
 
 void

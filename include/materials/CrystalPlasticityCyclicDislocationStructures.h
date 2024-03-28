@@ -76,9 +76,6 @@ protected:
   
   virtual void calculateSlipResistance();
 
-  virtual void
-  calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
-
   virtual void calculateConstitutiveSlipDerivative(std::vector<Real> & dslip_dtau) override;
 
   // Cache the slip system value before the update for the diff in the convergence check
@@ -95,12 +92,6 @@ protected:
    * for the current timestep after convergence has been reached.
    */
   virtual bool updateStateVariables() override;
-
-  /*
-   * Determines if the state variables, e.g. defect densities, have converged
-   * by comparing the change in the values over the iteration period.
-   */
-  virtual bool areConstitutiveStateVariablesConverged() override;
   
   // Slip rate constants
   const Real _ao;
@@ -202,21 +193,6 @@ protected:
   std::vector<Real> _rho_gnd_edge_before_update; 
   std::vector<Real> _rho_gnd_screw_before_update;
   std::vector<Real> _backstress_before_update;
-
-  /**
-   * Flag to include the total twin volume fraction in the plastic velocity
-   * gradient calculation, per Kalidindi IJP (2001).
-   */
-  const bool _include_twinning_in_Lp;
-
-  /**
-   * User-defined material property name for the total volume fraction of twins
-   * in a twinning propagation constitutive model, when this class is used in
-   * conjunction with the twinning propagation model.
-   * Note that this value is the OLD material property and thus lags the current
-   * value by a single timestep.
-   */
-  const MaterialProperty<Real> * const _twin_volume_fraction_total;
   
   /**
    * UserObject to read the initial GND density from file
