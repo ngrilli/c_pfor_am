@@ -362,7 +362,7 @@ ComputeDislocationCrystalPlasticityStress::postSolveQp(RankTwoTensor & cauchy_st
   // use doubleContraction function and sqrt and factor 3/2
   RankTwoTensor delta_epsilon_p;
   delta_epsilon_p = 0.5 * (_equivalent_slip_increment + _equivalent_slip_increment.transpose());
-  _epsilon_p_eff_cum[_qp] = _epsilon_p_eff_cum_old[_qp] + std::sqrt(1.5 * delta_epsilon_p.doubleContraction(delta_epsilon_p));
+  _epsilon_p_eff_cum[_qp] = _epsilon_p_eff_cum_old[_qp] + std::sqrt((2.0/3.0) * delta_epsilon_p.doubleContraction(delta_epsilon_p));
 
   _total_lagrangian_strain[_qp] =
       _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] -
