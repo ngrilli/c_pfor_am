@@ -22,9 +22,10 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol");
-  params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
-  params.addParam<Real>("shear_modulus",76800.0,"Shear modulus in Taylor hardening law G");
+  params.addParam<Real>("burgers_vector_mag", 0.000256, "Magnitude of the Burgers vector");
+  params.addParam<Real>("shear_modulus", 76800.0, "Shear modulus in Taylor hardening law G");
   params.addParam<Real>("A_self", 0.122, "Self hardening coefficient");
+  params.addParam<Real>("nu", 0.33, "Poisson's ratio for backstress calculation by Eshelby's inclusion");
   
 
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
@@ -47,6 +48,8 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_A_self(getParam<Real>("A_self")),
+	_nu(getParam<Real>("nu")),
+	
 
 	_tau_c_0(getParam<Real>("tau_c_0")),
 	_k_0(getParam<Real>("k_0")),

@@ -96,6 +96,10 @@ protected:
   // Self hardening coefficient
   const Real _A_self;
   
+  // Poisson's ratio for backstress calculation by Eshelby's inclusion
+  const Real _nu;  
+  
+  
   
   
   // Peierls stress
