@@ -18,14 +18,15 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addClassDescription("Dislocation based model for crystal plasticity "
                              "using the stress update code. "
                              "Includes slip, creep and backstress. ");
-  params.addParam<Real>("ao", 0.001, "slip rate coefficient");
+  params.addParam<Real>("ao", 0.004, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
-                                                     "in one time step to _slip_incr_tol. ");
+                                                     "in one time step to _slip_incr_tol");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
-  params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
-  params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
-  params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
+  params.addParam<Real>("shear_modulus",76800.0,"Shear modulus in Taylor hardening law G");
+  params.addParam<Real>("A_self", 0.122, "Self hardening coefficient");
+  
+
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
   params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
@@ -45,8 +46,8 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
-	_alpha_0(getParam<Real>("alpha_0")),
-    _r(getParam<Real>("r")),
+	_A_self(getParam<Real>("A_self")),
+
 	_tau_c_0(getParam<Real>("tau_c_0")),
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
@@ -64,7 +65,6 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     
     // Walls fraction
     _f_w(declareProperty<Real>("f_w")),
-    _f_w_old(declareProperty<Real>("f_w")),
     
     // Backstress variable
     _backstress(declareProperty<std::vector<Real>>("backstress")),
@@ -135,13 +135,13 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * _rho_c[_qp][j]);	  
+	    taylor_hardening += _rho_c[_qp][j];	  
 		  
 	  }
     }
 	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening));
+	_slip_resistance[_qp][i] += (_shear_modulus * _burgers_vector_mag
+	                          * std::sqrt(_A_self * taylor_hardening));
 	
   }
 
@@ -159,8 +159,6 @@ CrystalPlasticityCyclicDislocationStructures::setInitialConstitutiveVariableValu
   // Initialize state variables with the value at the previous time step
   _rho_c[_qp] = _rho_c_old[_qp];
   _previous_substep_rho_c = _rho_c_old[_qp];
-
-  _f_w[_qp] = _f_w_old[_qp];
 
   _backstress[_qp] = _backstress_old[_qp];
   _previous_substep_backstress = _backstress_old[_qp];
@@ -250,13 +248,13 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
 		  
 	  } else { // latent hardening
 	  
-	    taylor_hardening += (_r * _rho_c[_qp][j]);
+	    taylor_hardening += _rho_c[_qp][j];
 
 	  }
     }
 	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
-	                          * std::sqrt(taylor_hardening));
+	_slip_resistance[_qp][i] += (_shear_modulus * _burgers_vector_mag
+	                          * std::sqrt(_A_self * taylor_hardening));
 	
   }
 

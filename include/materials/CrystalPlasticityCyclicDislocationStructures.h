@@ -93,11 +93,10 @@ protected:
   // Shear modulus in Taylor hardening law G
   const Real _shear_modulus;
   
-  // Prefactor of Taylor hardening law, alpha
-  const Real _alpha_0;
+  // Self hardening coefficient
+  const Real _A_self;
   
-  // Latent hardening coefficient
-  const Real _r;
+  
   
   // Peierls stress
   const Real _tau_c_0;
@@ -121,7 +120,6 @@ protected:
   
   // Walls fraction
   MaterialProperty<Real> & _f_w;
-  const MaterialProperty<Real> & _f_w_old;
   
   // Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
