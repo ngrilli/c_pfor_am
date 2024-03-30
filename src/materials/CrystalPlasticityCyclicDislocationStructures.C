@@ -266,6 +266,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
                       std::pow(stress_ratio, 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i];		
 	}
+	
+	_dslip_dtau[_qp][i] = dslip_dtau[i];
   }
 }
 
@@ -284,44 +286,84 @@ CrystalPlasticityCyclicDislocationStructures::cacheStateVariablesBeforeUpdate()
   _backstress_before_update = _backstress[_qp];
 }
 
+// Update channel dislocation density based on (27) and (29)
 void
 CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRateComponent()
 {
+  // Update substructure variables
+  calculateWallVolumeFraction();
+  calculateSubstructureParameter();
+  calculateSubstructureSize();
+
   // channel dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
   {
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
 	// and the rate equation gets multiplied by time step in updateStateVariables
-    _rho_c_increment[i] = _k_0 * sqrt(_rho_c[_qp][i]) - 2 * _y_c * _rho_c[_qp][i];
+    _rho_c_increment[i] = _k_0 / _l_c[_qp] - 2 * _y_c * _rho_c[_qp][i];
     _rho_c_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_mag;
   }
   
   // backstress increment
-  ArmstrongFrederickBackstressUpdate();
+  BackstressUpdate();
 }
 
-// Armstrong-Frederick update of the backstress
+// Backstress update based on (4)
 void
-CrystalPlasticityCyclicDislocationStructures::ArmstrongFrederickBackstressUpdate()
+CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
 {
+  // slip system independent shape factor
+  Real K_shape;
+
+  // degree of plastic accommodation at the interface of the two phases
+  Real f_accom;
+  
+  // modified Poisson's ratio
+  Real nu_p;
+
+  // S1212 is a component of the Eshelby tensor
+  Real S_1212;
+  
+  // modified shear modulus
+  Real mu_m;
+	
+  // Function that depends on the shape of the channel phase
+  Real f_eta;
+  
+  K_shape = _eta[_qp] * std::sqrt( std::pow(_eta[_qp], 2.0) - 1.0) - std::acosh(_eta[_qp]);
+  K_shape *= 2.0 * libMesh::pi * _eta[_qp];
+  K_shape /= std::sqrt(std::pow(std::pow(_eta[_qp], 2.0) - 1.0, 3.0));
+  
   for (const auto i : make_range(_number_slip_systems)) 
   {
-    _backstress_increment[i] = _slip_increment[_qp][i];
-    _backstress_increment[i] -= _backstress[_qp][i] * std::abs(_slip_increment[_qp][i]);  
+    f_accom = _dslip_dtau[_qp][i] * _substep_dt / 2.0;
+    
+    nu_p = _nu + (2.0/3.0) * (1.0 + _nu) * _shear_modulus * f_accom;
+	nu_p /= 1.0 + (4.0/3.0) * (1.0 + _nu) * _shear_modulus * f_accom;
+	
+	S_1212 = std::pow(_eta[_qp], 2.0) - 1.75 - 2.0 * nu_p * std::pow(_eta[_qp], 2.0) + nu_p;
+	S_1212 *= K_shape;
+	S_1212 += libMesh::pi * std::pow(_eta[_qp], 2.0);
+	S_1212 /= 8.0 * libMesh::pi * (1.0 - nu_p) * (std::pow(_eta[_qp], 2.0) - 1.0);
+	
+	mu_m = _shear_modulus / (1.0 + 2.0 * _shear_modulus * f_accom);
+	
+	f_eta = mu_m * (1.0 - 2.0 * S_1212) / S_1212;
+	f_eta /= 1.0 + (mu_m / _shear_modulus) * ((1.0 - 2.0 * S_1212) / (2.0 * S_1212));
+
+    _backstress_increment[i] = (_f_w[_qp] / (1.0 - _f_w[_qp])) * f_eta * _slip_increment[_qp][i];
   }
 }
 
 bool
 CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
-{
-  // Now perform the check to see if the slip system should be updated
-  // SSD
+{		
   for (const auto i : make_range(_number_slip_systems))
   { 
     _rho_c_increment[i] *= _substep_dt;
 
-    // force positive SSD density
+    // force positive channel dislocation density
     if (_previous_substep_rho_c[i] < _zero_tol && _rho_c_increment[i] < 0.0)
       _rho_c[_qp][i] = _previous_substep_rho_c[i];
     else
@@ -339,4 +381,60 @@ CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
   }
   
   return true;
+}
+
+// Calculate wall volume fraction based on (44)
+void
+CrystalPlasticityCyclicDislocationStructures::calculateWallVolumeFraction()
+{
+  _f_w[_qp] = _f_inf + (_f_0 - _f_inf) * std::exp(-_epsilon_p_eff_cum[_qp] / _k_f);
+}
+
+// Calculate substructure parameter eta based on (41), (42), (43)
+void
+CrystalPlasticityCyclicDislocationStructures::calculateSubstructureParameter()
+{
+  // Sum of channel dislocation density on all slip systems
+  Real sum_rho_c = 0.0;
+  
+  // Maximum channel dislocation density among slip systems
+  Real max_rho_c = 0.0;
+  
+  // k_p parameter for evolution rate of eta
+  Real k_p;
+	
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    sum_rho_c += _rho_c[_qp][i];
+    
+    if (_rho_c[_qp][i] > max_rho_c) {
+		
+      max_rho_c = _rho_c[_qp][i];
+      
+	}
+  }
+  
+  k_p = max_rho_c / sum_rho_c;
+	
+  _eta[_qp] = _eta_inf + (_eta_0 - _eta_inf) * std::exp(-_X_norm * _epsilon_p_eff_cum[_qp] / k_p);
+}
+
+// Calculate substructure size based on (40)
+void
+CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
+{
+  Real max_abs_tau = 0.0;
+  
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    if (std::abs(_tau[_qp][i]) > max_abs_tau) {
+		
+		max_abs_tau = std::abs(_tau[_qp][i]);
+		
+	}
+  }
+	
+  _d_struct[_qp] = _K_struct * _shear_modulus * _burgers_vector_mag / (max_abs_tau - _tau_0);
+  
+  _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
 }

@@ -71,14 +71,23 @@ protected:
   // Evolution of the state variables 
   virtual void calculateStateVariableEvolutionRateComponent() override;
   
-  // Armstrong-Frederick update of the backstress
-  virtual void ArmstrongFrederickBackstressUpdate();
+  // Backstress update based on (4)
+  virtual void BackstressUpdate();
 
   /*
    * Finalizes the values of the state variables and slip system resistance
    * for the current timestep after convergence has been reached.
    */
   virtual bool updateStateVariables() override;
+  
+  // Calculate wall volume fraction based on (44)
+  virtual void calculateWallVolumeFraction();
+  
+  // Calculate substructure parameter eta based on (41), (42), (43)
+  virtual void calculateSubstructureParameter();
+  
+  // Calculate substructure size based on (40)
+  virtual void calculateSubstructureSize();
   
   // Slip rate constants
   const Real _ao;
