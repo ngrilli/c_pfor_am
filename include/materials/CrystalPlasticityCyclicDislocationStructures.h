@@ -97,24 +97,41 @@ protected:
   const Real _A_self;
   
   // Poisson's ratio for backstress calculation by Eshelby's inclusion
-  const Real _nu;  
+  const Real _nu;
   
+  // Constant of similitude for dislocation substructure
+  const Real _K_struct;
   
+  // Resolved shear stress at initial yield
+  const Real _tau_0;
   
-  
-  // Peierls stress
-  const Real _tau_c_0;
-  
-  // Coefficient K in SSD evolution, representing accumulation rate
+  // Coefficient K in channel dislocations evolution, representing accumulation rate
   const Real _k_0;
   
-  // Critical annihilation diameter
+  // Critical annihilation distance for screw dislocations
   const Real _y_c;
   
-  // Backstress parameters
-  const Real _h;
-  const Real _h_D;
+  // Initial dislocation walls volume fraction
+  const Real _f_0;
   
+  // Saturated dislocation walls volume fraction
+  const Real _f_inf;
+  
+  // Rate constant for the evolution of the dislocation walls volume fraction
+  const Real _k_f;
+  
+  // Initial Max/Min axis length ratio of the dislocation substructure
+  const Real _eta_0;
+  
+  // Saturated Max/Min axis length ratio of the dislocation substructure
+  const Real _eta_inf;
+  
+  // Normalization constant for the evolution of the dislocation substructure
+  const Real _X_norm;
+  
+  // Initial characteristic dislocation substructure length
+  const Real _init_d_struct;
+
   // Initial values of the dislocation density
   const Real _init_rho_c;
   
@@ -122,8 +139,23 @@ protected:
   MaterialProperty<std::vector<Real>> & _rho_c;
   const MaterialProperty<std::vector<Real>> & _rho_c_old;
   
-  // Walls fraction
+  // Cumulative effective plastic strain
+  const MaterialProperty<Real> & _epsilon_p_eff_cum;
+  
+  // Instantaneous plastic deformation tangent at the slip system level
+  MaterialProperty<std::vector<Real>> & _dslip_dtau;
+  
+  // Dislocation walls volume fraction
   MaterialProperty<Real> & _f_w;
+  
+  // Max/min axis length ratio of the dislocation substructure
+  MaterialProperty<Real> & _eta;
+  
+  // Characteristic dislocation substructure length
+  MaterialProperty<Real> & _d_struct;
+  
+  // Mean glide distance for dislocations in the channel phase
+  MaterialProperty<Real> & _l_c;
   
   // Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
@@ -131,7 +163,6 @@ protected:
   
   /// Increment of dislocation densities and backstress
   std::vector<Real> _rho_c_increment;
-
   std::vector<Real> _backstress_increment;
 
   /**
@@ -141,7 +172,6 @@ protected:
    * substep vectors will be required.
    */
   std::vector<Real> _previous_substep_rho_c;
-
   std::vector<Real> _previous_substep_backstress;
 
   /**
@@ -151,7 +181,6 @@ protected:
    * only one substep is taken) for the convergence check tolerance comparison.
    */
   std::vector<Real> _rho_c_before_update;
-
   std::vector<Real> _backstress_before_update;
   
 };
