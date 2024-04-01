@@ -86,6 +86,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	
 	// Characteristic dislocation substructure length
     _d_struct(declareProperty<Real>("d_struct")),
+    _d_struct_old(getMaterialPropertyOld<Real>("d_struct")),
 	
 	// Mean glide distance for dislocations in the channel phase
     _l_c(declareProperty<Real>("l_c")),    
@@ -423,7 +424,11 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureParameter()
 void
 CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
 {
-  Real max_abs_tau = 0.0;
+  // Max RSS among the slip systems	
+  Real max_abs_tau = 0.0; 
+  
+  // Prefactor of _d_struct
+  Real d_struct_prefactor = _K_struct * _shear_modulus * _burgers_vector_mag;
   
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -433,8 +438,16 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
 		
 	}
   }
-	
-  _d_struct[_qp] = _K_struct * _shear_modulus * _burgers_vector_mag / (max_abs_tau - _tau_0);
   
+  if (max_abs_tau > d_struct_prefactor / _d_struct_old[_qp] + _tau_0) { // _d_struct can only decrease
+  
+    _d_struct[_qp] = d_struct_prefactor / (max_abs_tau - _tau_0);
+  
+  } else {
+	  
+    _d_struct[_qp] = _d_struct_old[_qp];
+	  
+  }
+
   _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
 }

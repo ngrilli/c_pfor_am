@@ -162,6 +162,7 @@ protected:
   
   // Characteristic dislocation substructure length
   MaterialProperty<Real> & _d_struct;
+  const MaterialProperty<Real> & _d_struct_old;
   
   // Mean glide distance for dislocations in the channel phase
   MaterialProperty<Real> & _l_c;
