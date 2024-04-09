@@ -37,6 +37,9 @@ protected:
    * stress, plastic deformation gradient, slip system resistances, etc.
    */
   virtual void initQpStatefulProperties() override;
+  
+  /// Initialize constant interaction matrix between slip systems
+  virtual void initializeInteractionMatrix();
 
   /**
    * Sets the value of the current and previous substep iteration slip system
@@ -104,6 +107,9 @@ protected:
   
   // Self hardening coefficient
   const Real _A_self;
+  
+  // Constant slip resistance
+  const Real _s_0;
   
   // Poisson's ratio for backstress calculation by Eshelby's inclusion
   const Real _nu;
@@ -192,5 +198,8 @@ protected:
    */
   std::vector<Real> _rho_c_before_update;
   std::vector<Real> _backstress_before_update;
+  
+  // Interaction matrix between slip systems
+  DenseMatrix<Real> _A_int;
   
 };
