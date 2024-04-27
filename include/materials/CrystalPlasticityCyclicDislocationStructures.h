@@ -40,6 +40,9 @@ protected:
   
   /// Initialize constant interaction matrix between slip systems
   virtual void initializeInteractionMatrix();
+  
+  /// read Euler angles from file and calculate rotation matrix
+  virtual void assignEulerAngles();
 
   /**
    * Sets the value of the current and previous substep iteration slip system
@@ -225,7 +228,22 @@ protected:
   std::vector<Real> _backstress_c_before_update;
   std::vector<Real> _backstress_w_before_update;
   
-  // Interaction matrix between slip systems
+  /// Interaction matrix between slip systems
   DenseMatrix<Real> _A_int;
+  
+  /// Intial macroscopic backstress tensor components
+  std::vector<Real> _B_ii;
+  
+  /// Element property read user object used to read in Euler angles
+  const PropertyReadFile * const _read_prop_user_object;
+  
+  /// Values of the Euler Angles for rotation matrix calculation
+  RealVectorValue _Euler_angles;
+  
+  /**
+   * Crystal rotation in the original, or reference, configuration as defined by
+   * Euler angle arguments
+   */
+  RankTwoTensor _crysrot;
   
 };

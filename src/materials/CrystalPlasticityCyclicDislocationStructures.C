@@ -6,8 +6,10 @@
 
 #include "CrystalPlasticityCyclicDislocationStructures.h"
 #include "libmesh/int_range.h"
+#include "libmesh/utility.h"
 #include <cmath>
 #include "Function.h"
+#include "RotationTensor.h"
 
 registerMooseObject("c_pfor_amApp", CrystalPlasticityCyclicDislocationStructures);
 
@@ -41,6 +43,11 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("init_rho_w",0.01,"Initial wall dislocation density");
   params.addParam<Real>("k_w",2.0,"Coefficient K in wall dislocations evolution, representing accumulation rate");
   params.addParam<Real>("y_e",0.003,"Critical annihilation diameter for edge dislocations");
+  params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
+  params.addParam<UserObjectName>("read_prop_user_object",
+                                  "The ElementReadPropertyFile "
+                                  "GeneralUserObject to read element "
+                                  "specific property values from file");
   return params;
 }
 
@@ -133,7 +140,15 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_backstress_w_before_update(_number_slip_systems, 0.0),
 	
 	// Interaction matrix between slip systems
-	_A_int(_number_slip_systems, _number_slip_systems)
+	_A_int(_number_slip_systems, _number_slip_systems),
+	
+	// Intial macroscopic backstress tensor components
+	_B_ii(getParam<std::vector<Real>>("B_ii")),
+	
+	// Element property read user object used to read in Euler angles
+    _read_prop_user_object(isParamValid("read_prop_user_object")
+                               ? &getUserObject<PropertyReadFile>("read_prop_user_object")
+                               : nullptr)
 {
 }
 
@@ -220,6 +235,13 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 	
 	_slip_increment[_qp][i] = 0.0;
   }
+  
+  assignEulerAngles();
+  
+  //calculateFlowDirection(_crysrot[_qp]);
+  
+  //std::cout << "flow_direction" << std::endl;
+  //std::cout << _flow_direction[_qp][0] << std::endl;
 }
 
 void
@@ -237,7 +259,7 @@ CrystalPlasticityCyclicDislocationStructures::initializeInteractionMatrix()
     _A_int(i,i) = G0; // self interaction
   }  
   
-  Real x[2][3] = {{G0,G1,G1},{G1,G0,G1}}; // better idea to fill a matrix and pass to dense matrix for readability
+  //Real x[2][3] = {{G0,G1,G1},{G1,G0,G1}}; // better idea to fill a matrix and pass to dense matrix for readability
   
   _A_int(0,1) = G1; _A_int(0,2) = G1; _A_int(0,3) = G2; _A_int(0,4) = G3; _A_int(0,5) = G3;
   _A_int(0,6) = G4; _A_int(0,7) = G3; _A_int(0,8) = G5; _A_int(0,9) = G4; _A_int(0,10) = G5;
@@ -276,6 +298,20 @@ CrystalPlasticityCyclicDislocationStructures::initializeInteractionMatrix()
 	  }		
 	}	  
   }  
+}
+
+void
+CrystalPlasticityCyclicDislocationStructures::assignEulerAngles()
+{ 
+  for (const auto i : make_range(LIBMESH_DIM)) {
+    _Euler_angles(i) = _read_prop_user_object->getData(_current_elem, i);	  
+  }
+
+  RotationTensor R(_Euler_angles);
+  _crysrot = R.transpose();
+  
+  std::cout << "crysrot" << std::endl;
+  std::cout << _crysrot << std::endl;
 }
 
 void
