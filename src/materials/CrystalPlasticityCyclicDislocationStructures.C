@@ -142,8 +142,9 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	// Interaction matrix between slip systems
 	_A_int(_number_slip_systems, _number_slip_systems),
 	
-	// Intial macroscopic backstress tensor components
+	// Initial macroscopic backstress tensor components
 	_B_ii(getParam<std::vector<Real>>("B_ii")),
+	_B_0(_B_ii[0], _B_ii[1], _B_ii[2], _B_ii[3], _B_ii[4], _B_ii[5]),
 	
 	// Element property read user object used to read in Euler angles
     _read_prop_user_object(isParamValid("read_prop_user_object")
@@ -191,14 +192,18 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   // Initialize mean glide distance for dislocations in the channel phase
   _l_c[_qp] = _eta_0 * _init_d_struct;
   
+  assignEulerAngles();
+  
+  calculateFlowDirection(_crysrot);
+  
   // Initialize dislocation densities and backstress
   for (const auto i : make_range(_number_slip_systems))
   {
     _rho_c[_qp][i] = _init_rho_c;
 	_rho_w[_qp][i] = _init_rho_w;
 	
-	_backstress_c[_qp][i] = 0.0;
-    _backstress_w[_qp][i] = 0.0;	
+	_backstress_c[_qp][i] = _B_0.doubleContraction(_flow_direction[_qp][i]);
+    _backstress_w[_qp][i] = _B_0.doubleContraction(_flow_direction[_qp][i]);	
   }
   
   initializeInteractionMatrix();
@@ -235,13 +240,6 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 	
 	_slip_increment[_qp][i] = 0.0;
   }
-  
-  assignEulerAngles();
-  
-  //calculateFlowDirection(_crysrot[_qp]);
-  
-  //std::cout << "flow_direction" << std::endl;
-  //std::cout << _flow_direction[_qp][0] << std::endl;
 }
 
 void
@@ -254,50 +252,23 @@ CrystalPlasticityCyclicDislocationStructures::initializeInteractionMatrix()
   Real G4 = 0.07;
   Real G5 = 0.122;
   
+  Real A_int[_number_slip_systems][_number_slip_systems] = {
+  {G0,G1,G1,G2,G3,G3,G4,G3,G5,G4,G5,G3},
+  {G1,G0,G1,G3,G4,G5,G3,G2,G3,G5,G4,G3},
+  {G1,G1,G0,G3,G5,G4,G5,G3,G4,G3,G3,G2},
+  {G2,G3,G3,G0,G1,G1,G4,G5,G3,G4,G3,G5},
+  {G3,G4,G5,G1,G0,G1,G5,G4,G3,G3,G2,G3},
+  {G3,G5,G4,G1,G1,G0,G3,G3,G2,G5,G3,G4},
+  {G4,G3,G5,G4,G5,G3,G0,G1,G1,G2,G3,G3},
+  {G3,G2,G3,G5,G4,G3,G1,G0,G1,G3,G4,G5},
+  {G5,G3,G4,G3,G3,G2,G1,G1,G0,G3,G5,G4},
+  {G4,G5,G3,G4,G3,G5,G2,G3,G3,G0,G1,G1},
+  {G5,G4,G3,G3,G2,G3,G3,G4,G5,G1,G0,G1},
+  {G3,G3,G2,G5,G3,G4,G3,G5,G4,G1,G1,G0}};
+  
   for (const auto i : make_range(_number_slip_systems))
-  {
-    _A_int(i,i) = G0; // self interaction
-  }  
-  
-  //Real x[2][3] = {{G0,G1,G1},{G1,G0,G1}}; // better idea to fill a matrix and pass to dense matrix for readability
-  
-  _A_int(0,1) = G1; _A_int(0,2) = G1; _A_int(0,3) = G2; _A_int(0,4) = G3; _A_int(0,5) = G3;
-  _A_int(0,6) = G4; _A_int(0,7) = G3; _A_int(0,8) = G5; _A_int(0,9) = G4; _A_int(0,10) = G5;
-  _A_int(0,11) = G3;
-  
-  _A_int(1,2) = G1; _A_int(1,3) = G3; _A_int(1,4) = G4; _A_int(1,5) = G5; _A_int(1,6) = G3;
-  _A_int(1,7) = G2; _A_int(1,8) = G3; _A_int(1,9) = G5; _A_int(1,10) = G4; _A_int(1,11) = G3;
-  
-  _A_int(2,3) = G3; _A_int(2,4) = G5; _A_int(2,5) = G4; _A_int(2,6) = G5; _A_int(2,7) = G3;
-  _A_int(2,8) = G4; _A_int(2,9) = G3; _A_int(2,10) = G3; _A_int(2,11) = G2;
-  
-  _A_int(3,4) = G1; _A_int(3,5) = G1; _A_int(3,6) = G4; _A_int(3,7) = G5; _A_int(3,8) = G3;
-  _A_int(3,9) = G4; _A_int(3,10) = G3; _A_int(3,11) = G5;
-  
-  _A_int(4,5) = G1; _A_int(4,6) = G5; _A_int(4,7) = G4; _A_int(4,8) = G3; _A_int(4,9) = G3; 
-  _A_int(4,10) = G2; _A_int(4,11) = G3;
-  
-  _A_int(5,6) = G3; _A_int(5,7) = G3; _A_int(5,8) = G2; _A_int(5,9) = G5; _A_int(5,10) = G3;
-  _A_int(5,11) = G4;
-  
-  _A_int(6,7) = G1; _A_int(6,8) = G1; _A_int(6,9) = G2; _A_int(6,10) = G3; _A_int(6,11) = G3;
-  
-  _A_int(7,8) = G1; _A_int(7,9) = G3; _A_int(7,10) = G4; _A_int(7,11) = G5;
-  
-  _A_int(8,9) = G3; _A_int(8,10) = G5; _A_int(8,11) = G4;
-  
-  _A_int(9,10) = G1; _A_int(9,11) = G1;
-  
-  _A_int(10,11) = G1;
-  
-  // make symmetric
-  for (const auto i : make_range(_number_slip_systems)) {
-    for (const auto j : make_range(_number_slip_systems)) {
-      if (i > j) {
-        _A_int(i,j) = _A_int(j,i);		  
-	  }		
-	}	  
-  }  
+    for (const auto j : make_range(_number_slip_systems))
+      _A_int(i,j) = A_int[i][j];
 }
 
 void
@@ -309,9 +280,6 @@ CrystalPlasticityCyclicDislocationStructures::assignEulerAngles()
 
   RotationTensor R(_Euler_angles);
   _crysrot = R.transpose();
-  
-  std::cout << "crysrot" << std::endl;
-  std::cout << _crysrot << std::endl;
 }
 
 void
