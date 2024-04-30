@@ -203,7 +203,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 	_rho_w[_qp][i] = _init_rho_w;
 	
 	_backstress_c[_qp][i] = _B_0.doubleContraction(_flow_direction[_qp][i]);
-    _backstress_w[_qp][i] = -_B_0.doubleContraction(_flow_direction[_qp][i]);	
+    _backstress_w[_qp][i] = - (( 1.0 - _f_w[_qp] ) / _f_w[_qp]) * _B_0.doubleContraction(_flow_direction[_qp][i]);	
   }
   
   initializeInteractionMatrix();
