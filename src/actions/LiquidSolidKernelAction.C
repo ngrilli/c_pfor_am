@@ -35,10 +35,6 @@ LiquidSolidKernelAction::validParams()
   params.addParam<Real>("delta_f_p", 0.25, "The maximum height of the barrier in the free energy density"
                                           " between two minima for liquid-solid system. ");
   params.addParam<Real>("l_p", 9.6, "Liquid-solid interfacial width (micron). ");
-  params.addParam<Real>("sigma_g0", 0.385e-12, "Grain boundary interfacial energy (J/micron^2). ");
-  params.addParam<Real>("delta_f_g", 0.125, "The maximum height of the barrier in the free energy density"
-                                          " between two minima for grains. ");
-  params.addParam<Real>("l_g", 9.6, "Grain boundary width (micron). ");
   params.addParam<Real>("L_p", 1.0, "Kinetic coefficient for phase transformation. ");
   params.addParam<Real>("theta", 21.0, "Theta coefficient for hyperbolic tangent for liquid-solid. ");
   params.addParam<Real>("T_l", 1723.0, "Liquidus temperature (K). ");
@@ -54,9 +50,6 @@ LiquidSolidKernelAction::LiquidSolidKernelAction(const InputParameters & params)
     _sigma_p(getParam<Real>("sigma_p")),
     _delta_f_p(getParam<Real>("delta_f_p")),
     _l_p(getParam<Real>("l_p")),
-    _sigma_g0(getParam<Real>("sigma_g0")),
-    _delta_f_g(getParam<Real>("delta_f_g")),
-    _l_g(getParam<Real>("l_g")),
     _L_p(getParam<Real>("L_p")),
     _theta(getParam<Real>("theta")),
     _T_l(getParam<Real>("T_l")),
@@ -71,7 +64,6 @@ LiquidSolidKernelAction::act()
   
   // Material constant calculations
   _m_p = (3.0/4.0) * _sigma_p / (_delta_f_p * _l_p);
-  _m_g = (3.0/4.0) * _sigma_g0 / (_delta_f_g * _l_g);
   _k_p = (3.0/4.0) * _sigma_p * _l_p;
   
   // Create phase field variable names
@@ -139,7 +131,8 @@ LiquidSolidKernelAction::act()
     InputParameters params_CoupledPhaseGrain = _factory.getValidParams("CoupledPhaseGrain");
     params_CoupledPhaseGrain.set<NonlinearVariableName>("variable") = zeta_var_name;
     params_CoupledPhaseGrain.set<std::vector<VariableName>>("v") = phase_fields;
-    params_CoupledPhaseGrain.set<Real>("A") = -2.0 * _L_p * _m_g * _gamma_p;
+    params_CoupledPhaseGrain.set<Real>("L_p") = _L_p;
+    params_CoupledPhaseGrain.set<Real>("gamma_p") = _gamma_p;
     params_CoupledPhaseGrain.applyParameters(parameters());
     
     std::string kernel_name_CoupledPhaseGrain = "CoupledPhaseGrain_" + zeta_var_name;

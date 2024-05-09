@@ -27,13 +27,19 @@ protected:
   
   virtual Real computeQpOffDiagJacobian(unsigned int jvar) override;
 
-  // The coupled order parameters
+  /// The coupled order parameters
   const unsigned int _op_num;
 
   const std::vector<const VariableValue *> _vals;
   const std::vector<unsigned int> _vals_var;
   
-  // Prefactor
-  const Real _A;  
+  /// Kinetic coefficient for phase transformation
+  const Real _L_p;
+  
+  /// Interaction coefficient between zeta and eta variables
+  const Real _gamma_p;
+  
+  /// The m_g parameter of the free energy calculated in GBEvolution
+  const MaterialProperty<Real> & _m_g;
 
 };
