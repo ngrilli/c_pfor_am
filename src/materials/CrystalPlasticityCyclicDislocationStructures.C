@@ -44,6 +44,14 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("k_w",2.0,"Coefficient K in wall dislocations evolution, representing accumulation rate");
   params.addParam<Real>("y_e",0.003,"Critical annihilation diameter for edge dislocations");
   params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
+  
+  params.addParam<Real>("f_PSB_inf",0.2,"PSB fraction at stabilization");
+  params.addParam<Real>("k_PSB",0.0232,"Increasing rate of PSB fraction");
+  params.addParam<Real>("epsilon_p_eff_cum_PSB",0.06,"Critical accumulated plastic strain to develop PSBs");
+  params.addParam<Real>("eta_PSB",20,"Max/Min axis length ratio of the PSB");
+  params.addParam<Real>("f_w_PSB",0.42,"PSB dislocation walls volume fraction");
+  params.addParam<Real>("d_struct_PSB",1.0,"Characteristic PSB length");
+  
   params.addParam<UserObjectName>("read_prop_user_object",
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element "
@@ -82,11 +90,20 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_k_w(getParam<Real>("k_w")),
 	_y_e(getParam<Real>("y_e")),
 	
+	_f_PSB_inf(getParam<Real>("f_PSB_inf")),
+	_k_PSB(getParam<Real>("k_PSB")),
+	_epsilon_p_eff_cum_PSB(getParam<Real>("epsilon_p_eff_cum_PSB")),
+	_eta_PSB(getParam<Real>("eta_PSB")),
+	_f_w_PSB(getParam<Real>("f_w_PSB")),
+	_d_struct_PSB(getParam<Real>("d_struct_PSB")),
+	
 	// State variables of the dislocation model
     _rho_c(declareProperty<std::vector<Real>>("rho_c")),
     _rho_c_old(getMaterialPropertyOld<std::vector<Real>>("rho_c")),
 	_rho_w(declareProperty<std::vector<Real>>("rho_w")),
     _rho_w_old(getMaterialPropertyOld<std::vector<Real>>("rho_w")),
+	_rho_PSB(declareProperty<std::vector<Real>>("rho_PSB")),
+    _rho_PSB_old(getMaterialPropertyOld<std::vector<Real>>("rho_PSB")),
     
 	// Cumulative effective plastic strain
 	_epsilon_p_eff_cum(getMaterialProperty<Real>("epsilon_p_eff_cum")),    
@@ -107,37 +124,55 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	// Mean glide distance for dislocations in the channel phase
     _l_c(declareProperty<Real>("l_c")),    
     
+	// Mean glide distance for dislocations in the PSB
+    _l_PSB(declareProperty<Real>("l_PSB")),
+	
+	// PSB fraction
+    _f_PSB(declareProperty<Real>("f_PSB")),
+	_f_PSB_old(getMaterialPropertyOld<Real>("f_PSB")),
+	
     // Backstress variables
     _backstress_c(declareProperty<std::vector<Real>>("backstress_c")),
     _backstress_c_old(getMaterialPropertyOld<std::vector<Real>>("backstress_c")),
 	_backstress_w(declareProperty<std::vector<Real>>("backstress_w")),
     _backstress_w_old(getMaterialPropertyOld<std::vector<Real>>("backstress_w")),
+	_backstress_PSB(declareProperty<std::vector<Real>>("backstress_PSB")),
+    _backstress_PSB_old(getMaterialPropertyOld<std::vector<Real>>("backstress_PSB")),
 	
-	// Slip resistance in channel and wall
+	// Slip resistance in channel, wall and PSB
 	_slip_resistance_c(declareProperty<std::vector<Real>>(_base_name + "slip_resistance_c")),
     _slip_resistance_c_old(getMaterialPropertyOld<std::vector<Real>>(_base_name + "slip_resistance_c")),
 	_slip_resistance_w(declareProperty<std::vector<Real>>(_base_name + "slip_resistance_w")),
     _slip_resistance_w_old(getMaterialPropertyOld<std::vector<Real>>(_base_name + "slip_resistance_w")),
+	_slip_resistance_PSB(declareProperty<std::vector<Real>>(_base_name + "slip_resistance_PSB")),
+    _slip_resistance_PSB_old(getMaterialPropertyOld<std::vector<Real>>(_base_name + "slip_resistance_PSB")),
 	
-	// Slip increment inside the channel and the wall
+	// Slip increment inside the channel, the wall and PSB
 	_slip_increment_c(declareProperty<std::vector<Real>>("slip_increment_c")),
 	_slip_increment_w(declareProperty<std::vector<Real>>("slip_increment_w")),
+	_slip_increment_PSB(declareProperty<std::vector<Real>>("slip_increment_PSB")),
 
     // increments of state variables
     _rho_c_increment(_number_slip_systems, 0.0),
 	_rho_w_increment(_number_slip_systems, 0.0),
+	_rho_PSB_increment(_number_slip_systems, 0.0),
     _backstress_c_increment(_number_slip_systems, 0.0),
 	_backstress_w_increment(_number_slip_systems, 0.0),
+	_backstress_PSB_increment(_number_slip_systems, 0.0),
 	
 	// resize local caching vectors used for substepping
 	_previous_substep_rho_c(_number_slip_systems, 0.0),
 	_previous_substep_rho_w(_number_slip_systems, 0.0),
+	_previous_substep_rho_PSB(_number_slip_systems, 0.0),
 	_previous_substep_backstress_c(_number_slip_systems, 0.0),
 	_previous_substep_backstress_w(_number_slip_systems, 0.0),
+	_previous_substep_backstress_PSB(_number_slip_systems, 0.0),
     _rho_c_before_update(_number_slip_systems, 0.0),
 	_rho_w_before_update(_number_slip_systems, 0.0),
+	_rho_PSB_before_update(_number_slip_systems, 0.0),
     _backstress_c_before_update(_number_slip_systems, 0.0),
 	_backstress_w_before_update(_number_slip_systems, 0.0),
+	_backstress_PSB_before_update(_number_slip_systems, 0.0),
 	
 	// Interaction matrix between slip systems
 	_A_int(_number_slip_systems, _number_slip_systems),
@@ -164,18 +199,22 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   // Initialize the dislocation density size
   _rho_c[_qp].resize(_number_slip_systems);
   _rho_w[_qp].resize(_number_slip_systems);
+  _rho_PSB[_qp].resize(_number_slip_systems);
   
   // Initialize the backstress size
   _backstress_c[_qp].resize(_number_slip_systems);
   _backstress_w[_qp].resize(_number_slip_systems);
+  _backstress_PSB[_qp].resize(_number_slip_systems);
   
-  // Initialize slip resistance inside channel and wall
+  // Initialize slip resistance inside channel, wall and PSB
   _slip_resistance_c[_qp].resize(_number_slip_systems);
   _slip_resistance_w[_qp].resize(_number_slip_systems);
+  _slip_resistance_PSB[_qp].resize(_number_slip_systems);
   
-  // Initialize slip increment inside channel and wall
+  // Initialize slip increment inside channel, wall and PSB
   _slip_increment_c[_qp].resize(_number_slip_systems);
   _slip_increment_w[_qp].resize(_number_slip_systems);
+  _slip_increment_PSB[_qp].resize(_number_slip_systems);
   
   // Initialize instantaneous plastic deformation tangent at the slip system level
   _dslip_dtau[_qp].resize(_number_slip_systems);
@@ -192,6 +231,12 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   // Initialize mean glide distance for dislocations in the channel phase
   _l_c[_qp] = _eta_0 * _init_d_struct;
   
+  // Initialize mean glide distance for dislocations in the PSB
+  _l_PSB[_qp] = _eta_PSB * _d_struct_PSB;
+  
+  // Initialize PSB fraction
+  _f_PSB[_qp] = 0.0;
+  
   assignEulerAngles();
   
   calculateFlowDirection(_crysrot);
@@ -201,9 +246,11 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   {
     _rho_c[_qp][i] = _init_rho_c;
 	_rho_w[_qp][i] = _init_rho_w;
+	_rho_PSB[_qp][i] = _init_rho_c;
 	
 	_backstress_c[_qp][i] = _f_w[_qp] * _B_0.doubleContraction(_flow_direction[_qp][i]);
-    _backstress_w[_qp][i] = - ( 1.0 - _f_w[_qp] ) * _B_0.doubleContraction(_flow_direction[_qp][i]);	
+    _backstress_w[_qp][i] = - ( 1.0 - _f_w[_qp] ) * _B_0.doubleContraction(_flow_direction[_qp][i]);
+	_backstress_PSB[_qp][i] = _f_PSB[_qp] * _B_0.doubleContraction(_flow_direction[_qp][i]);
   }
   
   initializeInteractionMatrix();
@@ -230,6 +277,11 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 	
     _slip_resistance_w[_qp][i] += _shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(taylor_hardening);
+	
+	_slip_resistance_PSB[_qp][i] = _s_0;
+	
+	_slip_resistance_PSB[_qp][i] += (_shear_modulus * _burgers_vector_mag
+	                           * std::sqrt(_A_int(i,i) * _rho_PSB[_qp][i]));
   }
 
   // initialize slip increment
@@ -237,6 +289,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   {
 	_slip_increment_c[_qp][i] = 0.0;
 	_slip_increment_w[_qp][i] = 0.0;
+	_slip_increment_PSB[_qp][i] = 0.0;
 	
 	_slip_increment[_qp][i] = 0.0;
   }
@@ -290,10 +343,14 @@ CrystalPlasticityCyclicDislocationStructures::setInitialConstitutiveVariableValu
   _previous_substep_rho_c = _rho_c_old[_qp];
   _rho_w[_qp] = _rho_w_old[_qp];
   _previous_substep_rho_w = _rho_w_old[_qp];
+  _rho_PSB[_qp] = _rho_PSB_old[_qp];
+  _previous_substep_rho_PSB = _rho_PSB_old[_qp];
   _backstress_c[_qp] = _backstress_c_old[_qp];
   _previous_substep_backstress_c = _backstress_c_old[_qp];
   _backstress_w[_qp] = _backstress_w_old[_qp];
   _previous_substep_backstress_w = _backstress_w_old[_qp];
+  _backstress_PSB[_qp] = _backstress_PSB_old[_qp];
+  _previous_substep_backstress_PSB = _backstress_PSB_old[_qp];
 }
 
 void
@@ -303,8 +360,10 @@ CrystalPlasticityCyclicDislocationStructures::setSubstepConstitutiveVariableValu
   // with the value at the previous substep
   _rho_c[_qp] = _previous_substep_rho_c;
   _rho_w[_qp] = _previous_substep_rho_w;
+  _rho_PSB[_qp] = _previous_substep_rho_PSB;
   _backstress_c[_qp] = _previous_substep_backstress_c;
   _backstress_w[_qp] = _previous_substep_backstress_w;
+  _backstress_PSB[_qp] = _previous_substep_backstress_PSB;
 }
 
 // Slip resistance can be calculated from dislocation density here only
@@ -319,11 +378,16 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
   // temporary variable for each slip system
   Real stress_ratio_c;
   Real stress_ratio_w;
+  Real stress_ratio_PSB;
   
   // Difference between RSS and backstress
   // temporary variable for each slip system
   Real effective_stress_c;
   Real effective_stress_w;
+  Real effective_stress_PSB;
+  
+  // Slip increment within the matrix
+  Real slip_increment_matrix;
   
   // Slip rate inside channel
   
@@ -357,11 +421,29 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
 
   }
   
+  // Slip rate inside PSB
+  
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    effective_stress_PSB = _tau[_qp][i] - _backstress_PSB[_qp][i];
+    
+    stress_ratio_PSB = std::abs(effective_stress_PSB / _slip_resistance_PSB[_qp][i]);
+    
+    _slip_increment_PSB[_qp][i] =
+        _ao * std::pow(stress_ratio_PSB, 1.0 / _xm);
+      
+    if (effective_stress_PSB < 0.0)
+      _slip_increment_PSB[_qp][i] *= -1.0;
+
+  }
+  
   // Total slip increment
   
   for (const auto i : make_range(_number_slip_systems))
   {
-    _slip_increment[_qp][i] = (1.0 - _f_w[_qp]) * _slip_increment_c[_qp][i] + _f_w[_qp] * _slip_increment_w[_qp][i];
+    slip_increment_matrix = (1.0 - _f_w[_qp]) * _slip_increment_c[_qp][i] + _f_w[_qp] * _slip_increment_w[_qp][i];
+	
+	_slip_increment[_qp][i] = (1.0 - _f_PSB[_qp]) * slip_increment_matrix + _f_PSB[_qp] * _slip_increment_PSB[_qp][i];
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
@@ -408,6 +490,11 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
 	
     _slip_resistance_w[_qp][i] += _shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(taylor_hardening);
+	
+	_slip_resistance_PSB[_qp][i] = _s_0;
+	
+	_slip_resistance_PSB[_qp][i] += (_shear_modulus * _burgers_vector_mag
+	                           * std::sqrt(_A_int(i,i) * _rho_PSB[_qp][i]));
   }
 }
 
@@ -424,16 +511,20 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
   // temporary variable for each slip system
   Real stress_ratio_c;
   Real stress_ratio_w;
+  Real stress_ratio_PSB;
   
   // Difference between RSS and backstress
   // temporary variable for each slip system
   Real effective_stress_c;
   Real effective_stress_w;
+  Real effective_stress_PSB;
   
   // Derivative slip rates
   // temporary variable for each slip system
   std::vector<Real> dslip_dtau_c(_number_slip_systems, 0.0);
   std::vector<Real> dslip_dtau_w(_number_slip_systems, 0.0);
+  std::vector<Real> dslip_dtau_matrix(_number_slip_systems, 0.0);
+  std::vector<Real> dslip_dtau_PSB(_number_slip_systems, 0.0);
   
   // Derivative slip rate inside channel
 	
@@ -475,11 +566,33 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
 	}
   }
   
+  // Derivative slip rate inside PSB
+	
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    effective_stress_PSB = _tau[_qp][i] - _backstress_PSB[_qp][i];	  
+	  
+    if (MooseUtils::absoluteFuzzyEqual(effective_stress_PSB, 0.0)) {
+		
+      dslip_dtau_PSB[i] = 0.0;
+      		
+	} else {
+		
+	  stress_ratio_PSB = std::abs(effective_stress_PSB / _slip_resistance_PSB[_qp][i]);
+
+      dslip_dtau_PSB[i] = _ao / _xm *
+                      std::pow(stress_ratio_PSB, 1.0 / _xm - 1.0) /
+                      _slip_resistance_PSB[_qp][i];		
+	}
+  }
+  
   // Derivative total slip rate
 	
   for (const auto i : make_range(_number_slip_systems))
   {
-	dslip_dtau[i] = (1.0 - _f_w[_qp]) * dslip_dtau_c[i] + _f_w[_qp] * dslip_dtau_w[i];
+	dslip_dtau_matrix[i] = (1.0 - _f_w[_qp]) * dslip_dtau_c[i] + _f_w[_qp] * dslip_dtau_w[i];
+	
+	dslip_dtau[i] = (1.0 - _f_PSB[_qp]) * dslip_dtau_matrix[i] + _f_PSB[_qp] * dslip_dtau_PSB[i];
 	
 	_dslip_dtau[_qp][i] = dslip_dtau[i];
   }
@@ -491,8 +604,10 @@ CrystalPlasticityCyclicDislocationStructures::updateSubstepConstitutiveVariableV
   // Update temporary variables at the end of the substep
   _previous_substep_rho_c = _rho_c[_qp];
   _previous_substep_rho_w = _rho_w[_qp];
+  _previous_substep_rho_PSB = _rho_PSB[_qp];
   _previous_substep_backstress_c = _backstress_c[_qp];
   _previous_substep_backstress_w = _backstress_w[_qp];
+  _previous_substep_backstress_PSB = _backstress_PSB[_qp];
 }
 
 void
@@ -500,8 +615,10 @@ CrystalPlasticityCyclicDislocationStructures::cacheStateVariablesBeforeUpdate()
 {
   _rho_c_before_update = _rho_c[_qp];
   _rho_w_before_update = _rho_w[_qp];
+  _rho_PSB_before_update = _rho_PSB[_qp];
   _backstress_c_before_update = _backstress_c[_qp];
   _backstress_w_before_update = _backstress_w[_qp];
+  _backstress_PSB_before_update = _backstress_PSB[_qp];
 }
 
 // Update channel dislocation density based on (27) - (30)
@@ -512,6 +629,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
   calculateWallVolumeFraction();
   calculateSubstructureParameter();
   calculateSubstructureSize();
+  calculatePSBFraction();
 
   // channel and wall dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -524,6 +642,17 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
 	
 	_rho_w_increment[i] = ( _k_w * std::abs(_slip_increment_c[_qp][i]) ) / ( _burgers_vector_mag * _l_c[_qp] );
     _rho_w_increment[i] -= ( 2.0 * _y_e * _rho_w[_qp][i] * std::abs(_slip_increment[_qp][i]) ) / _burgers_vector_mag;
+	
+	if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
+  
+      _rho_PSB_increment[i] = _k_c / _l_PSB[_qp] - 2.0 * _y_s * _rho_PSB[_qp][i];
+	  _rho_PSB_increment[i] *= std::abs(_slip_increment_PSB[_qp][i]) / _burgers_vector_mag;
+  
+    } else {
+	  
+      _rho_PSB_increment[i] = _rho_c_increment[i];
+	  
+    }
   }
   
   // backstress increment
@@ -536,6 +665,7 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
 {
   // slip system independent shape factor
   Real K_shape;
+  Real K_shape_PSB;
 
   // degree of plastic accommodation at the interface of the two phases
   Real f_accom;
@@ -545,16 +675,22 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
 
   // S1212 is a component of the Eshelby tensor
   Real S_1212;
+  Real S_1212_PSB;
   
   // modified shear modulus
   Real mu_m;
 	
   // Function that depends on the shape of the channel phase
   Real f_eta;
+  Real f_eta_PSB;
   
   K_shape = _eta[_qp] * std::sqrt( std::pow(_eta[_qp], 2.0) - 1.0) - std::acosh(_eta[_qp]);
   K_shape *= 2.0 * libMesh::pi * _eta[_qp];
   K_shape /= std::sqrt(std::pow(std::pow(_eta[_qp], 2.0) - 1.0, 3.0));
+  
+  K_shape_PSB = _eta_PSB * std::sqrt( std::pow(_eta_PSB, 2.0) - 1.0) - std::acosh(_eta_PSB);
+  K_shape_PSB *= 2.0 * libMesh::pi * _eta_PSB;
+  K_shape_PSB /= std::sqrt(std::pow(std::pow(_eta_PSB, 2.0) - 1.0, 3.0));
   
   for (const auto i : make_range(_number_slip_systems)) 
   {
@@ -575,6 +711,16 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
 
     _backstress_c_increment[i] = _f_w[_qp] * f_eta * ( _slip_increment_c[_qp][i] - _slip_increment_w[_qp][i] );
 	_backstress_w_increment[i] = - ( 1.0 - _f_w[_qp] ) * f_eta * ( _slip_increment_c[_qp][i] - _slip_increment_w[_qp][i] );
+	
+	S_1212_PSB = std::pow(_eta_PSB, 2.0) - 1.75 - 2.0 * nu_p * std::pow(_eta_PSB, 2.0) + nu_p;
+	S_1212_PSB *= K_shape_PSB;
+	S_1212_PSB += libMesh::pi * std::pow(_eta_PSB, 2.0);
+	S_1212_PSB /= 8.0 * libMesh::pi * (1.0 - nu_p) * (std::pow(_eta_PSB, 2.0) - 1.0);
+	
+	f_eta_PSB = mu_m * (1.0 - 2.0 * S_1212_PSB) / S_1212_PSB;
+	f_eta_PSB /= 1.0 + (mu_m / _shear_modulus) * ((1.0 - 2.0 * S_1212_PSB) / (2.0 * S_1212_PSB));
+	
+	_backstress_PSB_increment[i] = ( _f_w_PSB / ( 1.0 - _f_w_PSB ) ) * f_eta * _slip_increment_PSB[_qp][i];
   }
 }
 
@@ -585,6 +731,7 @@ CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
   { 
     _rho_c_increment[i] *= _substep_dt;
 	_rho_w_increment[i] *= _substep_dt;
+	_rho_PSB_increment[i] *= _substep_dt;
 
     // force positive channel dislocation density
     if (_previous_substep_rho_c[i] < _zero_tol && _rho_c_increment[i] < 0.0)
@@ -603,6 +750,15 @@ CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
 
     if (_rho_w[_qp][i] < 0.0)
       return false;
+  
+    // force positive PSB dislocation density
+    if (_previous_substep_rho_PSB[i] < _zero_tol && _rho_PSB_increment[i] < 0.0)
+      _rho_PSB[_qp][i] = _previous_substep_rho_PSB[i];
+    else
+      _rho_PSB[_qp][i] = _previous_substep_rho_PSB[i] + _rho_PSB_increment[i];
+
+    if (_rho_PSB[_qp][i] < 0.0)
+      return false;
   }
   
   // Backstress: can be both positive or negative
@@ -612,6 +768,8 @@ CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
     _backstress_c[_qp][i] = _previous_substep_backstress_c[i] + _backstress_c_increment[i];
 	_backstress_w_increment[i] *= _substep_dt;
     _backstress_w[_qp][i] = _previous_substep_backstress_w[i] + _backstress_w_increment[i];
+	_backstress_PSB_increment[i] *= _substep_dt;
+    _backstress_PSB[_qp][i] = _previous_substep_backstress_PSB[i] + _backstress_PSB_increment[i];
   }
   
   return true;
@@ -649,8 +807,9 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureParameter()
   }
   
   k_p = max_rho_c / sum_rho_c;
-	
+  
   _eta[_qp] = _eta_inf + (_eta_0 - _eta_inf) * std::exp(-_X_norm * _epsilon_p_eff_cum[_qp] / k_p);
+	
 }
 
 // Calculate substructure size based on (40)
@@ -683,4 +842,19 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
   }
 
   _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
+}
+
+// Calculate PSB fraction
+void
+CrystalPlasticityCyclicDislocationStructures::calculatePSBFraction()
+{  
+  if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
+  
+    _f_PSB[_qp] = _f_PSB_inf * ( 1.0 - std::exp( - _k_PSB * (_epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB) ) );
+  
+  } else {
+	  
+    _f_PSB[_qp] = _f_PSB_old[_qp];
+	  
+  }
 }
