@@ -35,9 +35,6 @@ protected:
   const Real _sigma_p;
   const Real _delta_f_p;
   const Real _l_p;
-  const Real _sigma_g0;
-  const Real _delta_f_g;
-  const Real _l_g;
   const Real _L_p;
   const Real _theta;
   const Real _T_l;
@@ -46,7 +43,6 @@ protected:
   const Real _gamma_p;
   
   Real _m_p;
-  Real _m_g;
   Real _k_p;
   Real _k_g;
   
