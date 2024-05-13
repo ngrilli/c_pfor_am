@@ -95,6 +95,9 @@ protected:
   // Calculate substructure size based on (40)
   virtual void calculateSubstructureSize();
   
+  // Calculate PSB fraction
+  virtual void calculatePSBFraction();
+  
   // Slip rate constants
   const Real _ao;
   const Real _xm;
@@ -159,11 +162,31 @@ protected:
   // Critical annihilation diameter for edge dislocations
   const Real _y_e;
   
+  // PSB fraction at stabilization
+  const Real _f_PSB_inf;
+  
+  // Increasing rate of PSB fraction
+  const Real _k_PSB;
+  
+  // Critical accumulated plastic strain to develop PSBs
+  const Real _epsilon_p_eff_cum_PSB;
+  
+  // Max/Min axis length ratio of the PSB
+  const Real _eta_PSB;
+  
+  // PSB dislocation walls volume fraction
+  const Real _f_w_PSB;
+  
+  // Characteristic PSB length
+  const Real _d_struct_PSB;
+  
   // Dislocation densities
   MaterialProperty<std::vector<Real>> & _rho_c;
   const MaterialProperty<std::vector<Real>> & _rho_c_old;
   MaterialProperty<std::vector<Real>> & _rho_w;
   const MaterialProperty<std::vector<Real>> & _rho_w_old;
+  MaterialProperty<std::vector<Real>> & _rho_PSB;
+  const MaterialProperty<std::vector<Real>> & _rho_PSB_old;
   
   // Cumulative effective plastic strain
   const MaterialProperty<Real> & _epsilon_p_eff_cum;
@@ -184,27 +207,41 @@ protected:
   // Mean glide distance for dislocations in the channel phase
   MaterialProperty<Real> & _l_c;
   
+  // Mean glide distance for dislocations in the PSB
+  MaterialProperty<Real> & _l_PSB;
+  
+  // PSB fraction
+  MaterialProperty<Real> & _f_PSB;
+  const MaterialProperty<Real> & _f_PSB_old;
+  
   // Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress_c;
   const MaterialProperty<std::vector<Real>> & _backstress_c_old;
   MaterialProperty<std::vector<Real>> & _backstress_w;
   const MaterialProperty<std::vector<Real>> & _backstress_w_old;
+  MaterialProperty<std::vector<Real>> & _backstress_PSB;
+  const MaterialProperty<std::vector<Real>> & _backstress_PSB_old;
   
-  // Slip resistance in channel and wall
+  // Slip resistance in channel, wall and PSB
   MaterialProperty<std::vector<Real>> & _slip_resistance_c;
   const MaterialProperty<std::vector<Real>> & _slip_resistance_c_old;
   MaterialProperty<std::vector<Real>> & _slip_resistance_w;
   const MaterialProperty<std::vector<Real>> & _slip_resistance_w_old;
+  MaterialProperty<std::vector<Real>> & _slip_resistance_PSB;
+  const MaterialProperty<std::vector<Real>> & _slip_resistance_PSB_old;
   
-  // Slip increment inside the channel and the wall
+  // Slip increment inside the channel, the wall and PSB
   MaterialProperty<std::vector<Real>> & _slip_increment_c;
   MaterialProperty<std::vector<Real>> & _slip_increment_w;
+  MaterialProperty<std::vector<Real>> & _slip_increment_PSB;
   
   /// Increment of dislocation densities and backstress
   std::vector<Real> _rho_c_increment;
   std::vector<Real> _rho_w_increment;
+  std::vector<Real> _rho_PSB_increment;
   std::vector<Real> _backstress_c_increment;
   std::vector<Real> _backstress_w_increment;
+  std::vector<Real> _backstress_PSB_increment;
 
   /**
    * Stores the values of the dislocation densities and backstress 
@@ -214,8 +251,10 @@ protected:
    */
   std::vector<Real> _previous_substep_rho_c;
   std::vector<Real> _previous_substep_rho_w;
+  std::vector<Real> _previous_substep_rho_PSB;
   std::vector<Real> _previous_substep_backstress_c;
   std::vector<Real> _previous_substep_backstress_w;
+  std::vector<Real> _previous_substep_backstress_PSB;
 
   /**
    * Caches the value of the current dislocation densities immediately prior
@@ -225,8 +264,10 @@ protected:
    */
   std::vector<Real> _rho_c_before_update;
   std::vector<Real> _rho_w_before_update;
+  std::vector<Real> _rho_PSB_before_update;
   std::vector<Real> _backstress_c_before_update;
   std::vector<Real> _backstress_w_before_update;
+  std::vector<Real> _backstress_PSB_before_update;
   
   /// Interaction matrix between slip systems
   DenseMatrix<Real> _A_int;
