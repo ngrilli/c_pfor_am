@@ -180,7 +180,7 @@ protected:
   // Characteristic PSB length
   const Real _d_struct_PSB;
   
-  // Dislocation densities
+  // Dislocation densities: channel, wall, PSBs
   MaterialProperty<std::vector<Real>> & _rho_c;
   const MaterialProperty<std::vector<Real>> & _rho_c_old;
   MaterialProperty<std::vector<Real>> & _rho_w;
