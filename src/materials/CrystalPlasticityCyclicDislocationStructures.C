@@ -90,6 +90,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_k_w(getParam<Real>("k_w")),
 	_y_e(getParam<Real>("y_e")),
 	
+	// PSBs variables and parameters
 	_f_PSB_inf(getParam<Real>("f_PSB_inf")),
 	_k_PSB(getParam<Real>("k_PSB")),
 	_epsilon_p_eff_cum_PSB(getParam<Real>("epsilon_p_eff_cum_PSB")),
@@ -720,7 +721,7 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
 	f_eta_PSB = mu_m * (1.0 - 2.0 * S_1212_PSB) / S_1212_PSB;
 	f_eta_PSB /= 1.0 + (mu_m / _shear_modulus) * ((1.0 - 2.0 * S_1212_PSB) / (2.0 * S_1212_PSB));
 	
-	_backstress_PSB_increment[i] = ( _f_w_PSB / ( 1.0 - _f_w_PSB ) ) * f_eta * _slip_increment_PSB[_qp][i];
+	_backstress_PSB_increment[i] = ( _f_w_PSB / ( 1.0 - _f_w_PSB ) ) * f_eta_PSB * _slip_increment_PSB[_qp][i];
   }
 }
 
