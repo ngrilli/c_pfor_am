@@ -216,6 +216,10 @@ protected:
   Real _resistance_tol;
   /// Residual tolerance when variable value is zero. Default 1e-12.
   Real _zero_tol;
+  /// Tolerance for the orthogonality between slip directions and normals
+  /// This is needed for crystals such as HCP in which the numerical precision
+  /// on zero scalar product beween normals and directions is difficult to achieve
+  Real _slip_sys_orthonormal_tol;
 
   ///@{Slip system resistance
   MaterialProperty<std::vector<Real>> & _slip_resistance;

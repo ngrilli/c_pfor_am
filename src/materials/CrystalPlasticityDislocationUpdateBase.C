@@ -71,6 +71,8 @@ CrystalPlasticityDislocationUpdateBase::validParams()
                         1e-12,
                         "Tolerance for residual check when variable value is zero for each "
                         "individual constitutive model");
+  params.addParam<Real>("slip_sys_orthonormal_tol",libMesh::TOLERANCE,
+                        "Tolerance for the orthogonality between slip directions and normals. ");
   params.addParam<bool>(
       "print_state_variable_convergence_error_messages",
       false,
@@ -95,6 +97,7 @@ CrystalPlasticityDislocationUpdateBase::CrystalPlasticityDislocationUpdateBase(
     _slip_incr_tol(getParam<Real>("slip_increment_tolerance")),
     _resistance_tol(getParam<Real>("resistance_tol")),
     _zero_tol(getParam<Real>("zero_tol")),
+    _slip_sys_orthonormal_tol(getParam<Real>("slip_sys_orthonormal_tol")),
 
     _slip_resistance(declareProperty<std::vector<Real>>(_base_name + "slip_resistance")),
     _slip_resistance_old(getMaterialPropertyOld<std::vector<Real>>(_base_name + "slip_resistance")),
@@ -182,7 +185,7 @@ CrystalPlasticityDislocationUpdateBase::getSlipSystems()
     if (_crystal_lattice_type != CrystalLatticeType::HCP)
     {
       const auto magnitude = _slip_plane_normal[i] * _slip_direction[i];
-      if (std::abs(magnitude) > libMesh::TOLERANCE)
+      if (std::abs(magnitude) > _slip_sys_orthonormal_tol)
       {
         orthonormal_error = true;
         break;
