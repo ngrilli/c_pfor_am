@@ -274,6 +274,8 @@ ComputeDislocationCrystalPlasticityStress::updateStress(RankTwoTensor & cauchy_s
   // If not, then we should not need to compute the flow direction every iteration here
   for (unsigned int i = 0; i < _num_models; ++i)
     _models[i]->calculateFlowDirection(_crysrot[_qp]);
+    
+    // TO DO: add loop to calculate non-Schmid effects
 
   do
   {
