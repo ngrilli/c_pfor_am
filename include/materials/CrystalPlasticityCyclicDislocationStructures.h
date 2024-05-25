@@ -220,7 +220,7 @@ protected:
   MaterialProperty<Real> & _f_PSB;
   const MaterialProperty<Real> & _f_PSB_old;
   
-  // Backstress variables
+  // Backstress variables (channel, wall and PSB)
   MaterialProperty<std::vector<Real>> & _backstress_c;
   const MaterialProperty<std::vector<Real>> & _backstress_c_old;
   MaterialProperty<std::vector<Real>> & _backstress_w;
