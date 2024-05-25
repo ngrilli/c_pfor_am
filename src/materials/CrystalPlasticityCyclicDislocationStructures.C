@@ -45,12 +45,14 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("y_e",0.003,"Critical annihilation diameter for edge dislocations");
   params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
   
+  params.addParam<Real>("f_PSB_0",0.0,"Initial PSB fraction");
   params.addParam<Real>("f_PSB_inf",0.2,"PSB fraction at stabilization");
   params.addParam<Real>("k_PSB",0.0232,"Increasing rate of PSB fraction");
   params.addParam<Real>("epsilon_p_eff_cum_PSB",0.06,"Critical accumulated plastic strain to develop PSBs");
   params.addParam<Real>("eta_PSB",20,"Max/Min axis length ratio of the PSB");
   params.addParam<Real>("f_w_PSB",0.42,"PSB dislocation walls volume fraction");
   params.addParam<Real>("d_struct_PSB",1.0,"Characteristic PSB length");
+  params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
   
   params.addParam<UserObjectName>("read_prop_user_object",
                                   "The ElementReadPropertyFile "
@@ -86,11 +88,13 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	// Initial values of the state variables
     _init_rho_c(getParam<Real>("init_rho_c")),
 	_init_rho_w(getParam<Real>("init_rho_w")),
+	_init_rho_PSB(getParam<Real>("init_rho_PSB")),
 	
 	_k_w(getParam<Real>("k_w")),
 	_y_e(getParam<Real>("y_e")),
 	
 	// PSBs variables and parameters
+	_f_PSB_0(getParam<Real>("f_PSB_0")),
 	_f_PSB_inf(getParam<Real>("f_PSB_inf")),
 	_k_PSB(getParam<Real>("k_PSB")),
 	_epsilon_p_eff_cum_PSB(getParam<Real>("epsilon_p_eff_cum_PSB")),
@@ -236,7 +240,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   _l_PSB[_qp] = _eta_PSB * _d_struct_PSB;
   
   // Initialize PSB fraction
-  _f_PSB[_qp] = 0.0;
+  _f_PSB[_qp] = _f_PSB_0;
   
   assignEulerAngles();
   
@@ -247,7 +251,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   {
     _rho_c[_qp][i] = _init_rho_c;
 	_rho_w[_qp][i] = _init_rho_w;
-	_rho_PSB[_qp][i] = _init_rho_c;
+	_rho_PSB[_qp][i] = _init_rho_PSB;
 	
 	_backstress_c[_qp][i] = _f_w[_qp] * _B_0.doubleContraction(_flow_direction[_qp][i]);
     _backstress_w[_qp][i] = - ( 1.0 - _f_w[_qp] ) * _B_0.doubleContraction(_flow_direction[_qp][i]);
@@ -273,7 +277,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 	
 	for (const auto j : make_range(_number_slip_systems))
     {
-      taylor_hardening += _A_int(i,j) * _rho_c[_qp][j];
+      taylor_hardening += _A_int(i,j) * _rho_w[_qp][j];
 	}
 	
     _slip_resistance_w[_qp][i] += _shear_modulus * _burgers_vector_mag
@@ -486,7 +490,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
 	
 	for (const auto j : make_range(_number_slip_systems))
     {
-      taylor_hardening += _A_int(i,j) * _rho_c[_qp][j];
+      taylor_hardening += _A_int(i,j) * _rho_w[_qp][j];
 	}
 	
     _slip_resistance_w[_qp][i] += _shear_modulus * _burgers_vector_mag
@@ -851,7 +855,7 @@ CrystalPlasticityCyclicDislocationStructures::calculatePSBFraction()
 {  
   if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
   
-    _f_PSB[_qp] = _f_PSB_inf * ( 1.0 - std::exp( - _k_PSB * (_epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB) ) );
+	_f_PSB[_qp] = _f_PSB_inf + (_f_PSB_0 - _f_PSB_inf) * std::exp( - _k_PSB * (_epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB) );
   
   } else {
 	  
