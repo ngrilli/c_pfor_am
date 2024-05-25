@@ -44,7 +44,6 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("k_w",2.0,"Coefficient K in wall dislocations evolution, representing accumulation rate");
   params.addParam<Real>("y_e",0.003,"Critical annihilation diameter for edge dislocations");
   params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
-  
   params.addParam<Real>("f_PSB_0",0.0,"Initial PSB fraction");
   params.addParam<Real>("f_PSB_inf",0.2,"PSB fraction at stabilization");
   params.addParam<Real>("k_PSB",0.0232,"Increasing rate of PSB fraction");
