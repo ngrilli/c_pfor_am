@@ -162,6 +162,9 @@ protected:
   // Critical annihilation diameter for edge dislocations
   const Real _y_e;
   
+  // Initial PSB fraction
+  const Real _f_PSB_0;
+  
   // PSB fraction at stabilization
   const Real _f_PSB_inf;
   
@@ -179,6 +182,9 @@ protected:
   
   // Characteristic PSB length
   const Real _d_struct_PSB;
+  
+  // Initial PSB dislocation density
+  const Real _init_rho_PSB;
   
   // Dislocation densities: channel, wall, PSBs
   MaterialProperty<std::vector<Real>> & _rho_c;
