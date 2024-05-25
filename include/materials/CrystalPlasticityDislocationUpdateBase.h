@@ -67,6 +67,11 @@ public:
   void calculateShearStress(const RankTwoTensor & pk2,
                             const RankTwoTensor & inverse_eigenstrain_deformation_grad,
                             const unsigned int & num_eigenstrains);
+                            
+  /**
+   * Check if non-Schmid effect is activated
+   */
+  virtual bool isNonSchmidEffectActive();
 
   /**
    * Calculates the total value of $\frac{d\mathbf{F}^P^{-1}}{d\mathbf{PK2}}$ and
@@ -216,6 +221,10 @@ protected:
   Real _resistance_tol;
   /// Residual tolerance when variable value is zero. Default 1e-12.
   Real _zero_tol;
+  /// Tolerance for the orthogonality between slip directions and normals
+  /// This is needed for crystals such as HCP in which the numerical precision
+  /// on zero scalar product beween normals and directions is difficult to achieve
+  Real _slip_sys_orthonormal_tol;
 
   ///@{Slip system resistance
   MaterialProperty<std::vector<Real>> & _slip_resistance;
@@ -245,4 +254,7 @@ protected:
 
   /// Flag to run the cross slip calculations if cross slip numbers are specified
   bool _calculate_cross_slip;
+  
+  /// Whether or not to calculate non-Schmid tensors for BCC
+  const bool _activate_non_schmid_effect;
 };
