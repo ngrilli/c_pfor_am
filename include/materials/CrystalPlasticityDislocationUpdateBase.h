@@ -239,6 +239,9 @@ protected:
   std::vector<RealVectorValue> _slip_plane_normal;
   MaterialProperty<std::vector<RankTwoTensor>> & _flow_direction;
   ///@}
+  
+  /// slip plane normal whose angle with the primary slip plane [i] is 60 degrees
+  std::vector<RealVectorValue> _slip_plane_60_deg_normal;
 
   /// Resolved shear stress on each slip system
   MaterialProperty<std::vector<Real>> & _tau;

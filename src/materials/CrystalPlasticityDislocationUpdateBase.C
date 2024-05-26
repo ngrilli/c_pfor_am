@@ -106,6 +106,7 @@ CrystalPlasticityDislocationUpdateBase::CrystalPlasticityDislocationUpdateBase(
 
     _slip_direction(_number_slip_systems),
     _slip_plane_normal(_number_slip_systems),
+    _slip_plane_60_deg_normal(_number_slip_systems),
     _flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "flow_direction")),
     _tau(declareProperty<std::vector<Real>>(_base_name + "applied_shear_stress")),
     _print_convergence_message(getParam<bool>("print_state_variable_convergence_error_messages")),
@@ -158,6 +159,12 @@ CrystalPlasticityDislocationUpdateBase::getSlipSystems()
     _slip_direction[i].zero();
     _slip_plane_normal[i].zero();
   }
+  
+  if (_activate_non_schmid_effect) {
+    for (const auto i : make_range(_number_slip_systems)) {
+      _slip_plane_60_deg_normal[i].zero();
+    }
+  }
 
   if (_crystal_lattice_type == CrystalLatticeType::HCP)
     transformHexagonalMillerBravaisSlipSystems(_reader);
@@ -171,9 +178,12 @@ CrystalPlasticityDislocationUpdateBase::getSlipSystems()
       {
         if (j < LIBMESH_DIM)
           _slip_plane_normal[i](j) = _reader.getData(i)[j] / _unit_cell_dimension[j];
-        else
+        else if (j < 2*LIBMESH_DIM)
           _slip_direction[i](j - LIBMESH_DIM) =
               _reader.getData(i)[j] * _unit_cell_dimension[j - LIBMESH_DIM];
+        else if (j < 3*LIBMESH_DIM && _activate_non_schmid_effect)
+          _slip_plane_60_deg_normal[i](j - 2*LIBMESH_DIM) =
+              _reader.getData(i)[j] * _unit_cell_dimension[j - 2*LIBMESH_DIM];
       }
     }
   }
@@ -199,6 +209,12 @@ CrystalPlasticityDislocationUpdateBase::getSlipSystems()
     mooseError("CrystalPlasticityDislocationUpdateBase Error: The slip system file contains a slip "
                "direction and plane normal pair that are not orthonormal in the Cartesian "
                "coordinate system.");
+  
+  if (_activate_non_schmid_effect) {
+    for (const auto i : make_range(_number_slip_systems)) {
+      _slip_plane_60_deg_normal[i] /= _slip_plane_60_deg_normal[i].norm();
+    }
+  }
 }
 
 void
