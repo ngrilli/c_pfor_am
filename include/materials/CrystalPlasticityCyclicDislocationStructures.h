@@ -282,6 +282,9 @@ protected:
   std::vector<Real> _B_ii;
   RankTwoTensor _B_0;
   
+  /// Element property read user object used to read initial dislocation structure size
+  const PropertyReadFile * const _read_init_d;
+  
   /// Element property read user object used to read in Euler angles
   const PropertyReadFile * const _read_prop_user_object;
   
