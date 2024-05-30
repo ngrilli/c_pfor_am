@@ -53,6 +53,11 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("d_struct_PSB",1.0,"Characteristic PSB length");
   params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
   
+  params.addParam<UserObjectName>("read_init_d",
+                                  "The ElementReadPropertyFile "
+                                  "GeneralUserObject to read element value "
+                                  "of dislocation structure size");
+  
   params.addParam<UserObjectName>("read_prop_user_object",
                                   "The ElementReadPropertyFile "
                                   "GeneralUserObject to read element "
@@ -185,6 +190,11 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_B_ii(getParam<std::vector<Real>>("B_ii")),
 	_B_0(_B_ii[0], _B_ii[1], _B_ii[2], _B_ii[3], _B_ii[4], _B_ii[5]),
 	
+	// Element property read user object used to read initial dislocation structure size
+    _read_init_d(isParamValid("read_init_d")
+                               ? &getUserObject<PropertyReadFile>("read_init_d")
+                               : nullptr),
+	
 	// Element property read user object used to read in Euler angles
     _read_prop_user_object(isParamValid("read_prop_user_object")
                                ? &getUserObject<PropertyReadFile>("read_prop_user_object")
@@ -230,7 +240,16 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   _eta[_qp] = _eta_0;
   
   // Initialize characteristic dislocation substructure length
-  _d_struct[_qp] = _init_d_struct;
+  
+  if (_read_init_d) { // Read initial characteristic dislocation substructure length from file
+  
+    _d_struct[_qp] = _read_init_d->getData(_current_elem, 0);
+    
+    } else { // Initialize uniform characteristic dislocation substructure length
+    
+    _d_struct[_qp] = _init_d_struct;
+    
+  }
   
   // Initialize mean glide distance for dislocations in the channel phase
   _l_c[_qp] = _eta_0 * _init_d_struct;
@@ -634,6 +653,9 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
   calculateSubstructureParameter();
   calculateSubstructureSize();
   calculatePSBFraction();
+  
+  // Slip increment within the matrix
+  Real slip_increment_matrix;
 
   // channel and wall dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -644,8 +666,10 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
     _rho_c_increment[i] = _k_c / _l_c[_qp] - 2.0 * _y_s * _rho_c[_qp][i];
     _rho_c_increment[i] *= std::abs(_slip_increment_c[_qp][i]) / _burgers_vector_mag;
 	
+	slip_increment_matrix = (1.0 - _f_w[_qp]) * _slip_increment_c[_qp][i] + _f_w[_qp] * _slip_increment_w[_qp][i];
+	
 	_rho_w_increment[i] = ( _k_w * std::abs(_slip_increment_c[_qp][i]) ) / ( _burgers_vector_mag * _l_c[_qp] );
-    _rho_w_increment[i] -= ( 2.0 * _y_e * _rho_w[_qp][i] * std::abs(_slip_increment[_qp][i]) ) / _burgers_vector_mag;
+    _rho_w_increment[i] -= ( 2.0 * _y_e * _rho_w[_qp][i] * std::abs(slip_increment_matrix) ) / _burgers_vector_mag;
 	
 	if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
   
