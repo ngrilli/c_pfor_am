@@ -183,6 +183,12 @@ protected:
   // Characteristic PSB length
   const Real _d_struct_PSB;
   
+  // Coefficient K in PSB dislocations evolution, representing accumulation rate
+  const Real _k_c_PSB;
+  
+  // Critical annihilation diameter for dislocations in PSBs
+  const Real _y_PSB;
+  
   // Initial PSB dislocation density
   const Real _init_rho_PSB;
   
