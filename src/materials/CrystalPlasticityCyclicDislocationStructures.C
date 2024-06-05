@@ -51,6 +51,8 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("eta_PSB",20,"Max/Min axis length ratio of the PSB");
   params.addParam<Real>("f_w_PSB",0.42,"PSB dislocation walls volume fraction");
   params.addParam<Real>("d_struct_PSB",1.0,"Characteristic PSB length");
+  params.addParam<Real>("k_c_PSB",1.0,"Coefficient K in PSB dislocations evolution, representing accumulation rate");
+  params.addParam<Real>("y_PSB",0.015,"Critical annihilation diameter for dislocations in PSBs");
   params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
   
   params.addParam<UserObjectName>("read_init_d",
@@ -105,6 +107,8 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_eta_PSB(getParam<Real>("eta_PSB")),
 	_f_w_PSB(getParam<Real>("f_w_PSB")),
 	_d_struct_PSB(getParam<Real>("d_struct_PSB")),
+	_k_c_PSB(getParam<Real>("k_c_PSB")),
+	_y_PSB(getParam<Real>("y_PSB")),
 	
 	// State variables of the dislocation model
     _rho_c(declareProperty<std::vector<Real>>("rho_c")),
@@ -673,7 +677,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
 	
 	if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
   
-      _rho_PSB_increment[i] = _k_c / _l_PSB[_qp] - 2.0 * _y_s * _rho_PSB[_qp][i];
+      _rho_PSB_increment[i] = _k_c_PSB / _l_PSB[_qp] - 2.0 * _y_PSB * _rho_PSB[_qp][i];
 	  _rho_PSB_increment[i] *= std::abs(_slip_increment_PSB[_qp][i]) / _burgers_vector_mag;
   
     } else {
