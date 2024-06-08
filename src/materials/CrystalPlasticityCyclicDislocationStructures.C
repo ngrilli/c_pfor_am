@@ -46,7 +46,7 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
   params.addParam<Real>("f_PSB_0",0.0,"Initial PSB fraction");
   params.addParam<Real>("f_PSB_inf",0.2,"PSB fraction at stabilization");
-  params.addParam<Real>("k_PSB",0.0232,"Increasing rate of PSB fraction");
+  params.addParam<Real>("k_PSB",0.11,"Increasing rate of PSB fraction");
   params.addParam<Real>("epsilon_p_eff_cum_PSB",0.06,"Critical accumulated plastic strain to develop PSBs");
   params.addParam<Real>("eta_PSB",20,"Max/Min axis length ratio of the PSB");
   params.addParam<Real>("f_w_PSB",0.42,"PSB dislocation walls volume fraction");
@@ -884,7 +884,7 @@ CrystalPlasticityCyclicDislocationStructures::calculatePSBFraction()
   
 	// _f_PSB[_qp] = _f_PSB_inf + (_f_PSB_0 - _f_PSB_inf) * std::exp( - _k_PSB * (_epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB) );
 	
-	_f_PSB[_qp] = _f_PSB_0 + _f_PSB_inf * std::sqrt( _epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB );
+	_f_PSB[_qp] = _f_PSB_0 + _k_PSB * std::sqrt( _epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB );
   
   } else {
 	  
