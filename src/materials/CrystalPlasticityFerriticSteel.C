@@ -45,6 +45,7 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
   params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
   params.addParam<Real>("m_exponent", 0.0, "Exponent on time in power-law equation");
+  params.addParam<Real>("creep_t0", 0.0, "Initial time for tertiary creep");
   params.addParam<Real>("max_stress_ratio", 10.0, "Maximum ratio between RSS and CRSS above which slip law becomes linear");
   params.addParam<Real>("reduced_ao", 0.00001, "slip rate coefficient (s^{-1}) of the linear law once max stress ratio is exceeded");
 
@@ -102,6 +103,7 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _creep_ao(getParam<Real>("creep_ao")),
     _creep_xm(getParam<Real>("creep_xm")),
     _m_exponent(getParam<Real>("m_exponent")),
+    _creep_t0(getParam<Real>("creep_t0")),
     _max_stress_ratio(getParam<Real>("max_stress_ratio")),
     _reduced_ao(getParam<Real>("reduced_ao")),
     _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
@@ -474,7 +476,7 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
     _slip_increment[_qp][i] = _ao * std::pow(stress_ratio, 1.0 / _xm);
     
     if (_creep_activated) { // add creep rate
-	  _slip_increment[_qp][i] += _creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * std::pow(_t, _m_exponent);
+	  _slip_increment[_qp][i] += _creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * std::pow(_t - _creep_t0, _m_exponent);
 	}
 	
 	if (stress_ratio > _max_stress_ratio) { // trigger linear slip law above stress ratio threshold
@@ -603,7 +605,7 @@ CrystalPlasticityFerriticSteel::calculateConstitutiveSlipDerivative(
                       
       if (_creep_activated) { // add creep rate
 	    dslip_dtau[i] += _creep_ao / _creep_xm * std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-	                     _slip_resistance[_qp][i] * std::pow(_t, _m_exponent);
+	                     _slip_resistance[_qp][i] * std::pow(_t - _creep_t0, _m_exponent);
 	  }
 	  
 	  if (stress_ratio > _max_stress_ratio) { // trigger linear slip law above stress ratio threshold

@@ -182,6 +182,7 @@ protected:
   const Real _creep_ao;
   const Real _creep_xm;
   const Real _m_exponent;
+  const Real _creep_t0;
   const Real _max_stress_ratio;
   const Real _reduced_ao;
 
