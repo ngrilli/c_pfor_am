@@ -130,6 +130,10 @@ protected:
   // This is useful for an initial plastic deformation followed by creep load
   const Function * const _creep_ao_function;
   
+  // Tertiary creep constants
+  const Real _m_exponent;
+  const Real _creep_t0;
+  
   // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
   const bool _cap_slip_increment;
 

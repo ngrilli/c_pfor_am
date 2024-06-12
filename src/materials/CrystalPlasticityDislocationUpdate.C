@@ -27,6 +27,8 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<FunctionName>("creep_ao_function",
     "Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time. "
     "This is useful for an initial plastic deformation followed by creep load. ");
+  params.addParam<Real>("m_exponent", 0.0, "Exponent on time in power-law equation");
+  params.addParam<Real>("creep_t0", 0.0, "Initial time for tertiary creep");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol. ");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
@@ -78,6 +80,8 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _creep_ao_function(this->isParamValid("creep_ao_function")
                        ? &this->getFunction("creep_ao_function")
                        : NULL),
+    _m_exponent(getParam<Real>("m_exponent")),
+    _creep_t0(getParam<Real>("creep_t0")),
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
@@ -403,7 +407,7 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     
     _slip_increment[_qp][i] =
         _ao * std::pow(stress_ratio, 1.0 / xm)
-      + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
+      + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * std::pow(_t - _creep_t0, _m_exponent);
       
     if (effective_stress < 0.0)
       _slip_increment[_qp][i] *= -1.0;
@@ -556,7 +560,7 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
                       _slip_resistance[_qp][i]
                     + creep_ao / _creep_xm *
                       std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-                      _slip_resistance[_qp][i];		
+                      _slip_resistance[_qp][i] * std::pow(_t - _creep_t0, _m_exponent);	
 	}
   }
 }
