@@ -50,7 +50,7 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("epsilon_p_eff_cum_PSB",0.06,"Critical accumulated plastic strain to develop PSBs");
   params.addParam<Real>("eta_PSB",20,"Max/Min axis length ratio of the PSB");
   params.addParam<Real>("f_w_PSB",0.42,"PSB dislocation walls volume fraction");
-  params.addParam<Real>("d_struct_PSB",1.0,"Characteristic PSB length");
+  params.addParam<Real>("init_d_struct_PSB",1.0,"Characteristic PSB length");
   params.addParam<Real>("k_c_PSB",1.0,"Coefficient K in PSB dislocations evolution, representing accumulation rate");
   params.addParam<Real>("y_PSB",0.015,"Critical annihilation diameter for dislocations in PSBs");
   params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
@@ -106,7 +106,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_epsilon_p_eff_cum_PSB(getParam<Real>("epsilon_p_eff_cum_PSB")),
 	_eta_PSB(getParam<Real>("eta_PSB")),
 	_f_w_PSB(getParam<Real>("f_w_PSB")),
-	_d_struct_PSB(getParam<Real>("d_struct_PSB")),
+	_init_d_struct_PSB(getParam<Real>("init_d_struct_PSB")),
 	_k_c_PSB(getParam<Real>("k_c_PSB")),
 	_y_PSB(getParam<Real>("y_PSB")),
 	
@@ -137,6 +137,10 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	// Mean glide distance for dislocations in the channel phase
     _l_c(declareProperty<Real>("l_c")),    
     
+	// Characteristic dislocation substructure length in the PSB
+    _d_struct_PSB(declareProperty<Real>("d_struct_PSB")),
+	_d_struct_PSB_old(getMaterialPropertyOld<Real>("d_struct_PSB")),
+	
 	// Mean glide distance for dislocations in the PSB
     _l_PSB(declareProperty<Real>("l_PSB")),
 	
@@ -252,14 +256,17 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
     } else { // Initialize uniform characteristic dislocation substructure length
     
     _d_struct[_qp] = _init_d_struct;
+	// _d_struct_PSB[_qp] = _init_d_struct_PSB;
     
   }
   
+  _d_struct_PSB[_qp] = _d_struct[_qp];
+  
   // Initialize mean glide distance for dislocations in the channel phase
-  _l_c[_qp] = _eta_0 * _init_d_struct;
+  _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
   
   // Initialize mean glide distance for dislocations in the PSB
-  _l_PSB[_qp] = _eta_PSB * _d_struct_PSB;
+  _l_PSB[_qp] = _eta_PSB * _d_struct_PSB[_qp];
   
   // Initialize PSB fraction
   _f_PSB[_qp] = _f_PSB_0;
@@ -874,6 +881,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
   }
 
   _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
+  
+  _l_PSB[_qp] = _eta_PSB * _d_struct_PSB[_qp];
 }
 
 // Calculate PSB fraction
