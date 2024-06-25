@@ -137,7 +137,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	// Mean glide distance for dislocations in the channel phase
     _l_c(declareProperty<Real>("l_c")),    
     
-	// Characteristic dislocation substructure length in the PSB
+	// Characteristic dislocation substructure length in PSB
     _d_struct_PSB(declareProperty<Real>("d_struct_PSB")),
 	_d_struct_PSB_old(getMaterialPropertyOld<Real>("d_struct_PSB")),
 	
@@ -259,6 +259,8 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 	// _d_struct_PSB[_qp] = _init_d_struct_PSB;
     
   }
+  
+  // Initialize characteristic dislocation substructure length in PSB
   
   _d_struct_PSB[_qp] = _d_struct[_qp];
   
