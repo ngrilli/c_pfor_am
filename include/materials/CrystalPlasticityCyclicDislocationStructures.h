@@ -180,8 +180,8 @@ protected:
   // PSB dislocation walls volume fraction
   const Real _f_w_PSB;
   
-  // Characteristic PSB length
-  const Real _d_struct_PSB;
+  // Initial characteristic PSB length
+  const Real _init_d_struct_PSB;
   
   // Coefficient K in PSB dislocations evolution, representing accumulation rate
   const Real _k_c_PSB;
@@ -218,6 +218,10 @@ protected:
   
   // Mean glide distance for dislocations in the channel phase
   MaterialProperty<Real> & _l_c;
+  
+  // Characteristic dislocation substructure length in the PSB
+  MaterialProperty<Real> & _d_struct_PSB;
+  const MaterialProperty<Real> & _d_struct_PSB_old;
   
   // Mean glide distance for dislocations in the PSB
   MaterialProperty<Real> & _l_PSB;
