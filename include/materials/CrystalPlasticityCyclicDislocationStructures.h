@@ -219,7 +219,7 @@ protected:
   // Mean glide distance for dislocations in the channel phase
   MaterialProperty<Real> & _l_c;
   
-  // Characteristic dislocation substructure length in the PSB
+  // Characteristic dislocation substructure length in PSB
   MaterialProperty<Real> & _d_struct_PSB;
   const MaterialProperty<Real> & _d_struct_PSB_old;
   
