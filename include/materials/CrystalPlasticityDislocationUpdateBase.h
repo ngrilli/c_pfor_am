@@ -242,6 +242,15 @@ protected:
   
   /// slip plane normal whose angle with the primary slip plane [i] is 60 degrees
   std::vector<RealVectorValue> _slip_plane_60_deg_normal;
+  
+  /// non-Schmid tensors described in (27), (28), (29) in:
+  /// S. Lee, H. Cho, C.A. Bronkhorst, R. Pokharel, D.W. Brown, B. Clausen, S.C. Vogel, V. Anghel, G.T. Gray, J.R. Mayeur
+  /// Deformation, dislocation evolution and the non-Schmid effect in body-centered-cubic single- and polycrystal tantalum
+  /// International Journal of Plasticity 163 (2023) 103529
+  /// https://www.sciencedirect.com/science/article/pii/S0749641923000153
+  MaterialProperty<std::vector<RankTwoTensor>> & _NS1_flow_direction;
+  MaterialProperty<std::vector<RankTwoTensor>> & _NS2_flow_direction;
+  MaterialProperty<std::vector<RankTwoTensor>> & _NS3_flow_direction;
 
   /// Resolved shear stress on each slip system
   MaterialProperty<std::vector<Real>> & _tau;

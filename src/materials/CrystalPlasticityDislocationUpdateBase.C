@@ -108,6 +108,9 @@ CrystalPlasticityDislocationUpdateBase::CrystalPlasticityDislocationUpdateBase(
     _slip_plane_normal(_number_slip_systems),
     _slip_plane_60_deg_normal(_number_slip_systems),
     _flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "flow_direction")),
+    _NS1_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS1_flow_direction")),
+    _NS2_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS2_flow_direction")),
+    _NS3_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS3_flow_direction")),
     _tau(declareProperty<std::vector<Real>>(_base_name + "applied_shear_stress")),
     _print_convergence_message(getParam<bool>("print_state_variable_convergence_error_messages")),
     _activate_non_schmid_effect(getParam<bool>("activate_non_schmid_effect"))
@@ -131,6 +134,17 @@ CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties()
   {
     _flow_direction[_qp][i].zero();
     _tau[_qp][i] = 0.0;
+  }
+  
+  if (_activate_non_schmid_effect) {
+    _NS1_flow_direction[_qp].resize(_number_slip_systems);
+    _NS2_flow_direction[_qp].resize(_number_slip_systems);
+    _NS3_flow_direction[_qp].resize(_number_slip_systems);
+    for (const auto i : make_range(_number_slip_systems)) {
+      _NS1_flow_direction[_qp][i].zero();
+      _NS2_flow_direction[_qp][i].zero();
+      _NS3_flow_direction[_qp][i].zero();
+    }
   }
 
   _slip_resistance[_qp].resize(_number_slip_systems);
@@ -396,8 +410,13 @@ CrystalPlasticityDislocationUpdateBase::calculateSchmidTensor(
     const RankTwoTensor & crysrot)
 {
   std::vector<RealVectorValue> local_direction_vector, local_plane_normal;
+  std::vector<RealVectorValue> local_plane_60_deg_normal;
   local_direction_vector.resize(number_slip_systems);
   local_plane_normal.resize(number_slip_systems);
+  local_plane_60_deg_normal.resize(number_slip_systems);
+  
+  RealVectorValue temp_n_cross_m; // temporary n cross m
+  RealVectorValue temp_n_prime_cross_m; // temporary nprime cross m 
 
   // Update slip direction and normal with crystal orientation
   for (const auto i : make_range(_number_slip_systems))
@@ -421,6 +440,29 @@ CrystalPlasticityDislocationUpdateBase::calculateSchmidTensor(
       {
         schmid_tensor[i](j, k) = local_direction_vector[i](j) * local_plane_normal[i](k);
       }
+      
+    // Calculate non-Schmid projection tensors
+    if (_activate_non_schmid_effect) {
+      local_plane_60_deg_normal[i].zero();
+      
+      temp_n_cross_m = local_plane_normal[i].cross(local_direction_vector[i]);
+      temp_n_prime_cross_m = local_plane_60_deg_normal[i].cross(local_direction_vector[i]);
+      
+      for (const auto j : make_range(LIBMESH_DIM))
+        for (const auto k : make_range(LIBMESH_DIM)) 
+        {
+          local_plane_60_deg_normal[i](j) =
+              local_plane_60_deg_normal[i](j) + crysrot(j, k) * _slip_plane_60_deg_normal[i](k);
+        }
+	
+      for (const auto j : make_range(LIBMESH_DIM))
+        for (const auto k : make_range(LIBMESH_DIM))
+        {
+          _NS1_flow_direction[_qp][i](j, k) = local_direction_vector[i](j) * local_plane_60_deg_normal[i](k);
+          _NS2_flow_direction[_qp][i](j, k) = temp_n_cross_m(j) * local_plane_normal[i](k);
+          _NS3_flow_direction[_qp][i](j, k) = temp_n_prime_cross_m(j) * local_plane_60_deg_normal[i](k);
+        }	
+	}
   }
 }
 
