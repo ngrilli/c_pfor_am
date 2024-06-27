@@ -468,6 +468,10 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
   
   // Tertiary creep contribution
   Real tertiary_creep = 1.0;
+  
+  if (_t > _creep_t0 && _creep_activated) {
+    tertiary_creep += std::pow(_t - _creep_t0, _m_exponent);
+  }
 
   // calculate and store _slip_resistance[_qp][i]
   calculateSlipResistance();
@@ -479,11 +483,6 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
     _slip_increment[_qp][i] = _ao * std::pow(stress_ratio, 1.0 / _xm);
     
     if (_creep_activated) { // add creep rate
-
-	  if (_t > _creep_t0) {
-        tertiary_creep += std::pow(_t - _creep_t0, _m_exponent);
-      }
-	  
 	  _slip_increment[_qp][i] += _creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * tertiary_creep;
 	}
 	
@@ -598,6 +597,10 @@ CrystalPlasticityFerriticSteel::calculateConstitutiveSlipDerivative(
   
   // Tertiary creep contribution
   Real tertiary_creep = 1.0;
+  
+  if (_t > _creep_t0 && _creep_activated) {
+    tertiary_creep += std::pow(_t - _creep_t0, _m_exponent);
+  }	
 	
   for (const auto i : make_range(_number_slip_systems))
   {  
@@ -616,10 +619,6 @@ CrystalPlasticityFerriticSteel::calculateConstitutiveSlipDerivative(
                       
       if (_creep_activated) { // add creep rate
 		  
-        if (_t > _creep_t0) {
-          tertiary_creep += std::pow(_t - _creep_t0, _m_exponent);
-        }		  
- 
 	    dslip_dtau[i] += _creep_ao / _creep_xm * std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
 	                     _slip_resistance[_qp][i] * tertiary_creep;
 	  }
