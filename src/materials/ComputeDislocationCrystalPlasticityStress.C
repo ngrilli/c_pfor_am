@@ -311,7 +311,7 @@ ComputeDislocationCrystalPlasticityStress::updateStress(RankTwoTensor & cauchy_s
       }
     }
 
-    if (substep_iter > _max_substep_iter && _convergence_failed)
+    if (substep_iter > _max_substep_iter && _convergence_failed && _print_convergence_message)
       mooseException("ComputeDislocationCrystalPlasticityStress: Constitutive failure");
   } while (_convergence_failed);
 
