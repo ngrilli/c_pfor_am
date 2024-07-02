@@ -269,13 +269,11 @@ ComputeDislocationCrystalPlasticityStress::updateStress(RankTwoTensor & cauchy_s
   _delta_deformation_gradient = _deformation_gradient[_qp] - _temporary_deformation_gradient_old;
 
   // Loop through all models and calculate the schmid tensor for the current state of the crystal
-  // lattice
+  // lattice, it also calculates non-Schmid projection tensors if _activate_non_schmid_effect flag in _models object is true
   // Not sure if we should pass in the updated or the original rotation here
   // If not, then we should not need to compute the flow direction every iteration here
   for (unsigned int i = 0; i < _num_models; ++i)
     _models[i]->calculateFlowDirection(_crysrot[_qp]);
-    
-    // TO DO: add loop to calculate non-Schmid effects
 
   do
   {
@@ -566,6 +564,8 @@ ComputeDislocationCrystalPlasticityStress::calculateResidual()
     // calculate shear stress with consideration of contribution from other physics
     _models[i]->calculateShearStress(
         _pk2[_qp], _inverse_eigenstrain_deformation_grad, _num_eigenstrains);
+        
+    // non-Schmid effect projection of stress goes here
 
     _convergence_failed = !_models[i]->calculateSlipRate();
 

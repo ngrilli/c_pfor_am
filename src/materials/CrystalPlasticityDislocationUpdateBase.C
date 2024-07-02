@@ -445,15 +445,15 @@ CrystalPlasticityDislocationUpdateBase::calculateSchmidTensor(
     if (_activate_non_schmid_effect) {
       local_plane_60_deg_normal[i].zero();
       
-      temp_n_cross_m = local_plane_normal[i].cross(local_direction_vector[i]);
-      temp_n_prime_cross_m = local_plane_60_deg_normal[i].cross(local_direction_vector[i]);
-      
       for (const auto j : make_range(LIBMESH_DIM))
         for (const auto k : make_range(LIBMESH_DIM)) 
         {
           local_plane_60_deg_normal[i](j) =
               local_plane_60_deg_normal[i](j) + crysrot(j, k) * _slip_plane_60_deg_normal[i](k);
         }
+
+      temp_n_cross_m = local_plane_normal[i].cross(local_direction_vector[i]);
+      temp_n_prime_cross_m = local_plane_60_deg_normal[i].cross(local_direction_vector[i]);
 	
       for (const auto j : make_range(LIBMESH_DIM))
         for (const auto k : make_range(LIBMESH_DIM))

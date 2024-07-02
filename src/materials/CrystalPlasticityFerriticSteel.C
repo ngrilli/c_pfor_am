@@ -370,8 +370,13 @@ CrystalPlasticityFerriticSteel::calculateSchmidTensor(
     const RankTwoTensor & crysrot)
 {
   std::vector<RealVectorValue> local_direction_vector, local_plane_normal;
+  std::vector<RealVectorValue> local_plane_60_deg_normal;
   local_direction_vector.resize(number_slip_systems);
   local_plane_normal.resize(number_slip_systems);
+  local_plane_60_deg_normal.resize(number_slip_systems);
+  
+  RealVectorValue temp_n_cross_m; // temporary n cross m
+  RealVectorValue temp_n_prime_cross_m; // temporary nprime cross m 
 
   // Temporary directions and normals to calculate
   // screw dislocation slip direction
@@ -401,6 +406,29 @@ CrystalPlasticityFerriticSteel::calculateSchmidTensor(
       {
         schmid_tensor[i](j, k) = local_direction_vector[i](j) * local_plane_normal[i](k);
       }
+      
+    // Calculate non-Schmid projection tensors
+    if (_activate_non_schmid_effect) {
+      local_plane_60_deg_normal[i].zero();
+      
+      for (const auto j : make_range(LIBMESH_DIM))
+        for (const auto k : make_range(LIBMESH_DIM)) 
+        {
+          local_plane_60_deg_normal[i](j) =
+              local_plane_60_deg_normal[i](j) + crysrot(j, k) * _slip_plane_60_deg_normal[i](k);
+        }
+
+      temp_n_cross_m = local_plane_normal[i].cross(local_direction_vector[i]);
+      temp_n_prime_cross_m = local_plane_60_deg_normal[i].cross(local_direction_vector[i]);
+
+      for (const auto j : make_range(LIBMESH_DIM))
+        for (const auto k : make_range(LIBMESH_DIM))
+        {
+          _NS1_flow_direction[_qp][i](j, k) = local_direction_vector[i](j) * local_plane_60_deg_normal[i](k);
+          _NS2_flow_direction[_qp][i](j, k) = temp_n_cross_m(j) * local_plane_normal[i](k);
+          _NS3_flow_direction[_qp][i](j, k) = temp_n_prime_cross_m(j) * local_plane_60_deg_normal[i](k);
+        }	
+	}
   }
 
   // Calculate and store edge and screw slip directions are also assigned
@@ -428,7 +456,6 @@ CrystalPlasticityFerriticSteel::calculateSchmidTensor(
 	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
 	}
   }
-
 }
 
 void
