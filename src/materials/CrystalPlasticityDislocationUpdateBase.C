@@ -79,6 +79,9 @@ CrystalPlasticityDislocationUpdateBase::validParams()
       "Whether or not to print warning messages from the crystal plasticity specific convergence "
       "checks on both the constiutive model internal state variables.");
   params.addParam<bool>("activate_non_schmid_effect",false,"Whether or not to calculate non-Schmid tensors for BCC. ");
+  params.addParam<Real>("w1_non_glide_stress", 0.3, "Weight factor for non-glide stress number 1. ");
+  params.addParam<Real>("w2_non_glide_stress", 0.1, "Weight factor for non-glide stress number 2. ");
+  params.addParam<Real>("w3_non_glide_stress", 0.05, "Weight factor for non-glide stress number 3. ");
   return params;
 }
 
@@ -113,7 +116,10 @@ CrystalPlasticityDislocationUpdateBase::CrystalPlasticityDislocationUpdateBase(
     _NS3_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS3_flow_direction")),
     _tau(declareProperty<std::vector<Real>>(_base_name + "applied_shear_stress")),
     _print_convergence_message(getParam<bool>("print_state_variable_convergence_error_messages")),
-    _activate_non_schmid_effect(getParam<bool>("activate_non_schmid_effect"))
+    _activate_non_schmid_effect(getParam<bool>("activate_non_schmid_effect")),
+    _w1_non_glide_stress(getParam<Real>("w1_non_glide_stress")),
+    _w2_non_glide_stress(getParam<Real>("w2_non_glide_stress")),
+    _w3_non_glide_stress(getParam<Real>("w3_non_glide_stress"))
 {
   getSlipSystems();
   sortCrossSlipFamilies();
@@ -483,6 +489,14 @@ CrystalPlasticityDislocationUpdateBase::calculateShearStress(
   {
     for (const auto i : make_range(_number_slip_systems))
       _tau[_qp][i] = pk2.doubleContraction(_flow_direction[_qp][i]);
+      
+    if (_activate_non_schmid_effect) {
+      for (const auto i : make_range(_number_slip_systems)) {
+        _tau[_qp][i] += pk2.doubleContraction( _w1_non_glide_stress * _NS1_flow_direction[_qp][i] +
+                                               _w2_non_glide_stress * _NS2_flow_direction[_qp][i] +
+                                               _w3_non_glide_stress * _NS3_flow_direction[_qp][i] ); 
+      }
+    }
 
     return;
   }
@@ -495,6 +509,12 @@ CrystalPlasticityDislocationUpdateBase::calculateShearStress(
                             eigenstrain_deformation_grad.transpose() * pk2 *
                             inverse_eigenstrain_deformation_grad.transpose();
     _tau[_qp][i] = pk2_hat.doubleContraction(_flow_direction[_qp][i]);
+    
+    if (_activate_non_schmid_effect) {
+      _tau[_qp][i] += pk2_hat.doubleContraction( _w1_non_glide_stress * _NS1_flow_direction[_qp][i] +
+                                                 _w2_non_glide_stress * _NS2_flow_direction[_qp][i] +
+                                                 _w3_non_glide_stress * _NS3_flow_direction[_qp][i] );
+    }  
   }
 }
 

@@ -269,4 +269,9 @@ protected:
   
   /// Whether or not to calculate non-Schmid tensors for BCC
   const bool _activate_non_schmid_effect;
+  
+  /// Weight factors for non-glide stresses
+  const Real _w1_non_glide_stress;
+  const Real _w2_non_glide_stress;
+  const Real _w3_non_glide_stress;
 };
