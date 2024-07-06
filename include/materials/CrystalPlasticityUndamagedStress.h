@@ -210,6 +210,12 @@ protected:
   const Real _thermal_expansion;
   const Real _dCTE_dT;
   
+  /// Anisotropic thermal expansion
+  const bool _anisotropic_thermal_expansion;
+  const MaterialProperty<Real> * const _thermal_expansion_a;
+  const MaterialProperty<Real> * const _thermal_expansion_b;
+  const MaterialProperty<Real> * const _thermal_expansion_c;
+  
   /// Output old values of pk2 and Fp if NR algorithm fails
   bool _suppress_constitutive_failure;
   

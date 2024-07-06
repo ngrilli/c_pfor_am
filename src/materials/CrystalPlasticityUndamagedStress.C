@@ -38,6 +38,12 @@ CrystalPlasticityUndamagedStress::validParams()
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("thermal_expansion",0.0,"Linear thermal expansion coefficient");
   params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature");
+  params.addParam<MaterialPropertyName>("thermal_expansion_a_name",
+                                        "Thermal expansion along a lattice direction. ");
+  params.addParam<MaterialPropertyName>("thermal_expansion_b_name",
+                                        "Thermal expansion along b lattice direction. ");
+  params.addParam<MaterialPropertyName>("thermal_expansion_c_name",
+                                        "Thermal expansion along c lattice direction. ");
   params.addParam<bool>("suppress_constitutive_failure", false, "Use old values of Fp if NR algorithm fails.");
   params.addParam<bool>("use_snes_vi_solver",
                         false,
@@ -80,6 +86,18 @@ CrystalPlasticityUndamagedStress::CrystalPlasticityUndamagedStress(
     _reference_temperature(getParam<Real>("reference_temperature")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _dCTE_dT(getParam<Real>("dCTE_dT")),
+    _anisotropic_thermal_expansion(parameters.isParamValid("thermal_expansion_a_name") &&
+                                   parameters.isParamValid("thermal_expansion_b_name") &&
+                                   parameters.isParamValid("thermal_expansion_c_name")),
+    _thermal_expansion_a(_anisotropic_thermal_expansion
+                         ? &getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("thermal_expansion_a_name"))
+                         : nullptr),
+    _thermal_expansion_b(_anisotropic_thermal_expansion
+                         ? &getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("thermal_expansion_b_name"))
+                         : nullptr),
+    _thermal_expansion_c(_anisotropic_thermal_expansion
+                         ? &getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("thermal_expansion_c_name"))
+                         : nullptr),
     
     _suppress_constitutive_failure(getParam<bool>("suppress_constitutive_failure")),
     _use_snes_vi_solver(getParam<bool>("use_snes_vi_solver")),
