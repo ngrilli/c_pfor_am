@@ -142,7 +142,7 @@ protected:
   void elastoPlasticTangentModuli(RankFourTensor & jacobian_mult);
   ///@}
 
-  /// The user supplied cyrstal plasticity consititutive models
+  /// The user supplied crystal plasticity consititutive models
   std::vector<CrystalPlasticityDislocationUpdateBase *> _dislocation_models;
 
   /// Variable defining the phase field damage parameter

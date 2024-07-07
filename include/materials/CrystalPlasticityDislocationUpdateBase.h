@@ -40,6 +40,7 @@ public:
    * This class is often overwritten by inherting classes.
    */
   virtual void initQpStatefulProperties() override;
+  virtual void setMaterialVectorSize();
 
   /**
    * A helper method to read in plane normal and direction vectors from a file

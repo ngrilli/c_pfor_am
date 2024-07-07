@@ -133,6 +133,12 @@ CrystalPlasticityDislocationUpdateBase::CrystalPlasticityDislocationUpdateBase(
 void
 CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties()
 {
+  setMaterialVectorSize();
+}
+
+void
+CrystalPlasticityDislocationUpdateBase::setMaterialVectorSize()
+{
   _tau[_qp].resize(_number_slip_systems);
 
   _flow_direction[_qp].resize(_number_slip_systems);
@@ -194,7 +200,7 @@ CrystalPlasticityDislocationUpdateBase::getSlipSystems()
     for (const auto i : make_range(_number_slip_systems))
     {
       // directly grab the raw data and scale it by the unit cell dimension
-      for (const auto j : make_range(_reader.getData(i).size()))
+      for (const auto j : index_range(_reader.getData(i)))
       {
         if (j < LIBMESH_DIM)
           _slip_plane_normal[i](j) = _reader.getData(i)[j] / _unit_cell_dimension[j];
@@ -347,7 +353,7 @@ CrystalPlasticityDislocationUpdateBase::sortCrossSlipFamilies()
       // check to see if the slip system direction i matches any of the existing slip directions
       // First calculate the dot product
       Real dot_product = 0.0;
-      for (unsigned int k = 0; k < LIBMESH_DIM; ++k)
+      for (const auto k : make_range(Moose::dim))
       {
         unsigned int check_family_index = _cross_slip_familes[j][0];
         dot_product += std::abs(_slip_direction[check_family_index](k) - _slip_direction[i](k));
