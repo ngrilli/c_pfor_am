@@ -29,6 +29,7 @@ CrystalPlasticityDislocationUpdate::validParams()
     "This is useful for an initial plastic deformation followed by creep load. ");
   params.addParam<Real>("m_exponent", 0.0, "Exponent on time in power-law equation");
   params.addParam<Real>("creep_t0", 0.0, "Initial time for tertiary creep");
+  params.addParam<Real>("creep_t_denominator", 1.0, "Denominator for the tertiary creep law");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol. ");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
@@ -82,6 +83,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
                        : NULL),
     _m_exponent(getParam<Real>("m_exponent")),
     _creep_t0(getParam<Real>("creep_t0")),
+    _creep_t_denominator(getParam<Real>("creep_t_denominator")),
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
