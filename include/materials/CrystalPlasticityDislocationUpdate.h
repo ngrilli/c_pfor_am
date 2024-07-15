@@ -122,6 +122,9 @@ protected:
   const bool _include_xm_matprop;
   const MaterialProperty<Real> * _xm_matprop;
   
+  // Activate creep strain rate
+  bool _creep_activated;
+  
   // Creep rate constants
   const Real _creep_ao;
   const Real _creep_xm;
