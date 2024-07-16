@@ -61,12 +61,18 @@ CrystalPlasticityHCP::validParams()
   params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   params.addCoupledVar("temperature", 303.0,"Temperature, initialize at room temperature");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
-  params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
-  params.addParam<Real>("dCRSS_dT_B",0.0,"B coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
-  params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
+  params.addParam<Real>("dCRSS_dT_A_pris",1.0,"A coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
+  params.addParam<Real>("dCRSS_dT_B_pris",0.0,"B coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
+  params.addParam<Real>("dCRSS_dT_C_pris",0.0,"C coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
+  params.addParam<Real>("dCRSS_dT_A_pyra",1.0,"A coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
+  params.addParam<Real>("dCRSS_dT_B_pyra",0.0,"B coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
+  params.addParam<Real>("dCRSS_dT_C_pyra",0.0,"C coefficient for the exponential decrease of the critical "
+                        "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
   return params;
 }
 
@@ -157,12 +163,15 @@ CrystalPlasticityHCP::CrystalPlasticityHCP(const InputParameters & parameters)
     _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
     _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
 	
-	// Temperature dependent properties
-	_temperature(coupledValue("temperature")),
+    // Temperature dependent properties
+    _temperature(coupledValue("temperature")),
     _reference_temperature(getParam<Real>("reference_temperature")),
-    _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
-	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
-	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
+    _dCRSS_dT_A_pris(getParam<Real>("dCRSS_dT_A_pris")),
+    _dCRSS_dT_B_pris(getParam<Real>("dCRSS_dT_B_pris")),
+    _dCRSS_dT_C_pris(getParam<Real>("dCRSS_dT_C_pris")),
+    _dCRSS_dT_A_pyra(getParam<Real>("dCRSS_dT_A_pyra")),
+    _dCRSS_dT_B_pyra(getParam<Real>("dCRSS_dT_B_pyra")),
+    _dCRSS_dT_C_pyra(getParam<Real>("dCRSS_dT_C_pyra")),
 
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
@@ -180,7 +189,8 @@ CrystalPlasticityHCP::initQpStatefulProperties()
   Real taylor_hardening;
   
   // Temperature dependence of the CRSS
-  Real temperature_dependence;
+  Real temperature_dependence_pris;
+  Real temperature_dependence_pyra;
 
   // Initialize the dislocation density size
   _rho_ssd[_qp].resize(_number_slip_systems);
@@ -212,8 +222,11 @@ CrystalPlasticityHCP::initQpStatefulProperties()
 
   // Critical resolved shear stress decreases exponentially with temperature
   // A + B exp(- C * (T - T0)) 
-  temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
-                         * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
+  temperature_dependence_pris = ( _dCRSS_dT_A_pris + _dCRSS_dT_B_pris
+                            * std::exp(- _dCRSS_dT_C_pris * (_temperature[_qp] - _reference_temperature)));
+
+  temperature_dependence_pyra = ( _dCRSS_dT_A_pyra + _dCRSS_dT_B_pyra
+                            * std::exp(- _dCRSS_dT_C_pyra * (_temperature[_qp] - _reference_temperature)));
 
   // Initialize value of the slip resistance
   // as a function of the dislocation density
@@ -262,9 +275,14 @@ CrystalPlasticityHCP::initQpStatefulProperties()
 	  }
     }
 	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
-	                          * std::sqrt(taylor_hardening) * temperature_dependence);
-	
+    if (i < 12) {
+      _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
+	                           * std::sqrt(taylor_hardening) * temperature_dependence_pris);
+    }
+    else {
+      _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
+	                           * std::sqrt(taylor_hardening) * temperature_dependence_pyra);
+    }
   }
 
   // initialize slip increment
@@ -459,12 +477,16 @@ CrystalPlasticityHCP::calculateSlipResistance()
   Real taylor_hardening;
   
   // Temperature dependence of the CRSS
-  Real temperature_dependence;
+  Real temperature_dependence_pris;
+  Real temperature_dependence_pyra;
   
   // Critical resolved shear stress decreases exponentially with temperature
   // A + B exp(- C * (T - T0)) 
-  temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
-                         * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
+  temperature_dependence_pris = ( _dCRSS_dT_A_pris + _dCRSS_dT_B_pris
+                              * std::exp(- _dCRSS_dT_C_pris * (_temperature[_qp] - _reference_temperature)));
+
+  temperature_dependence_pyra = ( _dCRSS_dT_A_pyra + _dCRSS_dT_B_pyra
+                              * std::exp(- _dCRSS_dT_C_pyra * (_temperature[_qp] - _reference_temperature)));
 
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -494,8 +516,14 @@ CrystalPlasticityHCP::calculateSlipResistance()
 	  }
     }
 	
-	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
-	                          * std::sqrt(taylor_hardening) * temperature_dependence);
+    if (i < 12) {
+      _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
+	                           * std::sqrt(taylor_hardening) * temperature_dependence_pris);
+    }
+    else {
+      _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
+	                           * std::sqrt(taylor_hardening) * temperature_dependence_pyra);
+    }
   }
 }
 

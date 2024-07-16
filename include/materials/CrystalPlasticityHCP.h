@@ -228,9 +228,12 @@ protected:
   // Temperature dependent properties
   const VariableValue & _temperature;
   const Real _reference_temperature;
-  const Real _dCRSS_dT_A;
-  const Real _dCRSS_dT_B;
-  const Real _dCRSS_dT_C;
+  const Real _dCRSS_dT_A_pris;
+  const Real _dCRSS_dT_B_pris;
+  const Real _dCRSS_dT_C_pris;
+  const Real _dCRSS_dT_A_pyra;
+  const Real _dCRSS_dT_B_pyra;
+  const Real _dCRSS_dT_C_pyra;
   
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
