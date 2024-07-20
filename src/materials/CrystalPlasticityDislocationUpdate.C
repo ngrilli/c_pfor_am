@@ -150,8 +150,12 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
                                : nullptr),
 									
     // Directional derivatives of the slip rate
-    _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
-    _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
+    _dslip_increment_dedge(isParamValid("dslip_increment_dedge")
+                            ? coupledArrayValue("dslip_increment_dedge")
+                            : _default_array_value_zero),
+    _dslip_increment_dscrew(isParamValid("dslip_increment_dscrew")
+                            ? coupledArrayValue("dslip_increment_dscrew")
+                            : _default_array_value_zero),
 	
 	// Temperature dependent properties
 	_temperature(coupledValue("temperature")),
