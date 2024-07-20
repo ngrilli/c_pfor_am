@@ -22,7 +22,6 @@
   ymax = 1.0
   zmax = 1.0
   elem_type = HEX8
-  displacements = 'ux uy uz'
 []
 
 [Variables]
@@ -42,7 +41,7 @@
   [../]
 []
 
-[Modules/TensorMechanics/Master/all]
+[Physics/SolidMechanics/QuasiStatic/all]
   strain = FINITE
   add_variables = true
   generate_output = stress_xz
@@ -253,13 +252,17 @@
 
   petsc_options_iname = '-pc_type -pc_asm_overlap -sub_pc_type -ksp_type -ksp_gmres_restart'
   petsc_options_value = ' asm      2              lu            gmres     200'
+  
   nl_abs_tol = 1e-8
   nl_rel_step_tol = 1e-8
   dtmax = 0.1
   nl_rel_tol = 1e-8
-  end_time = 1
+
   dtmin = 0.00001
-  num_steps = 1 #100 to see plastic shear stress
+  
+  # 100 to see plastic shear stress
+  # 2 time steps are needed to see the gradients calculated 
+  num_steps = 2
   nl_abs_step_tol = 1e-8
 []
 
