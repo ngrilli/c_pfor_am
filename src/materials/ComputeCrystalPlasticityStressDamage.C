@@ -43,8 +43,9 @@ ComputeCrystalPlasticityStressDamage::validParams()
   params.addCoupledVar("temperature",303.0,"Temperature");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("thermal_expansion",0.0,"Linear thermal expansion coefficient");
-  params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature");
-  params.addParam<bool>("suppress_constitutive_failure", false, "Use old values of pk2 and Fp if NR algorithm fails.");
+  params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature. ");
+  params.addParam<bool>("suppress_constitutive_failure", false, "Use old values of pk2 and Fp if NR algorithm fails. ");
+  params.addParam<bool>("output_lattice_strain", false, "Output lattice strain flag. ");
   return params;
 }
 
@@ -82,7 +83,11 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     _reference_temperature(getParam<Real>("reference_temperature")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _dCTE_dT(getParam<Real>("dCTE_dT")),
-    _suppress_constitutive_failure(getParam<bool>("suppress_constitutive_failure"))
+    _suppress_constitutive_failure(getParam<bool>("suppress_constitutive_failure")),
+    
+    // Lattice strain output
+    _output_lattice_strain(getParam<bool>("output_lattice_strain")),
+    _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain"))
 {
   _convergence_failed = false;
 }

@@ -221,6 +221,10 @@ protected:
   /// Output old values of pk2 and Fp if NR algorithm fails
   bool _suppress_constitutive_failure;
   
+  /// Lattice strain output
+  bool _output_lattice_strain;
+  MaterialProperty<RankTwoTensor> & _lattice_strain;
+  
   /// Volumetric thermal expansion
   Real _volumetric_thermal_expansion;
   
