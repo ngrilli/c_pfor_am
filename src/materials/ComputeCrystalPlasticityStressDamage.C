@@ -617,6 +617,10 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
   computeHistoryVariable(F_pos, F_neg);
   
   _residual_tensor = _pk2[_qp] - pk2_new;
+  
+  if (_output_lattice_strain) {
+    _lattice_strain[_qp] = _crysrot[_qp].transpose() * elastic_strain * _crysrot[_qp];
+  }
 }
 
 // Jacobian for the Newton-Raphson crystal plasticity algorithm
