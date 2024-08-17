@@ -67,6 +67,7 @@ ComputeDislocationCrystalPlasticityStress::validParams()
   params.addParam<Real>("melting_temperature_high", 1673.15, "Melting temperature (liquidus) to activate/deactivate liquid thermal expansion.");
   params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus temperature to activate/deactivate liquid thermal expansion.");
   params.addParam<bool>("liquid_thermal_expansion", true, "Liquid has thermal expansion above melting point.");
+  params.addParam<bool>("output_lattice_strain", false, "Output lattice strain flag. ");
   return params;
 }
 
@@ -125,6 +126,10 @@ ComputeDislocationCrystalPlasticityStress::ComputeDislocationCrystalPlasticitySt
 	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
 	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
 	_liquid_thermal_expansion(getParam<bool>("liquid_thermal_expansion")),
+
+    // Lattice strain output
+    _output_lattice_strain(getParam<bool>("output_lattice_strain")),
+    _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
 
     // cumulative effective small plastic strain
     _epsilon_p_eff_cum(declareProperty<Real>("epsilon_p_eff_cum")),
@@ -596,6 +601,10 @@ ComputeDislocationCrystalPlasticityStress::calculateResidual()
 
   pk2_new = _elasticity_tensor[_qp] * (elastic_strain - thermal_eigenstrain);
   _residual_tensor = _pk2[_qp] - pk2_new;
+  
+  if (_output_lattice_strain) {
+    _lattice_strain[_qp] = _crysrot[_qp].transpose() * elastic_strain * _crysrot[_qp];
+  }
 }
 
 void

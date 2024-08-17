@@ -245,6 +245,10 @@ protected:
   const Real _melting_temperature_low;
   const bool _liquid_thermal_expansion;
   
+  /// Lattice strain output
+  bool _output_lattice_strain;
+  MaterialProperty<RankTwoTensor> & _lattice_strain;
+  
   /// cumulative effective small plastic strain
   MaterialProperty<Real> & _epsilon_p_eff_cum;
   const MaterialProperty<Real> & _epsilon_p_eff_cum_old;
