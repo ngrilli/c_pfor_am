@@ -49,7 +49,7 @@
   [./dts]
     type = PiecewiseConstant
     x = '0.0 2.8'
-    y = '0.01 0.01'
+    y = '0.005 0.005'
   [../]
   
   [./creep_rate_prefactor]
@@ -989,13 +989,13 @@
 # bounds used to impose that damage can only grow
 [Bounds]
   [./irreversibility]
-    type = VariableOldValueBoundsAux
+    type = VariableOldValueBounds
     variable = bounds_dummy
     bounded_variable = c
     bound_type = lower
   [../]
   [./upper]
-    type = ConstantBoundsAux
+    type = ConstantBounds
     variable = bounds_dummy
     bounded_variable = c
     bound_type = upper
