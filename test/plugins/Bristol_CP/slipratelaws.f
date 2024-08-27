@@ -14,7 +14,7 @@ c
 
       subroutine sliprate(tau,sstate,temp,sXdist,ph_no,gdot,dgdot_dtau)
       use globalvars, only: modelno, sliprate_param, sliphard_param,
-     &creepno, creep_param, numstvar, G, KB
+     &creepno, creep_param, numstvar, G, KB, t_old
       implicit none
       real(8) tau, tauc, x, temp, sXdist, gdot, dgdot_dtau
       real(8)	sstate(numstvar), gdotc, dgdotc_dtau
@@ -37,6 +37,17 @@ c     Creep model-3 constants
       real(8) CD, V
 c     Creep model-4 constants
       real(8) Qc
+c     Tertiary creep activation
+      logical activate_tertiary_creep
+c     Tertiary creep contribution
+      real(8) tertiary_creep
+c     Initial time for tertiary creep
+      real(8) tertiary_creep_t0
+c     Interval for tertiary creep
+      real(8) tertiary_creep_interval
+
+c     Set true to activate tertiary creep
+      activate_tertiary_creep = .false.
 
 c     Slip/Creep  with no kinematic hardening (x = 0), s it has no effect
       if (modelno.eq.1d+0) then
@@ -58,7 +69,21 @@ c          write(6,*) sstate
       dgdot_dtau = gdot0/m * ((dabs(tau)/tauc)
      &**((1.0d+0/m) - 1.0d+0)) / tauc
 
-
+        ! tertiary creep multiplication factor
+        if (activate_tertiary_creep) then
+        
+          tertiary_creep_t0 = 1000000.0
+          tertiary_creep_interval = 50000.0
+          
+          if (t_old(1,1) > tertiary_creep_t0) then
+          
+            tertiary_creep = exp((t_old(1,1) - tertiary_creep_t0) 
+     & / tertiary_creep_interval)
+        
+            gdot = gdot * tertiary_creep
+            dgdot_dtau = dgdot_dtau * tertiary_creep
+          endif
+        endif 
 
 
 c     Slip and Creep with kinematic hardening
