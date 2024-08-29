@@ -5,9 +5,7 @@
 #pragma once
 
 #include "InitialCondition.h"
-#include "PropertyReadFile.h"
-
-// #include <string>
+#include "DelimitedFileReader.h"
 
 class InputParameters;
 
@@ -37,10 +35,15 @@ protected:
    */
   virtual RealGradient gradient(const Point & p) override;
 
-  /// Element property read user object
-  const PropertyReadFile * const _read_prop_user_object;
+  /// File should contain a single column with the value
+  /// of the variable in each element of a structured mesh
+  std::string _ic_file_name;
   
   /// Element size in the structured mesh
   /// assuming size along x and y are the same
   const Real _element_size;
+  
+  /// Number of elements along the x and y axes in the structured mesh
+  const unsigned int _nx;
+  const unsigned int _ny;
 };
