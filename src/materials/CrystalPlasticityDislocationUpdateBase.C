@@ -109,8 +109,8 @@ CrystalPlasticityDislocationUpdateBase::CrystalPlasticityDislocationUpdateBase(
 
     _slip_direction(_number_slip_systems),
     _slip_plane_normal(_number_slip_systems),
-    _slip_plane_60_deg_normal(_number_slip_systems),
     _flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "flow_direction")),
+    _slip_plane_60_deg_normal(_number_slip_systems),
     _NS1_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS1_flow_direction")),
     _NS2_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS2_flow_direction")),
     _NS3_flow_direction(declareProperty<std::vector<RankTwoTensor>>(_base_name + "NS3_flow_direction")),
