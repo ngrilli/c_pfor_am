@@ -242,9 +242,33 @@ ComputeElasticityTensorMelting::melting()
   
       // not solid at previous and next temperature time step:
 	  // _Temp_Cijkl is never calculated in this case
-	  _Melt_Cijkl = _residual_stiffness * _Cijkl;
-	
-    }	  
+	  
+	  if (_isMushyZone == 1) {
+		  
+		if (_isMushyZoneNext == 1) { // from mushy to mushy
+		
+		  _Melt_Cijkl = mushy_stiffness * _Cijkl;
+		
+		} else { // from mushy to liquid or gas
+		
+		  _Melt_Cijkl = (1.0 - _FracTimeStep) * mushy_stiffness * _Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
+		
+		}
+		
+      } else {
+		  
+		if (_isMushyZoneNext == 1) { // from liquid or gas to mushy
+			
+		  _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * mushy_stiffness * _Cijkl;
+			
+		} else { // from liquid or gas to liquid or gas
+		
+		  _Melt_Cijkl = _residual_stiffness * _Cijkl;
+		
+		}  
+      }
+    }
+    
   } else { // case with element activation: stiffness degraded at current CFD step
   
       // In this case the phase of current CFD step is not important
