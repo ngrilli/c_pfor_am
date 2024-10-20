@@ -14,6 +14,7 @@
  * to the physical volumes in GMSH
  * Melting is considered: stiffness is degraded when the
  * temperature increases above melting or below gas temperature.
+ * Effect of the mushy zone between liquidus and solidus temperature is considered.
  */
 class ComputeElasticityTensorMelting : public ComputeElasticityTensorCPGrain
 {
@@ -37,6 +38,13 @@ protected:
   
   /// Residual stiffness of gas and molten pool (percent)
   const Real _residual_stiffness;
+  
+  /// Residual stiffness of mushy zone (percent)
+  const Real _mushy_stiffness;
+  
+  /// Optional material property for temperature dependence of mushy zone residual stiffness
+  const bool _include_mushy_stiffness_prop;
+  const MaterialProperty<Real> * _mushy_stiffness_prop;
 
   /// The LaserTempReadFile GeneralUserObject to read element specific temperature values from file
   const LaserTempReadFile * const _temperature_read_user_object;
@@ -64,26 +72,28 @@ protected:
   unsigned int _isSolid;
   unsigned int _isLiquid;
   unsigned int _isGas;
+  unsigned int _isMushyZone;
   unsigned int _isSolidNext;
   unsigned int _isLiquidNext;
   unsigned int _isGasNext;
+  unsigned int _isMushyZoneNext;
   
   /// Flags to indicate the phase at the previous temperature time step 
   /// to understand if element was activated at this temperature time step
   unsigned int _isSolidPrevious;  
   
-  // Temperature values at the current and 
-  // next temperature time step
+  /// Temperature values at the current and 
+  /// next temperature time step
   Real _TempValue;
   Real _TempValueNext;
   
-  // Temperature value at the previous temperature time step
+  /// Temperature value at the previous temperature time step
   Real _TempValuePrevious;
   
-  // temperature time step to be used from the CFD simulations
+  /// temperature time step to be used from the CFD simulations
   unsigned int _temperature_step;
   
-  // fraction of temperature time step completed, between 0 and 1
+  /// fraction of temperature time step completed, between 0 and 1
   Real _FracTimeStep;
   
 };

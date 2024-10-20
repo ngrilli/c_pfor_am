@@ -1,4 +1,5 @@
 // Nicolo Grilli
+// Daijun Hu
 // National University of Singapore
 // 13 Novembre 2020
 
@@ -15,12 +16,16 @@ ComputeElasticityTensorMelting::validParams()
                              "Euler angles are read from Euler angles input file "
 							 "and can be assigned to physical volumes in GMSH. "
 							 "Melting is considered: stiffness is degraded when the "
-							 "temperature increases above melting or below gas temperature.");
+							 "temperature increases above melting or below gas temperature. "
+							 "Effect of the mushy zone between liquidus and solidus temperature is considered. ");
   params.addParam<Real>("melting_temperature_high", 1673.15, "Melting temperature (liquidus) = zero stiffness.");  
   params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus = full stiffness.");
   params.addParam<Real>("gas_temperature_high", 298.1, "Lowest possible solid temperature = full stiffness.");
   params.addParam<Real>("gas_temperature_low", 298.0, "Gas temperature = zero stiffness.");
   params.addParam<Real>("residual_stiffness", 0.1, "Residual stiffness of gas and molten pool (percent).");
+  params.addParam<Real>("mushy_stiffness", 0.5, "Residual stiffness of mushy zone (percent).");
+  params.addParam<MaterialPropertyName>("mushy_stiffness_prop",
+    "Optional material property for temperature dependence of mushy zone residual stiffness. ");
   params.addParam<UserObjectName>("temperature_read_user_object",
                                   "The LaserTempReadFile "
                                   "GeneralUserObject to read element "
@@ -38,6 +43,11 @@ ComputeElasticityTensorMelting::ComputeElasticityTensorMelting(const InputParame
 	_gas_temperature_high(getParam<Real>("gas_temperature_high")),
 	_gas_temperature_low(getParam<Real>("gas_temperature_low")),
 	_residual_stiffness(getParam<Real>("residual_stiffness")),
+	_mushy_stiffness(getParam<Real>("mushy_stiffness")),
+	_include_mushy_stiffness_prop(isParamValid("mushy_stiffness_prop")),
+	_mushy_stiffness_prop(_include_mushy_stiffness_prop
+                ? &getMaterialProperty<Real>("mushy_stiffness_prop")
+                : nullptr),
 	_temperature_read_user_object(isParamValid("temperature_read_user_object")
                                   ? &getUserObject<LaserTempReadFile>("temperature_read_user_object")
                                   : nullptr),
@@ -76,9 +86,9 @@ ComputeElasticityTensorMelting::computeQpElasticityTensor()
   } else {
 	  
     // Apply degradation of the stiffness matrix
-    // due to melting or gas to _Temp_Cijkl
+    // due to melting, mushy zone or gas to _Temp_Cijkl
     // and save results on _Melt_Cijkl
-    melting(); 
+    melting();
 	
     _elasticity_tensor[_qp] = _Melt_Cijkl;
   }
@@ -106,9 +116,11 @@ ComputeElasticityTensorMelting::checkPhase()
   _isSolid = 0;
   _isLiquid = 0;
   _isGas = 0;
+  _isMushyZone = 0;
   _isSolidNext = 0;
   _isLiquidNext = 0;
   _isGasNext = 0;
+  _isMushyZoneNext = 0;
   
   _isSolidPrevious = 1;
   
@@ -124,12 +136,13 @@ ComputeElasticityTensorMelting::checkPhase()
 	  _TempValuePrevious = std::max(_gas_temperature_low,_TempValuePrevious);
 	  
 	  // check phase at the previous time step
+	  // mushy zone not currently working with element activation
 	  if (_TempValuePrevious < _gas_temperature_high) {
 	    _isSolidPrevious = 0;
 	  } else if (_TempValuePrevious <= _melting_temperature_low) {
 	    _isSolidPrevious = 1;
 	  } else {
-	    _isSolidPrevious = 0;	
+	    _isSolidPrevious = 0;
 	  }	
 	}
 
@@ -148,22 +161,26 @@ ComputeElasticityTensorMelting::checkPhase()
 	  _isGas = 1;
 	} else if (_TempValue <= _melting_temperature_low) {
 	  _isSolid = 1;
+	} else if (_TempValue <= _melting_temperature_high) {
+	  _isMushyZone = 1;
 	} else {
-	  _isLiquid = 1;	
-	}	
+	  _isLiquid = 1;
+	}
 	
 	if (_TempValueNext < _gas_temperature_high) {
 	  _isGasNext = 1;
 	} else if (_TempValueNext <= _melting_temperature_low) {
-	  _isSolidNext = 1;	  
+	  _isSolidNext = 1;
+	} else if (_TempValueNext <= _melting_temperature_high) {
+	  _isMushyZoneNext = 1;
 	} else {
-	  _isLiquidNext = 1;	
+	  _isLiquidNext = 1;
 	}	
   } else {
-	// Add code here to make this object working
+    // Add code here to make this object working
     // when temperature is not read from external file
     // but it's just a variable	
-	mooseError("Error in reading temperature file");	  
+	mooseError("Error in reading temperature file");
   }
 }
 
@@ -172,26 +189,55 @@ ComputeElasticityTensorMelting::melting()
 {	
   Real deltatemp;
   
+  // Residual stiffness of mushy zone (percent)
+  Real mushy_stiffness;
+  
+  if (_include_mushy_stiffness_prop) {
+
+    mushy_stiffness = (*_mushy_stiffness_prop)[_qp];
+  
+  } else {
+
+    mushy_stiffness = _mushy_stiffness;
+
+  }
+  
   if (_isSolidPrevious == 1) { // case without element activation or previous solid CFD step
 	  
-    if (_isSolid == 1 && _isSolidNext == 0) { // becoming gas or liquid
+    if (_isSolid == 1 && _isSolidNext == 0) { // becoming gas or liquid or mushy
   
   	  // start from temperature value at the last
 	  // temperature time step
 	  deltatemp = _TempValue - _reference_temperature;
 	  temperatureDependence(deltatemp);
-  
-      _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
-		
+	  
+      if (_isMushyZoneNext == 1) { // next step is mushy
+
+        _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * mushy_stiffness * _Cijkl;
+
+      } else { // next step is liquid or gas
+
+        _Melt_Cijkl = (1.0 - _FracTimeStep) * _Temp_Cijkl + _FracTimeStep * _residual_stiffness * _Cijkl;
+
+      }
+      
     } else if (_isSolid == 0 && _isSolidNext == 1) { // back to solid
   
       // end at temperature value of the last
 	  // temperature time step
 	  deltatemp = _TempValueNext - _reference_temperature;
 	  temperatureDependence(deltatemp);
-  
-      _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
-	  
+
+      if (_isMushyZone == 1) { // from mushy to solid               
+
+        _Melt_Cijkl = (1.0 - _FracTimeStep) * mushy_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+
+      } else { // from liquid or gas to solid
+
+        _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+
+      }
+      
     } else if (_isSolid == 0 && _isSolidNext == 0) { 
   
       // not solid at previous and next temperature time step:
