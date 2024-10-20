@@ -22,6 +22,7 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
   params.addParam<MaterialPropertyName>("xm_matprop",
     "Optional xm material property for exponent for slip rate. ");
+  params.addParam<bool>("use_kocks_T_dependence_for_xm", false, "Use Kocks 1976 temperature dependence for xm. ");
   params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
   params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
@@ -77,6 +78,7 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _xm_matprop(_include_xm_matprop
                 ? &getMaterialProperty<Real>("xm_matprop")
                 : nullptr),
+    _use_kocks_T_dependence_for_xm(getParam<bool>("use_kocks_T_dependence_for_xm")),
     _creep_activated(getParam<bool>("creep_activated")),
     _creep_ao(getParam<Real>("creep_ao")),
     _creep_xm(getParam<Real>("creep_xm")),

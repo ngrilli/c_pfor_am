@@ -122,6 +122,14 @@ protected:
   const bool _include_xm_matprop;
   const MaterialProperty<Real> * _xm_matprop;
   
+  // Use Kocks 1976 temperature dependence for xm
+  // this is equation (19) in
+  // E.D. Cyr et al.
+  // A three dimensional (3D) thermo-elasto-viscoplastic constitutive model for FCC polycrystals
+  // International Journal of Plasticity 70 (2015) 166-190
+  // https://www.sciencedirect.com/science/article/pii/S0749641915000571
+  bool _use_kocks_T_dependence_for_xm;
+  
   // Activate creep strain rate
   bool _creep_activated;
   
