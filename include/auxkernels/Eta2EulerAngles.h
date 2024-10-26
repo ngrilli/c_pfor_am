@@ -7,6 +7,7 @@
 #pragma once
 
 #include "AuxKernel.h"
+#include "DelimitedFileReader.h"
 
 /**
  * Output euler angles from eta_i phase fields
@@ -19,6 +20,7 @@ public:
   Eta2EulerAngles(const InputParameters & parameters);
 
 protected:
+  virtual void assignEulerAngles();
   virtual Real computeValue();
   virtual void precalculateValue();
 
@@ -35,6 +37,15 @@ protected:
   /// each row must contain three Euler angles 
   /// which correspond to each grain orientation
   std::string _Euler_angles_file_name;
+  
+  /// Number of phase fields
+  const unsigned int _op_num;
+
+  /// Values of the phase field variables
+  const std::vector<const VariableValue *> _vals;
+
+  /// Euler angles for each phase field
+  std::vector<RealVectorValue> _Euler_angles;
 
   /// precalculated element value
   Real _value;
