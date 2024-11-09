@@ -136,7 +136,6 @@ ComputeElasticityTensorMelting::checkPhase()
 	  _TempValuePrevious = std::max(_gas_temperature_low,_TempValuePrevious);
 	  
 	  // check phase at the previous time step
-	  // mushy zone not currently working with element activation
 	  if (_TempValuePrevious < _gas_temperature_high) {
 	    _isSolidPrevious = 0;
 	  } else if (_TempValuePrevious <= _melting_temperature_low) {
