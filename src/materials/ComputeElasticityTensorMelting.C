@@ -142,7 +142,7 @@ ComputeElasticityTensorMelting::checkPhase()
 	    _isSolidPrevious = 1;
 	  } else {
 	    _isSolidPrevious = 0;
-	  }	
+	  }
 	}
 
 	// Limit temperature in the interval gas to melting temperature
@@ -269,7 +269,7 @@ ComputeElasticityTensorMelting::melting()
     }
     
   } else { // case with element activation: stiffness degraded at current CFD step
-  
+
       // In this case the phase of current CFD step is not important
 	  if (_isSolidNext == 1) {
 		  
@@ -278,7 +278,20 @@ ComputeElasticityTensorMelting::melting()
 	    deltatemp = _TempValueNext - _reference_temperature;
 	    temperatureDependence(deltatemp);
 	    
-        _Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+	    // check current state
+	    if (_isLiquid || _isGas) { // activation in liquid or gas state
+			
+			_Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+			
+		} else if (_isMushyZone) { // activation in mushy zone state
+			
+			_Melt_Cijkl = (1.0 - _FracTimeStep) * mushy_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+			
+		} else { // default is activation in liquid or gas state
+			
+			_Melt_Cijkl = (1.0 - _FracTimeStep) * _residual_stiffness * _Cijkl + _FracTimeStep * _Temp_Cijkl;
+			
+		}
 		
 	  } else {
 		  
