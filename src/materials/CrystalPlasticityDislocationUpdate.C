@@ -39,6 +39,9 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
+  params.addParam<FunctionName>("tau_c_0_function",
+    "Optional function for Peierls stress. If provided, the Peierls stress can be set as a function of time. "
+    "This is useful for time dependent solid solution strenthening and precipitation hardening, e.g. during thermal ageing. ");
   params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
@@ -94,6 +97,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 	_alpha_0(getParam<Real>("alpha_0")),
     _r(getParam<Real>("r")),
 	_tau_c_0(getParam<Real>("tau_c_0")),
+	_tau_c_0_function(this->isParamValid("tau_c_0_function")
+                       ? &this->getFunction("tau_c_0_function")
+                       : NULL),
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
 	

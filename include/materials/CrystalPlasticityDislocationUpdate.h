@@ -164,6 +164,10 @@ protected:
   // Peierls stress
   const Real _tau_c_0;
   
+  // Optional function for Peierls stress. If provided, the Peierls stress can be set as a function of time
+  // This is useful for time dependent solid solution strenthening and precipitation hardening, e.g. during thermal ageing
+  const Function * const _tau_c_0_function;
+  
   // Coefficient K in SSD evolution, representing accumulation rate
   const Real _k_0;
   
