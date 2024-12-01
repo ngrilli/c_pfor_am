@@ -29,7 +29,7 @@
       INTEGER,intent(in) :: nTwinStart,nTwinEnd
 	  
 	  ! activate cubic slip systems for CMSX-4 alloy
-      INTEGER,intent(in) :: cubicslip
+      REAL*8,intent(in) :: cubicslip
 
       ! c/a ratio for hcp crystals
       REAL*8,intent(out) :: caratio

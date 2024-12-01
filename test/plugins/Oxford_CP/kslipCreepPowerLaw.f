@@ -14,7 +14,7 @@ C   Simplified power law slip rule and empirical creep law for tertiary creep:
       integer, intent(in):: nSys
 	  
       ! activation flag for cubic slip (additional 6 systems activated when loading is not along 001)
-      INTEGER,intent(in) :: cubicslip
+      real*8, intent(in) :: cubicslip
 	  
       ! activation flag for tertiary creep
       INTEGER,intent(in) :: creep

@@ -10,7 +10,7 @@
       real*8,intent(in) :: xrot(m,m), TwinRot(nTwin,m,m), caratio
 	  
 	  ! activate cubic slip systems for CMSX-4 alloy
-      INTEGER,intent(in) :: cubicslip	  
+      real*8,intent(in) :: cubicslip	  
 	  
       real*8,intent(out) :: ddir1(L,m),dnor1(L,m)
       real*8,intent(out) :: dtwindir1(nTwin,m),dtwinnor1(nTwin,m)

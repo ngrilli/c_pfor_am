@@ -51,7 +51,7 @@ C #include <SMAAspUserSubroutines.hdr>
       integer, parameter :: irradiate = 0
 
       ! Activate cubic slip systems for single crystal FCC
-      integer, parameter :: cubicslip = 0
+      real*8, parameter :: cubicslip = 0
 
 **       End of parameters to set       **
 ******************************************

@@ -41,7 +41,7 @@
      + fmt9 = "(9(' ',(ES11.3,1X)))",fmt33 = "(33(' ',(ES11.3,1X)))"
      
       
-      real*8,intent(out) :: gndall(ne+ns), gndcut(ne), gndmob
+      real*8,intent(out) :: gndall(ne+ns), gndcut(ne), gndmob(ne)
     
       
       integer :: j

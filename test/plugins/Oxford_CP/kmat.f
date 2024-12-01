@@ -50,7 +50,7 @@ C      INCLUDE 'ABA_PARAM.INC'
       INTEGER,intent(in) :: twinon
 	  
 	  ! Activate cubic slip systems for single crystal FCC
-      INTEGER,intent(in) :: cubicslip
+      REAL*8,intent(in) :: cubicslip
 
       ! time increment
       REAL*8,intent(in) :: dtime
@@ -450,8 +450,7 @@ C     *** INITIALIZE ZERO ARRAYS ***
       ! set materials constants
       call kMaterialParam(iphase,caratio,compliance,G12,thermat,
      + gammast,burgerv,nSys,tauc,screwplanes,CurrentTemperature,
-     + tauctwin,nTwin,twinon,nTwinStart,nTwinEnd,TwinIntegral,
-     + cubicslip)
+     + tauctwin,nTwin,twinon,nTwinStart,nTwinEnd,cubicslip)
 
       ! define rotation matrices due to twinning (in the lattice system)
       TwinRot = 0.0
