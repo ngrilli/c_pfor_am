@@ -1,4 +1,6 @@
 // Nicolò Grilli
+// Parsa Esmati
+// Zhuohao Song
 // Università di Bristol
 // 29 Agosto 2024
 
@@ -18,6 +20,8 @@ ReadFileIC::validParams()
   params.addParam<Real>("element_size", 1.0, "Element size in the structured mesh. ");
   params.addParam<unsigned int>("nx", 1, "Number of elements along the x axis in the structured mesh. ");
   params.addParam<unsigned int>("ny", 1, "Number of elements along the y axis in the structured mesh. ");
+  params.addParam<unsigned int>("op", 0, "Phase field index used to select the column in the file. ");
+  params.addRequiredParam<unsigned int>("op_num", "Specifies the total number of phase fields to create. ");
   return params;
 }
 
@@ -26,8 +30,11 @@ ReadFileIC::ReadFileIC(const InputParameters & parameters)
   _ic_file_name(getParam<FileName>("ic_file_name")),
   _element_size(getParam<Real>("element_size")),
   _nx(getParam<unsigned int>("nx")),
-  _ny(getParam<unsigned int>("ny"))
+  _ny(getParam<unsigned int>("ny")),
+  _op(getParam<unsigned int>("op")),
+  _op_num(getParam<unsigned int>("op_num"))
 {
+  getFileData();
 }
 
 Real
@@ -39,6 +46,19 @@ ReadFileIC::value(const Point & p)
   // Retrieve element index (0-based) from node coordinate  
   element_index = std::floor(p(0) / _element_size) + _nx * std::floor(p(1) / _element_size);
   
+  // Retrieve the value of the variable from data structure
+  return _IC_data[element_index][_op];
+}
+
+RealGradient
+ReadFileIC::gradient(const Point & p)
+{
+  return 0.0;
+}
+
+void
+ReadFileIC::getFileData()
+{
   // read in the initial variable values from file
   MooseUtils::DelimitedFileReader _reader(_ic_file_name);
   _reader.setFormatFlag(MooseUtils::DelimitedFileReader::FormatFlag::ROWS);
@@ -49,13 +69,18 @@ ReadFileIC::value(const Point & p)
     paramError(
         "nx",
         "The number of rows in the ic_fileshould match the total number of elements. ");
-  
-  // Retrieve the value of the variable from file reader
-  return _reader.getData(element_index)[0];
-}
-
-RealGradient
-ReadFileIC::gradient(const Point & p)
-{
-  return 0.0;
+        
+  // resize data structure to store IC read from file
+  _IC_data.resize(_nx * _ny);
+  // and set the first index of each inner vector
+  for (unsigned int i = 0; i < (_nx * _ny); ++i)
+    _IC_data[i].resize(_op_num);
+    
+  for (const auto i : make_range(_nx * _ny))
+  {
+    for (const auto j : make_range(_op_num))
+    {
+      _IC_data[i][j] = _reader.getData(i)[j];
+    }
+  }
 }

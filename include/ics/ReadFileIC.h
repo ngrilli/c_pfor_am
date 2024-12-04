@@ -22,6 +22,11 @@ public:
   static InputParameters validParams();
 
   ReadFileIC(const InputParameters & parameters);
+  
+  /**
+   * Read file and store data
+   */
+  virtual void getFileData();
 
 protected:
 
@@ -46,4 +51,12 @@ protected:
   /// Number of elements along the x and y axes in the structured mesh
   const unsigned int _nx;
   const unsigned int _ny;
+
+  /// Phase field index used to select the column in the file
+  /// and total number of phase fields
+  const unsigned int _op;
+  const unsigned int _op_num;
+  
+  /// Data structure to store the information in the IC file
+  std::vector<std::vector<Real>> _IC_data;
 };
