@@ -993,13 +993,13 @@
 # bounds used to impose that damage can only grow
 [Bounds]
   [./irreversibility]
-    type = VariableOldValueBoundsAux
+    type = VariableOldValueBounds
     variable = bounds_dummy
     bounded_variable = c
     bound_type = lower
   [../]
   [./upper]
-    type = ConstantBoundsAux
+    type = ConstantBounds
     variable = bounds_dummy
     bounded_variable = c
     bound_type = upper
@@ -1167,8 +1167,8 @@
   
   solve_type = 'PJFNK'
 
-  petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart -pc_hypre_boomeramg_strong_threshold -pc_hypre_boomeramg_agg_nl -pc_hypre_boomeramg_agg_num_paths -pc_hypre_boomeramg_max_levels -pc_hypre_boomeramg_coarsen_type -pc_hypre_boomeramg_interp_type -pc_hypre_boomeramg_P_max -pc_hypre_boomeramg_truncfactor -pc_hypre_boomeramg_print_statistics'
-  petsc_options_value = 'hypre boomeramg 51 0.7 4 5 25 PMIS ext+i 2 0.3 0'
+  petsc_options_iname = '-pc_type  -snes_type'
+  petsc_options_value = 'lu vinewtonrsls'
 
   line_search = 'none'
 
