@@ -45,8 +45,11 @@ protected:
   std::string _ic_file_name;
   
   /// Element size in the structured mesh
-  /// assuming size along x and y are the same
+  /// size along x and y can be different
   const Real _element_size;
+  const bool _different_xy_element_size;
+  const Real _element_size_x;
+  const Real _element_size_y;
   
   /// Number of elements along the x and y axes in the structured mesh
   const unsigned int _nx;

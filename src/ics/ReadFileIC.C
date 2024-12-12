@@ -18,8 +18,10 @@ ReadFileIC::validParams()
       "ic_file_name",
       "Name of the file containing the initial conditions of a variable on a structured mesh. ");
   params.addParam<Real>("element_size", 1.0, "Element size in the structured mesh. ");
-  params.addParam<unsigned int>("nx", 1, "Number of elements along the x axis in the structured mesh. ");
-  params.addParam<unsigned int>("ny", 1, "Number of elements along the y axis in the structured mesh. ");
+  params.addParam<Real>("element_size_x", 1.0, "Element size along x in the structured mesh. ");
+  params.addParam<Real>("element_size_y", 1.0, "Element size along y in the structured mesh. ");
+  params.addParam<unsigned int>("nx", 1, "Number of nodes along the x axis in the structured mesh. ");
+  params.addParam<unsigned int>("ny", 1, "Number of nodes along the y axis in the structured mesh. ");
   params.addParam<unsigned int>("op", 0, "Phase field index used to select the column in the file. ");
   params.addRequiredParam<unsigned int>("op_num", "Specifies the total number of phase fields to create. ");
   return params;
@@ -29,6 +31,9 @@ ReadFileIC::ReadFileIC(const InputParameters & parameters)
   : InitialCondition(parameters),
   _ic_file_name(getParam<FileName>("ic_file_name")),
   _element_size(getParam<Real>("element_size")),
+  _different_xy_element_size(isParamValid("element_size_x") && isParamValid("element_size_y")),
+  _element_size_x(getParam<Real>("element_size_x")),
+  _element_size_y(getParam<Real>("element_size_y")),
   _nx(getParam<unsigned int>("nx")),
   _ny(getParam<unsigned int>("ny")),
   _op(getParam<unsigned int>("op")),
@@ -40,14 +45,25 @@ ReadFileIC::ReadFileIC(const InputParameters & parameters)
 Real
 ReadFileIC::value(const Point & p)
 {
-  unsigned int element_index;
+  unsigned int node_index;
+  Real element_size_x;
+  Real element_size_y;
+  
+  // check if mesh has different element sizes in x and y directions
+  if (_different_xy_element_size) {
+    element_size_x = _element_size_x;
+    element_size_y = _element_size_y;
+  } else {
+    element_size_x = _element_size;
+    element_size_y = _element_size;
+  }
   
   // p(0) p(1) p(2) are the three coordinates of the point
   // Retrieve element index (0-based) from node coordinate  
-  element_index = std::floor(p(0) / _element_size) + _nx * std::floor(p(1) / _element_size);
+  node_index = std::floor(p(0) / element_size_x) + _nx * std::floor(p(1) / element_size_y);
   
   // Retrieve the value of the variable from data structure
-  return _IC_data[element_index][_op];
+  return _IC_data[node_index][_op];
 }
 
 RealGradient
