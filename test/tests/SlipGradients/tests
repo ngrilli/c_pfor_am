@@ -13,6 +13,12 @@
     exodiff = 'polycrystal_slip_grad_out.e'
 	heavy = false
   [../]
+  [./polycrystal_slip_without_gradients]
+    type = 'Exodiff'
+    input = 'polycrystal_slip_without_gradients.i'
+    exodiff = 'polycrystal_slip_without_gradients_out.e'
+	heavy = false
+  [../]
   [./polycrystal_initial_GND]
     type = 'Exodiff'
     input = 'polycrystal_initial_GND.i'

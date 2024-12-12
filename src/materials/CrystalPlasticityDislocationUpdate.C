@@ -158,10 +158,11 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
                                : nullptr),
 									
     // Directional derivatives of the slip rate
-    _dslip_increment_dedge(isParamValid("dslip_increment_dedge")
+    _include_slip_gradients(isParamValid("dslip_increment_dedge") && isParamValid("dslip_increment_dscrew")),
+    _dslip_increment_dedge(_include_slip_gradients
                             ? coupledArrayValue("dslip_increment_dedge")
                             : _default_array_value_zero),
-    _dslip_increment_dscrew(isParamValid("dslip_increment_dscrew")
+    _dslip_increment_dscrew(_include_slip_gradients
                             ? coupledArrayValue("dslip_increment_dscrew")
                             : _default_array_value_zero),
 	
@@ -651,12 +652,14 @@ CrystalPlasticityDislocationUpdate::calculateStateVariableEvolutionRateComponent
   }
   
   // GND dislocation density increment
-  for (const auto i : make_range(_number_slip_systems)) 
-  {
+  if (_include_slip_gradients) {
+    for (const auto i : make_range(_number_slip_systems))
+    {
 
     _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
     _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
-		
+
+    }
   }
   
   // backstress increment
