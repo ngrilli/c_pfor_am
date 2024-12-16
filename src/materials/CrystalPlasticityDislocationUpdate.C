@@ -223,7 +223,7 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
 	
 	}
 	
-	_backstress[_qp][i] = 0.0;	
+	_backstress[_qp][i] = 0.0;
   }
  
   // Critical resolved shear stress decreases exponentially with temperature
@@ -439,6 +439,11 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     _slip_increment[_qp][i] = _ao * std::pow(stress_ratio, 1.0 / xm);
         
     if (_creep_activated) { // add creep rate
+      
+      if (_creep_resistance_function) {
+        stress_ratio = std::abs(effective_stress / _creep_resistance_function->value(_t, _q_point[_qp]));
+      }
+      
       _slip_increment[_qp][i] += creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * tertiary_creep;
     }
       
@@ -555,6 +560,9 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
   // Tertiary creep contribution
   Real tertiary_creep = 1.0;
   
+  // Creep resistance
+  Real creep_resistance;
+  
   if (_t > _creep_t0 && _creep_activated) {
     tertiary_creep += std::pow((_t - _creep_t0)/_creep_t_denominator, _m_exponent);
   }
@@ -601,10 +609,17 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
                       
       if (_creep_activated) {
 
+        if (_creep_resistance_function) {
+          creep_resistance = _creep_resistance_function->value(_t, _q_point[_qp]);
+          stress_ratio = std::abs(effective_stress / creep_resistance);
+        } else {
+          creep_resistance = _slip_resistance[_qp][i];
+        }
+
         dslip_dtau[i] += creep_ao / _creep_xm * std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-                         _slip_resistance[_qp][i] * tertiary_creep;
+                         creep_resistance * tertiary_creep;
       }
-	}
+    }
   }
 }
 
@@ -615,9 +630,6 @@ CrystalPlasticityDislocationUpdate::areConstitutiveStateVariablesConverged()
                                               _rho_ssd_before_update,
                                               _previous_substep_rho_ssd,
                                               _rho_tol);
-
-  // How do we check the tolerance of GNDs and is it needed?
-											  
 }
 
 void
