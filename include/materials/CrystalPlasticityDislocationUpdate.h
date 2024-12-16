@@ -1,6 +1,7 @@
 // Daijun Hu
 // National University of Singapore
 // Nicolò Grilli
+// Trim Tali
 // University of Bristol
 // 27 Marzo 2022
 
@@ -140,6 +141,10 @@ protected:
   // Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time
   // This is useful for an initial plastic deformation followed by creep load
   const Function * const _creep_ao_function;
+  
+  // Optional function for creep resistance. If provided, the creep resistance can be set as a function of time
+  // This is useful for differentiating resistance for slip and creep
+  const Function * const _creep_resistance_function;
   
   // Tertiary creep constants
   const Real _m_exponent;

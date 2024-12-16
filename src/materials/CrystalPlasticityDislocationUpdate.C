@@ -1,6 +1,7 @@
 // Daijun Hu
 // National University of Singapore
 // Nicolò Grilli
+// Trim Tali
 // University of Bristol
 // 27 Marzo 2022
 
@@ -29,6 +30,9 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<FunctionName>("creep_ao_function",
     "Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time. "
     "This is useful for an initial plastic deformation followed by creep load. ");
+  params.addParam<FunctionName>("creep_resistance_function",
+    "Optional function for creep resistance. If provided, the creep resistance can be set as a function of time. "
+    "This is useful for differentiating resistance for slip and creep. ");
   params.addParam<Real>("m_exponent", 0.0, "Exponent on time in power-law equation");
   params.addParam<Real>("creep_t0", 0.0, "Initial time for tertiary creep");
   params.addParam<Real>("creep_t_denominator", 1.0, "Denominator for the tertiary creep law");
@@ -87,6 +91,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _creep_xm(getParam<Real>("creep_xm")),
     _creep_ao_function(this->isParamValid("creep_ao_function")
                        ? &this->getFunction("creep_ao_function")
+                       : NULL),
+    _creep_resistance_function(this->isParamValid("creep_resistance_function")
+                       ? &this->getFunction("creep_resistance_function")
                        : NULL),
     _m_exponent(getParam<Real>("m_exponent")),
     _creep_t0(getParam<Real>("creep_t0")),
