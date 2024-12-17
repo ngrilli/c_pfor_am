@@ -123,6 +123,10 @@ protected:
   const bool _include_xm_matprop;
   const MaterialProperty<Real> * _xm_matprop;
   
+  // Optional function for slip prefactor. If provided, the slip prefactor can be set as a function of time
+  // This is useful for an initial plastic deformation followed by creep load
+  const Function * const _ao_function;
+  
   // Use Kocks 1976 temperature dependence for xm
   // this is equation (19) in
   // E.D. Cyr et al.

@@ -23,6 +23,9 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
   params.addParam<MaterialPropertyName>("xm_matprop",
     "Optional xm material property for exponent for slip rate. ");
+  params.addParam<FunctionName>("ao_function",
+    "Optional function for slip prefactor. If provided, the slip prefactor can be set as a function of time. "
+    "This is useful for an initial plastic deformation followed by creep load. ");
   params.addParam<bool>("use_kocks_T_dependence_for_xm", false, "Use Kocks 1976 temperature dependence for xm. ");
   params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
@@ -85,6 +88,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _xm_matprop(_include_xm_matprop
                 ? &getMaterialProperty<Real>("xm_matprop")
                 : nullptr),
+    _ao_function(this->isParamValid("ao_function")
+                ? &this->getFunction("ao_function")
+                : NULL),
     _use_kocks_T_dependence_for_xm(getParam<bool>("use_kocks_T_dependence_for_xm")),
     _creep_activated(getParam<bool>("creep_activated")),
     _creep_ao(getParam<Real>("creep_ao")),
@@ -394,6 +400,10 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
   // Difference between RSS and backstress
   // temporary variable for each slip system
   Real effective_stress;
+  
+  // Slip prefactor: if function is not given
+  // the constant value is used
+  Real ao;
   
   // Creep prefactor: if function is not given
   // the constant value is used
