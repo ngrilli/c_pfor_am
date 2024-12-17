@@ -416,6 +416,16 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     tertiary_creep += std::pow((_t - _creep_t0)/_creep_t_denominator, _m_exponent);
   }
   
+  if (_ao_function) {
+	  
+    ao = _ao_function->value(_t, _q_point[_qp]);
+	  
+  } else {
+	  
+    ao = _ao;
+	  
+  }  
+  
   if (_creep_ao_function) {
 	  
     creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
@@ -446,7 +456,7 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
-    _slip_increment[_qp][i] = _ao * std::pow(stress_ratio, 1.0 / xm);
+    _slip_increment[_qp][i] = ao * std::pow(stress_ratio, 1.0 / xm);
         
     if (_creep_activated) { // add creep rate
       
@@ -563,6 +573,10 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
   // temporary variable for each slip system
   Real effective_stress;
   
+  // Slip prefactor: if function is not given
+  // the constant value is used
+  Real ao;
+  
   // Creep prefactor: if function is not given
   // the constant value is used
   Real creep_ao;
@@ -576,6 +590,16 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
   if (_t > _creep_t0 && _creep_activated) {
     tertiary_creep += std::pow((_t - _creep_t0)/_creep_t_denominator, _m_exponent);
   }
+  
+  if (_ao_function) {
+	  
+    ao = _ao_function->value(_t, _q_point[_qp]);
+	  
+  } else {
+	  
+    ao = _ao;
+	  
+  }  
   
   if (_creep_ao_function) {
 	  
@@ -613,7 +637,7 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
 		
 	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
-      dslip_dtau[i] = _ao / xm *
+      dslip_dtau[i] = ao / xm *
                       std::pow(stress_ratio, 1.0 / xm - 1.0) /
                       _slip_resistance[_qp][i];
                       
