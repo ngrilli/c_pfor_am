@@ -403,7 +403,7 @@ CrystalPlasticityDislocationUpdateAluminum::calculateSlipRate()
   } else {
 	  
     mu_f = _elasticity_tensor[_qp](1, 2, 1, 2);
-    eta_f = 0.5 * (_elasticity_tensor[_qp](0, 0, 0, 0) -  _elasticity_tensor[_qp](0, 0, 1, 1));
+    eta_f = 0.5 * (_elasticity_tensor[_qp](0, 0, 0, 0) - _elasticity_tensor[_qp](0, 0, 1, 1));
     xm_temp = 9 *_xm_cali * k_b *_temperature[_qp] / (_burgers_vector_mag * _burgers_vector_mag * _burgers_vector_mag * sqrt(mu_f * eta_f));
   
     if (_temperature[_qp] < _melting_temperature_high) {
