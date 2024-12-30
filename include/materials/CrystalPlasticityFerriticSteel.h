@@ -217,6 +217,12 @@ protected:
 
   // Tolerance on dislocation density update
   const Real _rho_tol;
+  
+  // Yield point phenomenon
+  const bool _yield_point_phenomenon_activated;
+  const Real _ypp_prefactor;
+  const Real _ypp_average_strain;
+  const Real _ypp_strain_amplitude;
 
   // State variables
   MaterialProperty<std::vector<Real>> & _rho_ssd;
@@ -267,6 +273,9 @@ protected:
   std::vector<Real> _rho_gnd_screw_before_update;
   std::vector<Real> _C_DL_before_update;
   std::vector<Real> _C_SC_before_update;
+  
+  /// Cumulative effective plastic strain
+  const MaterialProperty<Real> & _epsilon_p_eff_cum;
 
   /**
    * Flag to include the total twin volume fraction in the plastic velocity
