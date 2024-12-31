@@ -226,6 +226,13 @@ protected:
   /// therefore another material property _pk2_damaged for the damaged stress is required
   MaterialProperty<RankTwoTensor> & _pk2_damaged;
   
+  /// cumulative effective small plastic strain
+  MaterialProperty<Real> & _epsilon_p_eff_cum;
+  const MaterialProperty<Real> & _epsilon_p_eff_cum_old;
+  
+  /// used to update _epsilon_p_eff_cum
+  RankTwoTensor _equivalent_slip_increment;
+  
   /// Volumetric thermal expansion
   Real _volumetric_thermal_expansion;
   
