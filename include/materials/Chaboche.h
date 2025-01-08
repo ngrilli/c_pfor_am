@@ -22,6 +22,10 @@ public:
 protected:
   virtual void computeQpStress();
   virtual void initQpStatefulProperties();
+  
+  virtual RankTwoTensor computeTrialStress(const RankTwoTensor & plastic_strain_old,
+                                           RankTwoTensor & total_strain,
+                                           const RankFourTensor & E_ijkl);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
@@ -33,8 +37,11 @@ protected:
 
   // The stress tensor at previous time step
   const MaterialProperty<RankTwoTensor> & _stress_old;
+  
+  // epsilon_n
+  const MaterialProperty<RankTwoTensor> & _total_strain_old;
 
-  // delta epsilon
+  // delta epsilon_{n+1}
   const MaterialProperty<RankTwoTensor> & _strain_increment;
   
   // Rotation increment in small strain formulation

@@ -26,6 +26,7 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _eqv_plastic_strain(declareProperty<Real>(_base_name + "eqv_plastic_strain")),
     _eqv_plastic_strain_old(getMaterialPropertyOld<Real>(_base_name + "eqv_plastic_strain")),
     _stress_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "stress")),
+    _total_strain_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "total_strain")),
     _strain_increment(getMaterialProperty<RankTwoTensor>(_base_name + "strain_increment")),
     _rotation_increment(getMaterialProperty<RankTwoTensor>(_base_name + "rotation_increment")),
     _elasticity_tensor_name(_base_name + "elasticity_tensor"),
@@ -60,4 +61,13 @@ Chaboche::computeQpStress()
   //_elastic_strain[_qp] = _mechanical_strain[_qp] - _plastic_strain[_qp];
 
   _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
+}
+
+// Equation (24)
+RankTwoTensor
+Chaboche::computeTrialStress(const RankTwoTensor & plastic_strain_old,
+                             RankTwoTensor & total_strain,
+                             const RankFourTensor & E_ijkl)
+{
+  return E_ijkl * (total_strain - plastic_strain_old);
 }
