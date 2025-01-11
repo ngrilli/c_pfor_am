@@ -222,6 +222,7 @@ protected:
   
   // Directional derivative of the slip rate along the edge dislocation motion direction
   // and along the screw dislocation motion direction
+  const bool _include_slip_gradients;
   const ArrayVariableValue & _dslip_increment_dedge;
   const ArrayVariableValue & _dslip_increment_dscrew;
   
