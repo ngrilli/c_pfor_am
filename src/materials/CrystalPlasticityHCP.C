@@ -661,10 +661,12 @@ CrystalPlasticityHCP::calculateStateVariableEvolutionRateComponent()
   }
   
   // GND dislocation density increment
-  for (const auto i : make_range(_number_slip_systems)) 
-  {
-    _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_vec[i];
-    _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_vec[i];	
+  if (_include_slip_gradients) {
+    for (const auto i : make_range(_number_slip_systems)) 
+    {
+      _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_vec[i];
+      _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_vec[i];	
+    }
   }
   
   // backstress increment
