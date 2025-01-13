@@ -79,55 +79,110 @@ CrystalPlasticityHCP::validParams()
 CrystalPlasticityHCP::CrystalPlasticityHCP(const InputParameters & parameters)
   : CrystalPlasticityDislocationUpdateBase(parameters),
   
-    // Constitutive model parameters
-    _ao(getParam<Real>("ao")),
-    _xm(getParam<Real>("xm")),
-    _include_xm_matprop(parameters.isParamValid("xm_matprop")),
-    _xm_matprop(_include_xm_matprop
-                ? &getMaterialProperty<Real>("xm_matprop")
-                : nullptr),
-    _creep_ao(getParam<Real>("creep_ao")),
-    _creep_xm(getParam<Real>("creep_xm")),
-    _creep_ao_function(this->isParamValid("creep_ao_function")
-                       ? &this->getFunction("creep_ao_function")
-                       : NULL),
-    _cap_slip_increment(getParam<bool>("cap_slip_increment")),
-	_burgers_vector_mag_1(getParam<Real>("burgers_vector_mag_1")),
-    _burgers_vector_mag_2(getParam<Real>("burgers_vector_mag_2")),
-    _burgers_vector_vec(_number_slip_systems, 0.0),
-	_shear_modulus(getParam<Real>("shear_modulus")),
-	_alpha_0(getParam<Real>("alpha_0")),
-    _a_self(getParam<Real>("a_self")),
-    _a_latent(getParam<Real>("a_latent")),
-    _tau_c_0_scaling(getParam<Real>("tau_c_0_scaling")),
-	_tau_c_0_basal(getParam<Real>("tau_c_0_basal")),
-    _tau_c_0_pris(getParam<Real>("tau_c_0_pris")),
-    _tau_c_0_pyra(getParam<Real>("tau_c_0_pyra")),
-    _tau_c_0_1stpy(getParam<Real>("tau_c_0_1stpy")),
-    _tau_c_0_2ndpy(getParam<Real>("tau_c_0_2ndpy")),
-	_k_0(getParam<Real>("k_0")),
-	_y_c(getParam<Real>("y_c")),
-	
-	// Backstress parameters
-	_h(getParam<Real>("h")),
-	_h_D(getParam<Real>("h_D")),
-	
-	// Initial values of the state variables
-    _init_rho_ssd(getParam<Real>("init_rho_ssd")),
-    _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
-    _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
-	
-	// Tolerance on dislocation density update
-	_rho_tol(getParam<Real>("rho_tol")),
-	
-	// State variables of the dislocation model
-    _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
-    _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
-    _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
-   	_rho_gnd_edge_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_edge")),
-  	_rho_gnd_screw(declareProperty<std::vector<Real>>("rho_gnd_screw")),
-    _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
+  // Constitutive model parameters
+  _ao(getParam<Real>("ao")),
+  _xm(getParam<Real>("xm")),
+  _include_xm_matprop(parameters.isParamValid("xm_matprop")),
+  _xm_matprop(_include_xm_matprop
+              ? &getMaterialProperty<Real>("xm_matprop")
+              : nullptr),
+  _creep_ao(getParam<Real>("creep_ao")),
+  _creep_xm(getParam<Real>("creep_xm")),
+  _creep_ao_function(this->isParamValid("creep_ao_function")
+                     ? &this->getFunction("creep_ao_function")
+                     : NULL),
+  _cap_slip_increment(getParam<bool>("cap_slip_increment")),
+  _burgers_vector_mag_1(getParam<Real>("burgers_vector_mag_1")),
+  _burgers_vector_mag_2(getParam<Real>("burgers_vector_mag_2")),
+  _burgers_vector_vec(_number_slip_systems, 0.0),
+  _shear_modulus(getParam<Real>("shear_modulus")),
+  _alpha_0(getParam<Real>("alpha_0")),
+  _a_self(getParam<Real>("a_self")),
+  _a_latent(getParam<Real>("a_latent")),
+  _tau_c_0_scaling(getParam<Real>("tau_c_0_scaling")),
+  _tau_c_0_basal(getParam<Real>("tau_c_0_basal")),
+  _tau_c_0_pris(getParam<Real>("tau_c_0_pris")),
+  _tau_c_0_pyra(getParam<Real>("tau_c_0_pyra")),
+  _tau_c_0_1stpy(getParam<Real>("tau_c_0_1stpy")),
+  _tau_c_0_2ndpy(getParam<Real>("tau_c_0_2ndpy")),
+  _k_0(getParam<Real>("k_0")),
+  _y_c(getParam<Real>("y_c")),
     
+  // Backstress parameters
+  _h(getParam<Real>("h")),
+  _h_D(getParam<Real>("h_D")),
+  
+  // Initial values of the state variables
+  _init_rho_ssd(getParam<Real>("init_rho_ssd")),
+  _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
+  _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
+    
+  // Tolerance on dislocation density update
+  _rho_tol(getParam<Real>("rho_tol")),
+    
+  // State variables of the dislocation model
+  _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
+  _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
+  _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
+  _rho_gnd_edge_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_edge")),
+  _rho_gnd_screw(declareProperty<std::vector<Real>>("rho_gnd_screw")),
+  _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
+    
+  // Backstress variable
+  _backstress(declareProperty<std::vector<Real>>("backstress")),
+  _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
+
+  // increments of state variables
+  _rho_ssd_increment(_number_slip_systems, 0.0),
+  _rho_gnd_edge_increment(_number_slip_systems, 0.0),
+  _rho_gnd_screw_increment(_number_slip_systems, 0.0),
+  _backstress_increment(_number_slip_systems, 0.0),
+    
+  // resize local caching vectors used for substepping
+  _previous_substep_rho_ssd(_number_slip_systems, 0.0),
+  _previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
+  _previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
+  _previous_substep_backstress(_number_slip_systems, 0.0),
+  _rho_ssd_before_update(_number_slip_systems, 0.0),
+  _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
+  _rho_gnd_screw_before_update(_number_slip_systems, 0.0),      
+  _backstress_before_update(_number_slip_systems, 0.0),
+
+  // Twinning contributions, if used
+  _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
+  _twin_volume_fraction_total(_include_twinning_in_Lp
+                                  ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
+                                  : nullptr),
+
+  // UserObject to read the initial GND density from file                        
+  _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
+                             ? &getUserObject<ElementPropertyReadFile>("read_initial_gnd_density")
+                             : nullptr),
+                                    
+  // Directional derivatives of the slip rate
+  _include_slip_gradients(isParamValid("dslip_increment_dedge") && isParamValid("dslip_increment_dscrew")),
+  _dslip_increment_dedge(_include_slip_gradients
+                          ? coupledArrayValue("dslip_increment_dedge")
+                          : _default_array_value_zero),
+  _dslip_increment_dscrew(_include_slip_gradients
+                          ? coupledArrayValue("dslip_increment_dscrew")
+                          : _default_array_value_zero),
+    
+  // Temperature dependent properties
+  _temperature(coupledValue("temperature")),
+  _reference_temperature(getParam<Real>("reference_temperature")),
+  _dCRSS_dT_A_pris(getParam<Real>("dCRSS_dT_A_pris")),
+  _dCRSS_dT_B_pris(getParam<Real>("dCRSS_dT_B_pris")),
+  _dCRSS_dT_C_pris(getParam<Real>("dCRSS_dT_C_pris")),
+  _dCRSS_dT_A_pyra(getParam<Real>("dCRSS_dT_A_pyra")),
+  _dCRSS_dT_B_pyra(getParam<Real>("dCRSS_dT_B_pyra")),
+  _dCRSS_dT_C_pyra(getParam<Real>("dCRSS_dT_C_pyra")),
+
+  // store edge and screw slip directions to calculate directional derivatives
+  // of the plastic slip rate    
+  _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
+  _screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")),
+
     // Backstress variable
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
@@ -209,20 +264,20 @@ CrystalPlasticityHCP::initQpStatefulProperties()
   for (const auto i : make_range(_number_slip_systems))
   {
     _rho_ssd[_qp][i] = _init_rho_ssd;
-	
-	if (_read_initial_gnd_density) { // Read initial GND density from file
-	
+    
+    if (_read_initial_gnd_density) { // Read initial GND density from file
+    
     _rho_gnd_edge[_qp][i] = _read_initial_gnd_density->getData(_current_elem, i);
-	_rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
-	
-	} else { // Initialize uniform GND density
-		
+    _rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
+    
+    } else { // Initialize uniform GND density
+        
     _rho_gnd_edge[_qp][i] = _init_rho_gnd_edge;
     _rho_gnd_screw[_qp][i] = _init_rho_gnd_screw;
-	
-	}
-	
-	_backstress[_qp][i] = 0.0;
+    
+    }
+    
+    _backstress[_qp][i] = 0.0;
   }
 
   // Critical resolved shear stress decreases exponentially with temperature
@@ -238,23 +293,23 @@ CrystalPlasticityHCP::initQpStatefulProperties()
   for (const auto i : make_range(_number_slip_systems))
   {
     if (i < 3) {
-	  _slip_resistance[_qp][i] = _tau_c_0_basal * _tau_c_0_scaling;
+      _slip_resistance[_qp][i] = _tau_c_0_basal * _tau_c_0_scaling;
       _burgers_vector_vec[i] = _burgers_vector_mag_1;
     }
     else if (i < 6) {
-	  _slip_resistance[_qp][i] = _tau_c_0_pris * _tau_c_0_scaling;
+      _slip_resistance[_qp][i] = _tau_c_0_pris * _tau_c_0_scaling;
       _burgers_vector_vec[i] = _burgers_vector_mag_1;
     }
     else if (i < 12) {
-	  _slip_resistance[_qp][i] = _tau_c_0_pyra * _tau_c_0_scaling;
+      _slip_resistance[_qp][i] = _tau_c_0_pyra * _tau_c_0_scaling;
       _burgers_vector_vec[i] = _burgers_vector_mag_1;
     }
     else if (i < 24) {
-	  _slip_resistance[_qp][i] = _tau_c_0_1stpy * _tau_c_0_scaling;
+      _slip_resistance[_qp][i] = _tau_c_0_1stpy * _tau_c_0_scaling;
       _burgers_vector_vec[i] = _burgers_vector_mag_2;
     }
     else {
-	  _slip_resistance[_qp][i] = _tau_c_0_2ndpy * _tau_c_0_scaling;
+      _slip_resistance[_qp][i] = _tau_c_0_2ndpy * _tau_c_0_scaling;
       _burgers_vector_vec[i] = _burgers_vector_mag_2;
     }
   }
@@ -262,31 +317,31 @@ CrystalPlasticityHCP::initQpStatefulProperties()
   for (const auto i : make_range(_number_slip_systems))
   {
     taylor_hardening = 0.0;
-	  
+      
     for (const auto j : make_range(_number_slip_systems))
     {
       if (i == j) { // self hardening
 
-	    taylor_hardening += (_a_self * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j]))); 
-		  
-	  } else { // latent hardening
-	  
-	    taylor_hardening += (_a_latent * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));	  
-		  
-	  }
+        taylor_hardening += (_a_self * (_rho_ssd[_qp][j] 
+                  + std::abs(_rho_gnd_edge[_qp][j])
+                  + std::abs(_rho_gnd_screw[_qp][j]))); 
+          
+      } else { // latent hardening
+      
+        taylor_hardening += (_a_latent * (_rho_ssd[_qp][j] 
+                  + std::abs(_rho_gnd_edge[_qp][j])
+                  + std::abs(_rho_gnd_screw[_qp][j])));      
+          
+      }
     }
-	
+    
     if (i < 12) {
       _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
-	                           * std::sqrt(taylor_hardening) * temperature_dependence_pris);
+                               * std::sqrt(taylor_hardening) * temperature_dependence_pris);
     }
     else {
       _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
-	                           * std::sqrt(taylor_hardening) * temperature_dependence_pyra);
+                               * std::sqrt(taylor_hardening) * temperature_dependence_pyra);
     }
   }
 
@@ -352,25 +407,25 @@ CrystalPlasticityHCP::calculateSchmidTensor(
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   
   for (const auto i : make_range(_number_slip_systems)) {
-	for (const auto j : make_range(LIBMESH_DIM)) {
-	  _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = local_direction_vector[i](j);
-	} 
+    for (const auto j : make_range(LIBMESH_DIM)) {
+      _edge_slip_direction[_qp][i * LIBMESH_DIM + j] = local_direction_vector[i](j);
+    } 
   }
   
   for (const auto i : make_range(_number_slip_systems)) {
     for (const auto j : make_range(LIBMESH_DIM)) {
-	  // assign temporary slip direction and normal for this slip system
+      // assign temporary slip direction and normal for this slip system
       temp_mo(j) = local_direction_vector[i](j);
-	  temp_no(j) = local_plane_normal[i](j);
+      temp_no(j) = local_plane_normal[i](j);
     }  
-	
-	// calculate screw slip direction for this slip system
-	// and store it in the screw slip direction vector
-	temp_screw_mo = temp_mo.cross(temp_no);
-	
-	for (const auto j : make_range(LIBMESH_DIM)) {
-	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
-	}
+    
+    // calculate screw slip direction for this slip system
+    // and store it in the screw slip direction vector
+    temp_screw_mo = temp_mo.cross(temp_no);
+    
+    for (const auto j : make_range(LIBMESH_DIM)) {
+      _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
+    }
   }
   
 }
@@ -421,13 +476,13 @@ CrystalPlasticityHCP::calculateSlipRate()
   Real creep_ao;
   
   if (_creep_ao_function) {
-	  
+      
     creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
-	  
+      
   } else {
-	  
+      
     creep_ao = _creep_ao;
-	  
+      
   }
   
   // Strain rate sensitivity: if material property is not given
@@ -435,13 +490,13 @@ CrystalPlasticityHCP::calculateSlipRate()
   Real xm;
   
   if (_include_xm_matprop) {
-	  
-    xm = (*_xm_matprop)[_qp];	  
-	  
+      
+    xm = (*_xm_matprop)[_qp];      
+      
   } else {
-	  
+      
     xm = _xm;
-	  
+      
   }
   
   for (const auto i : make_range(_number_slip_systems))
@@ -459,17 +514,17 @@ CrystalPlasticityHCP::calculateSlipRate()
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
       if (_cap_slip_increment) {
-		  
+          
         _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i])
                                 / _substep_dt;
                                 
-	  } else if (_print_convergence_message) {
-		  
+      } else if (_print_convergence_message) {
+          
         mooseWarning("Maximum allowable slip increment exceeded ",
                      std::abs(_slip_increment[_qp][i]) * _substep_dt);
 
         return false;
-	  }
+      }
     }
   }
   return true;
@@ -503,31 +558,31 @@ CrystalPlasticityHCP::calculateSlipResistance()
     else {_slip_resistance[_qp][i] = _tau_c_0_2ndpy * _tau_c_0_scaling;}
 
     taylor_hardening = 0.0;
-	  
+      
     for (const auto j : make_range(_number_slip_systems))
     {
       if (i == j) { // self hardening
-	  
-	    // q_{ab} = 1.0 for self hardening
-	    taylor_hardening += (_a_self * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j]))); 
-		  
-	  } else { // latent hardening
-	  
-	    taylor_hardening += (_a_latent * (_rho_ssd[_qp][j] 
-		          + std::abs(_rho_gnd_edge[_qp][j])
-				  + std::abs(_rho_gnd_screw[_qp][j])));
-	  }
+      
+        // q_{ab} = 1.0 for self hardening
+        taylor_hardening += (_a_self * (_rho_ssd[_qp][j] 
+                  + std::abs(_rho_gnd_edge[_qp][j])
+                  + std::abs(_rho_gnd_screw[_qp][j]))); 
+          
+      } else { // latent hardening
+      
+        taylor_hardening += (_a_latent * (_rho_ssd[_qp][j] 
+                  + std::abs(_rho_gnd_edge[_qp][j])
+                  + std::abs(_rho_gnd_screw[_qp][j])));
+      }
     }
-	
+    
     if (i < 12) {
       _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
-	                           * std::sqrt(taylor_hardening) * temperature_dependence_pris);
+                               * std::sqrt(taylor_hardening) * temperature_dependence_pris);
     }
     else {
       _slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_vec[i]
-	                           * std::sqrt(taylor_hardening) * temperature_dependence_pyra);
+                               * std::sqrt(taylor_hardening) * temperature_dependence_pyra);
     }
   }
 }
@@ -568,48 +623,48 @@ CrystalPlasticityHCP::calculateConstitutiveSlipDerivative(
   Real creep_ao;
   
   if (_creep_ao_function) {
-	  
+      
     creep_ao = _creep_ao_function->value(_t, _q_point[_qp]);
-	  
+      
   } else {
-	  
+      
     creep_ao = _creep_ao;
-	  
-  }	
+      
+  }    
   
   // Strain rate sensitivity: if material property is not given
   // the constant value is used
   Real xm;
   
   if (_include_xm_matprop) {
-	  
-    xm = (*_xm_matprop)[_qp];	  
-	  
+      
+    xm = (*_xm_matprop)[_qp];      
+      
   } else {
-	  
+      
     xm = _xm;
-	  
+      
   }
-	
+    
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = _tau[_qp][i] - _backstress[_qp][i];	  
-	  
+    effective_stress = _tau[_qp][i] - _backstress[_qp][i];      
+      
     if (MooseUtils::absoluteFuzzyEqual(effective_stress, 0.0)) {
-		
+        
       dslip_dtau[i] = 0.0;
-      		
-	} else {
-		
-	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
+              
+    } else {
+        
+      stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
       dslip_dtau[i] = _ao / xm *
                       std::pow(stress_ratio, 1.0 / xm - 1.0) /
                       _slip_resistance[_qp][i]
                     + creep_ao / _creep_xm *
                       std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-                      _slip_resistance[_qp][i];		
-	}
+                      _slip_resistance[_qp][i];        
+    }
   }
 }
 
@@ -619,7 +674,7 @@ CrystalPlasticityHCP::areConstitutiveStateVariablesConverged()
   return isConstitutiveStateVariableConverged(_rho_ssd[_qp],
                                               _rho_ssd_before_update,
                                               _previous_substep_rho_ssd,
-                                              _rho_tol);											  
+                                              _rho_tol);                                              
 }
 
 void
@@ -653,20 +708,20 @@ CrystalPlasticityHCP::calculateStateVariableEvolutionRateComponent()
     rho_sum = _rho_ssd[_qp][i] + std::abs(_rho_gnd_edge[_qp][i]) + std::abs(_rho_gnd_screw[_qp][i]);
 
     // Multiplication and annihilation
-	// note that _slip_increment here is the rate
-	// and the rate equation gets multiplied by time step in updateStateVariables
-	// annihilation diameter: 2 y_c = 12 b
+    // note that _slip_increment here is the rate
+    // and the rate equation gets multiplied by time step in updateStateVariables
+    // annihilation diameter: 2 y_c = 12 b
     _rho_ssd_increment[i] = _k_0 * sqrt(rho_sum) - 12 * _burgers_vector_vec[i] * _rho_ssd[_qp][i];
     _rho_ssd_increment[i] *= std::abs(_slip_increment[_qp][i]) / _burgers_vector_vec[i];
   }
   
   // GND dislocation density increment
-  if (_include_slip_gradients) {
+  if (_include_slip_gradients) {    
     for (const auto i : make_range(_number_slip_systems)) 
-    {
-      _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_vec[i];
-      _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_vec[i];	
-    }
+      {
+        _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_vec[i];
+        _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_vec[i];    
+      }
   }
   
   // backstress increment
