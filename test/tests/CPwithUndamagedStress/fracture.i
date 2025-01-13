@@ -70,13 +70,13 @@
 # bounds used to impose that damage can only grow
 [Bounds]
   [./irreversibility]
-    type = VariableOldValueBoundsAux
+    type = VariableOldValueBounds
     variable = bounds_dummy
     bounded_variable = c
     bound_type = lower
   [../]
   [./upper]
-    type = ConstantBoundsAux
+    type = ConstantBounds
     variable = bounds_dummy
     bounded_variable = c
     bound_type = upper
@@ -139,14 +139,14 @@
   [./local_fracture_energy]
     type = DerivativeParsedMaterial
     f_name = local_fracture_energy
-    args = 'c'
+    coupled_variables = 'c'
     material_property_names = 'gc_prop l'
     function = 'c^2 * gc_prop / 2 / l'
     derivative_order = 2
   [../]
   [./fracture_driving_energy]
     type = DerivativeSumMaterial
-    args = c
+    coupled_variables = 'c elastic_energy'
     sum_materials = 'elastic_energy local_fracture_energy'
     derivative_order = 2
     f_name = F

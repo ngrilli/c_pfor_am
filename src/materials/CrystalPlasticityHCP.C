@@ -181,7 +181,62 @@ CrystalPlasticityHCP::CrystalPlasticityHCP(const InputParameters & parameters)
   // store edge and screw slip directions to calculate directional derivatives
   // of the plastic slip rate    
   _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
-  _screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
+  _screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")),
+
+    // Backstress variable
+    _backstress(declareProperty<std::vector<Real>>("backstress")),
+    _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
+
+    // increments of state variables
+    _rho_ssd_increment(_number_slip_systems, 0.0),
+    _rho_gnd_edge_increment(_number_slip_systems, 0.0),
+    _rho_gnd_screw_increment(_number_slip_systems, 0.0),
+    _backstress_increment(_number_slip_systems, 0.0),
+	
+	// resize local caching vectors used for substepping
+    _previous_substep_rho_ssd(_number_slip_systems, 0.0),
+	_previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
+	_previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
+	_previous_substep_backstress(_number_slip_systems, 0.0),
+    _rho_ssd_before_update(_number_slip_systems, 0.0),
+    _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
+    _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
+    _backstress_before_update(_number_slip_systems, 0.0),
+
+    // Twinning contributions, if used
+    _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
+    _twin_volume_fraction_total(_include_twinning_in_Lp
+                                    ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
+                                    : nullptr),
+
+    // UserObject to read the initial GND density from file						
+    _read_initial_gnd_density(isParamValid("read_initial_gnd_density")
+                               ? &getUserObject<ElementPropertyReadFile>("read_initial_gnd_density")
+                               : nullptr),
+									
+    // Directional derivatives of the slip rate
+    _include_slip_gradients(isParamValid("dslip_increment_dedge") && isParamValid("dslip_increment_dscrew")),
+    _dslip_increment_dedge(_include_slip_gradients
+                            ? coupledArrayValue("dslip_increment_dedge")
+                            : _default_array_value_zero),
+    _dslip_increment_dscrew(_include_slip_gradients
+                            ? coupledArrayValue("dslip_increment_dscrew")
+                            : _default_array_value_zero),
+                            
+    // Temperature dependent properties
+    _temperature(coupledValue("temperature")),
+    _reference_temperature(getParam<Real>("reference_temperature")),
+    _dCRSS_dT_A_pris(getParam<Real>("dCRSS_dT_A_pris")),
+    _dCRSS_dT_B_pris(getParam<Real>("dCRSS_dT_B_pris")),
+    _dCRSS_dT_C_pris(getParam<Real>("dCRSS_dT_C_pris")),
+    _dCRSS_dT_A_pyra(getParam<Real>("dCRSS_dT_A_pyra")),
+    _dCRSS_dT_B_pyra(getParam<Real>("dCRSS_dT_B_pyra")),
+    _dCRSS_dT_C_pyra(getParam<Real>("dCRSS_dT_C_pyra")),
+
+    // store edge and screw slip directions to calculate directional derivatives
+    // of the plastic slip rate	
+    _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
+	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
 {
 }
 

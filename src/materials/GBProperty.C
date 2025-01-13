@@ -4,6 +4,8 @@
 
 #include "GBProperty.h"
 
+registerMooseObject("c_pfor_amApp", GBProperty);
+
 template <bool is_ad>
 InputParameters
 GBPropertyTempl<is_ad>::validParams()

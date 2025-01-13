@@ -103,7 +103,11 @@ CrystalPlasticityUndamagedStress::CrystalPlasticityUndamagedStress(
     _use_snes_vi_solver(getParam<bool>("use_snes_vi_solver")),
     
     // _pk2 is the undamaged stress used for the crystal plasticity NR algorithm
-    _pk2_damaged(declareProperty<RankTwoTensor>("pk2_damaged"))
+    _pk2_damaged(declareProperty<RankTwoTensor>("pk2_damaged")),
+    
+    // cumulative effective small plastic strain
+    _epsilon_p_eff_cum(declareProperty<Real>("epsilon_p_eff_cum")),
+    _epsilon_p_eff_cum_old(getMaterialPropertyOld<Real>("epsilon_p_eff_cum"))
 {
   _convergence_failed = false;
 }
@@ -177,6 +181,9 @@ CrystalPlasticityUndamagedStress::initQpStatefulProperties()
   
   // Initialize history variable
   _H[_qp] = 0.0;
+  
+  // Initialize cumulative effective small plastic strain
+  _epsilon_p_eff_cum[_qp] = 0.0;
 }
 
 void
@@ -353,6 +360,13 @@ CrystalPlasticityUndamagedStress::postSolveQp(RankTwoTensor & cauchy_stress,
                   _elastic_deformation_gradient.transpose() / _elastic_deformation_gradient.det();
 
   calcTangentModuli(jacobian_mult);
+  
+  // update the cumulative effective small plastic strain
+  // equivalent_slip_increment in calculateResidual is Lp * dt
+  // use doubleContraction function and sqrt and factor 3/2
+  RankTwoTensor delta_epsilon_p;
+  delta_epsilon_p = 0.5 * (_equivalent_slip_increment + _equivalent_slip_increment.transpose());
+  _epsilon_p_eff_cum[_qp] = _epsilon_p_eff_cum_old[_qp] + std::sqrt((2.0/3.0) * delta_epsilon_p.doubleContraction(delta_epsilon_p));
   
   // Calculate increment of Fp over _dt
   _fp_increment[_qp] = _plastic_deformation_gradient[_qp] - _plastic_deformation_gradient_old[_qp];
@@ -601,6 +615,8 @@ CrystalPlasticityUndamagedStress::calculateResidual()
     _dislocation_models[i]->calculateEquivalentSlipIncrement(equivalent_slip_increment_per_model);
     equivalent_slip_increment += equivalent_slip_increment_per_model;
   }
+  
+  _equivalent_slip_increment = equivalent_slip_increment;
 
   RankTwoTensor residual_equivalent_slip_increment =
       RankTwoTensor::Identity() - equivalent_slip_increment;

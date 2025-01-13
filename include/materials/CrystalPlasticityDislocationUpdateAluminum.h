@@ -1,16 +1,14 @@
 // Daijun Hu
 // National University of Singapore
-// Nicolò Grilli
-// Trim Tali
-// University of Bristol
-// 27 Marzo 2022
+// 22 May 2024
 
 #pragma once
 
 #include "CrystalPlasticityDislocationUpdateBase.h"
 #include "ElementPropertyReadFile.h"
+#include "ComputeElasticityTensorCPGrain.h"
 
-class CrystalPlasticityDislocationUpdate;
+class CrystalPlasticityDislocationUpdateAluminum;
 
 /**
  * CrystalPlasticityDislocationUpdate uses the multiplicative decomposition of the
@@ -19,15 +17,18 @@ class CrystalPlasticityDislocationUpdate;
  * variables are updated using an interative predictor-corrector algorithm.
  * Backward Euler integration rule is used for the rate equations.
  * Dislocation based model for crystal plasticity.
- * Slip, creep and backstress are included 
+ * Slip, creep and backstress are included. 
+ * Modified for AM aluminum alloys
+ * using a specific temperature dependence of the CRSS and strain rate sensitivity.
  */
 
-class CrystalPlasticityDislocationUpdate : public CrystalPlasticityDislocationUpdateBase
+class CrystalPlasticityDislocationUpdateAluminum : public CrystalPlasticityDislocationUpdateBase
 {
 public:
   static InputParameters validParams();
 
-  CrystalPlasticityDislocationUpdate(const InputParameters & parameters);
+ CrystalPlasticityDislocationUpdateAluminum(const InputParameters & parameters);
+
 
 protected:
   /**
@@ -48,7 +49,6 @@ protected:
                              std::vector<RankTwoTensor> & schmid_tensor,
                              const RankTwoTensor & crysrot);
 
-
   /**
    * Sets the value of the current and previous substep iteration slip system
    * resistance to the old value at the start of the PK2 stress convergence
@@ -64,12 +64,6 @@ protected:
    */
   virtual void setSubstepConstitutiveVariableValues() override;
 
-  /**
-   * Stores the current value of the slip system resistance into a separate
-   * material property in case substepping is needed.
-   */
-  virtual void updateSubstepConstitutiveVariableValues() override;
-
   virtual bool calculateSlipRate() override;
   
   virtual void calculateSlipResistance();
@@ -78,8 +72,20 @@ protected:
   calculateEquivalentSlipIncrement(RankTwoTensor & /*equivalent_slip_increment*/) override;
 
   virtual void calculateConstitutiveSlipDerivative(std::vector<Real> & dslip_dtau) override;
+  
+  /**
+   * Determines if the state variables, e.g. defect densities, have converged
+   * by comparing the change in the values over the iteration period.
+   */
+  virtual bool areConstitutiveStateVariablesConverged() override;
 
-  // Cache the slip system value before the update for the diff in the convergence check
+  /**
+   * Stores the current value of the slip system resistance into a separate
+   * material property in case substepping is needed.
+   */
+  virtual void updateSubstepConstitutiveVariableValues() override;
+
+  /// Cache the slip system value before the update for the diff in the convergence check
   virtual void cacheStateVariablesBeforeUpdate() override;
 
   /**
@@ -93,109 +99,80 @@ protected:
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
   
-  // Armstrong-Frederick update of the backstress
+  /// Armstrong-Frederick update of the backstress
   virtual void ArmstrongFrederickBackstressUpdate();
 
-  /*
+  /**
    * Finalizes the values of the state variables and slip system resistance
    * for the current timestep after convergence has been reached.
    */
   virtual bool updateStateVariables() override;
 
-  /*
-   * Determines if the state variables, e.g. defect densities, have converged
-   * by comparing the change in the values over the iteration period.
-   */
-  virtual bool areConstitutiveStateVariablesConverged() override;
-
-  // Variables used in
-  // Eralp Demir, Ivan Gutierrez-Urrutia
-  // Investigation of strain hardening near grain boundaries of an aluminum oligocrystal: 
-  // Experiments and crystal based finite element method
-  // International Journal of Plasticity
-  // Volume 136, January 2021, 102898
+  /// Variables used in
+  /// Eralp Demir, Ivan Gutierrez-Urrutia
+  /// Investigation of strain hardening near grain boundaries of an aluminum oligocrystal: 
+  /// Experiments and crystal based finite element method
+  /// International Journal of Plasticity
+  /// Volume 136, January 2021, 102898
   
-  // Slip rate constants
+  /// Slip rate constants
   const Real _ao;
   const Real _xm;
   
-  // Optional xm material property for exponent for slip rate
+  /// Optional xm material property for exponent for slip rate
   const bool _include_xm_matprop;
   const MaterialProperty<Real> * _xm_matprop;
   
-  // Optional function for slip prefactor. If provided, the slip prefactor can be set as a function of time
-  // This is useful for an initial plastic deformation followed by creep load
-  const Function * const _ao_function;
-  
-  // Use Kocks 1976 temperature dependence for xm
-  // this is equation (19) in
-  // E.D. Cyr et al.
-  // A three dimensional (3D) thermo-elasto-viscoplastic constitutive model for FCC polycrystals
-  // International Journal of Plasticity 70 (2015) 166-190
-  // https://www.sciencedirect.com/science/article/pii/S0749641915000571
-  bool _use_kocks_T_dependence_for_xm;
-  
-  // Activate creep strain rate
-  bool _creep_activated;
-  
-  // Creep rate constants
+  /// Creep rate constants
   const Real _creep_ao;
   const Real _creep_xm;
+ 
+  /// Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time
+  /// This is useful for an initial plastic deformation followed by creep load
+  const Function * const _creep_ao_function;  
   
-  // Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time
-  // This is useful for an initial plastic deformation followed by creep load
-  const Function * const _creep_ao_function;
-  
-  // Optional function for creep resistance. If provided, the creep resistance can be set as a function of time
-  // This is useful for differentiating resistance for slip and creep
-  const Function * const _creep_resistance_function;
-  
-  // Tertiary creep constants
-  const Real _m_exponent;
-  const Real _creep_t0;
-  const Real _creep_t_denominator;
-  
-  // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
-  const bool _cap_slip_increment;
+  /// Upper limit of xm 
+  const Real _xm_max;
+  /// Coefficient to calibrate xm at room temperature
+  const Real _xm_cali;
 
-  // Magnitude of the Burgers vector
+  /// Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
   
-  // Shear modulus in Taylor hardening law G
+  /// Shear modulus in Taylor hardening law G
   const Real _shear_modulus;
   
-  // Prefactor of Taylor hardening law, alpha
+  /// Prefactor of Taylor hardening law, alpha
   const Real _alpha_0;
   
-  // Latent hardening coefficient
+  /// Latent hardening coefficient
   const Real _r;
   
-  // Peierls stress
+  /// Peierls stress
   const Real _tau_c_0;
   
-  // Optional function for Peierls stress. If provided, the Peierls stress can be set as a function of time
-  // This is useful for time dependent solid solution strenthening and precipitation hardening, e.g. during thermal ageing
-  const Function * const _tau_c_0_function;
-  
-  // Coefficient K in SSD evolution, representing accumulation rate
+  /// Coefficient K in SSD evolution, representing accumulation rate
   const Real _k_0;
   
-  // Critical annihilation diameter
+  /// Critical annihilation diameter
   const Real _y_c;
   
-  // Backstress parameters
+  /// Backstress parameters
   const Real _h;
   const Real _h_D;
   
-  // Initial values of the dislocation density
+  /// Tolerance on dislocation density update
+  const Real _rho_tol;
+  
+  /// Initial values of the dislocation density
   const Real _init_rho_ssd;
   const Real _init_rho_gnd_edge;
   const Real _init_rho_gnd_screw;
+
+  /// Elasticity tensor as defined by a separate class
+  const MaterialProperty<RankFourTensor> & _elasticity_tensor;
   
-  // Tolerance on dislocation density update
-  const Real _rho_tol;
-  
-  // Dislocation densities
+  /// Dislocation densities
   MaterialProperty<std::vector<Real>> & _rho_ssd;
   const MaterialProperty<std::vector<Real>> & _rho_ssd_old;
   MaterialProperty<std::vector<Real>> & _rho_gnd_edge;
@@ -203,7 +180,7 @@ protected:
   MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
   const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
   
-  // Backstress variables
+  /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
   const MaterialProperty<std::vector<Real>> & _backstress_old;  
   
@@ -255,26 +232,30 @@ protected:
    */
   const ElementPropertyReadFile * const _read_initial_gnd_density;
   
-  // Directional derivative of the slip rate along the edge dislocation motion direction
-  // and along the screw dislocation motion direction
-  const bool _include_slip_gradients;
+  /// Directional derivative of the slip rate along the edge dislocation motion direction
+  /// and along the screw dislocation motion direction
   const ArrayVariableValue & _dslip_increment_dedge;
   const ArrayVariableValue & _dslip_increment_dscrew;
   
-  // Temperature dependent properties
+  /// Temperature dependent properties
   const VariableValue & _temperature;
   const Real _reference_temperature;
-  const Real _dCRSS_dT_A;
-  const Real _dCRSS_dT_B;
-  const Real _dCRSS_dT_C;
-  
-  // Rotated slip direction to calculate the directional derivative
-  // of the plastic strain rate
-  // it indicates the edge dislocation velocity direction for all slip systems
+  /// parameters for the Boltzmann function for the temperature dependence of the CRSS
+  const Real _k_A;
+  const Real _k_B;
+  const Real _k_C;
+  const Real _k_D;
+    
+  /// Rotated slip direction to calculate the directional derivative
+  /// of the plastic strain rate
+  /// it indicates the edge dislocation velocity direction for all slip systems
   MaterialProperty<std::vector<Real>> & _edge_slip_direction;
   
-  // edge dislocation line direction
-  // corresponding to direction of motion of screw dislocations
+  /// edge dislocation line direction
+  /// corresponding to direction of motion of screw dislocations
   MaterialProperty<std::vector<Real>> & _screw_slip_direction;
   
+  const Real _melting_temperature_high;
+  const Real _melting_temperature_low;
+  /// ComputeElasticityTensorCPGrain _elasticity_tensor_calculator;
 };

@@ -1,54 +1,39 @@
 // Daijun Hu
 // National University of Singapore
-// Nicolò Grilli
-// Trim Tali
-// University of Bristol
-// 27 Marzo 2022
+// 22 May 2024
 
-#include "CrystalPlasticityDislocationUpdate.h"
+#include "CrystalPlasticityDislocationUpdateAluminum.h"
 #include "libmesh/int_range.h"
 #include <cmath>
 #include "Function.h"
+#include "ComputeElasticityTensorCPGrain.h"
 
-registerMooseObject("c_pfor_amApp", CrystalPlasticityDislocationUpdate);
+registerMooseObject("c_pfor_amApp", CrystalPlasticityDislocationUpdateAluminum);
 
 InputParameters
-CrystalPlasticityDislocationUpdate::validParams()
+CrystalPlasticityDislocationUpdateAluminum::validParams()
 {
   InputParameters params = CrystalPlasticityDislocationUpdateBase::validParams();
   params.addClassDescription("Dislocation based model for crystal plasticity "
                              "using the stress update code. "
-                             "Includes slip, creep and backstress. ");
+                             "Includes slip, creep and backstress. Modified for AM aluminum alloys "
+                             "using a specific temperature dependence of the CRSS and strain rate sensitivity. ");
   params.addParam<Real>("ao", 0.001, "slip rate coefficient");
   params.addParam<Real>("xm", 0.1, "exponent for slip rate");  
   params.addParam<MaterialPropertyName>("xm_matprop",
     "Optional xm material property for exponent for slip rate. ");
-  params.addParam<FunctionName>("ao_function",
-    "Optional function for slip prefactor. If provided, the slip prefactor can be set as a function of time. "
-    "This is useful for an initial plastic deformation followed by creep load. ");
-  params.addParam<bool>("use_kocks_T_dependence_for_xm", false, "Use Kocks 1976 temperature dependence for xm. ");
-  params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
   params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
+  params.addParam<Real>("xm_max", 0.2, "upper limit of xm at semi-solid state");  
+  params.addParam<Real>("xm_cali", 1.5, "coefficient to calibrate xm at initial state");  
   params.addParam<FunctionName>("creep_ao_function",
     "Optional function for creep prefactor. If provided, the creep prefactor can be set as a function of time. "
     "This is useful for an initial plastic deformation followed by creep load. ");
-  params.addParam<FunctionName>("creep_resistance_function",
-    "Optional function for creep resistance. If provided, the creep resistance can be set as a function of time. "
-    "This is useful for differentiating resistance for slip and creep. ");
-  params.addParam<Real>("m_exponent", 0.0, "Exponent on time in power-law equation");
-  params.addParam<Real>("creep_t0", 0.0, "Initial time for tertiary creep");
-  params.addParam<Real>("creep_t_denominator", 1.0, "Denominator for the tertiary creep law");
-  params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
-                                                     "in one time step to _slip_incr_tol. ");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
   params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("tau_c_0", 0.112, "Peierls stress");
-  params.addParam<FunctionName>("tau_c_0_function",
-    "Optional function for Peierls stress. If provided, the Peierls stress can be set as a function of time. "
-    "This is useful for time dependent solid solution strenthening and precipitation hardening, e.g. during thermal ageing. ");
   params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
@@ -68,19 +53,23 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addCoupledVar("dslip_increment_dscrew",0.0,"Directional derivative of the slip rate along the screw motion direction.");
   params.addCoupledVar("temperature", 303.0,"Temperature, initialize at room temperature");
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
-  params.addParam<Real>("dCRSS_dT_A",1.0,"A coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
-  params.addParam<Real>("dCRSS_dT_B",0.0,"B coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
-  params.addParam<Real>("dCRSS_dT_C",0.0,"C coefficient for the exponential decrease of the critical "
-                        "resolved shear stress with temperature: A + B exp(- C * (T - 303.0))");
+  params.addParam<Real>("k_A",1.0,"k_A coefficient for the Boltzmann dependence of the critical "
+                        "resolved shear stress with temperature. ");
+  params.addParam<Real>("k_B",0.0,"k_B coefficient for the Boltzmann dependence of the critical "
+                        "resolved shear stress with temperature. ");
+  params.addParam<Real>("k_C",0.0,"k_C coefficient for the Boltzmann dependence of the critical "
+                        "resolved shear stress with temperature. ");
+  params.addParam<Real>("k_D",0.0,"k_D coefficient for the Boltzmann dependence of the critical "
+                        "resolved shear stress with temperature. ");     
+  params.addParam<Real>("melting_temperature_high", 925, "Melting temperature (liquidus) = zero stiffness.");  
+  params.addParam<Real>("melting_temperature_low", 806, "Solidus = full stiffness.");                                          
   return params;
 }
 
-CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
+CrystalPlasticityDislocationUpdateAluminum::CrystalPlasticityDislocationUpdateAluminum(
     const InputParameters & parameters)
   : CrystalPlasticityDislocationUpdateBase(parameters),
-  
+
     // Constitutive model parameters
     _ao(getParam<Real>("ao")),
     _xm(getParam<Real>("xm")),
@@ -88,31 +77,18 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _xm_matprop(_include_xm_matprop
                 ? &getMaterialProperty<Real>("xm_matprop")
                 : nullptr),
-    _ao_function(this->isParamValid("ao_function")
-                ? &this->getFunction("ao_function")
-                : NULL),
-    _use_kocks_T_dependence_for_xm(getParam<bool>("use_kocks_T_dependence_for_xm")),
-    _creep_activated(getParam<bool>("creep_activated")),
     _creep_ao(getParam<Real>("creep_ao")),
     _creep_xm(getParam<Real>("creep_xm")),
     _creep_ao_function(this->isParamValid("creep_ao_function")
                        ? &this->getFunction("creep_ao_function")
                        : NULL),
-    _creep_resistance_function(this->isParamValid("creep_resistance_function")
-                       ? &this->getFunction("creep_resistance_function")
-                       : NULL),
-    _m_exponent(getParam<Real>("m_exponent")),
-    _creep_t0(getParam<Real>("creep_t0")),
-    _creep_t_denominator(getParam<Real>("creep_t_denominator")),
-    _cap_slip_increment(getParam<bool>("cap_slip_increment")),
+    _xm_max(getParam<Real>("xm_max")),  
+    _xm_cali(getParam<Real>("xm_cali")),      
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_alpha_0(getParam<Real>("alpha_0")),
-    _r(getParam<Real>("r")),
+	_r(getParam<Real>("r")),
 	_tau_c_0(getParam<Real>("tau_c_0")),
-	_tau_c_0_function(this->isParamValid("tau_c_0_function")
-                       ? &this->getFunction("tau_c_0_function")
-                       : NULL),
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
 	
@@ -120,16 +96,18 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 	_h(getParam<Real>("h")),
 	_h_D(getParam<Real>("h_D")),
 	
+	// Tolerance on dislocation density update
+	_rho_tol(getParam<Real>("rho_tol")),	
+	
 	// Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
     _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
-	
-	// Tolerance on dislocation density update
-	_rho_tol(getParam<Real>("rho_tol")),
+
+    // Elasticity tensor used for strain rate sensitivity formula
+    _elasticity_tensor(getMaterialPropertyByName<RankFourTensor>("elasticity_tensor")),
 	
 	// State variables of the dislocation model
-	
     _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
     _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
     _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
@@ -138,12 +116,10 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
     _rho_gnd_screw_old(getMaterialPropertyOld<std::vector<Real>>("rho_gnd_screw")),
     
     // Backstress variable
-    
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
 
     // increments of state variables
-	
     _rho_ssd_increment(_number_slip_systems, 0.0),
     _rho_gnd_edge_increment(_number_slip_systems, 0.0),
     _rho_gnd_screw_increment(_number_slip_systems, 0.0),
@@ -171,30 +147,29 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
                                : nullptr),
 									
     // Directional derivatives of the slip rate
-    _include_slip_gradients(isParamValid("dslip_increment_dedge") && isParamValid("dslip_increment_dscrew")),
-    _dslip_increment_dedge(_include_slip_gradients
-                            ? coupledArrayValue("dslip_increment_dedge")
-                            : _default_array_value_zero),
-    _dslip_increment_dscrew(_include_slip_gradients
-                            ? coupledArrayValue("dslip_increment_dscrew")
-                            : _default_array_value_zero),
+    _dslip_increment_dedge(coupledArrayValue("dslip_increment_dedge")), 
+    _dslip_increment_dscrew(coupledArrayValue("dslip_increment_dscrew")),
 	
 	// Temperature dependent properties
 	_temperature(coupledValue("temperature")),
     _reference_temperature(getParam<Real>("reference_temperature")),
-    _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
-	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
-	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
-
+    // parameters for the Boltzmann function for the temperature dependence of the CRSS
+    _k_A(getParam<Real>("k_A")),
+	_k_B(getParam<Real>("k_B")),
+	_k_C(getParam<Real>("k_C")),
+    _k_D(getParam<Real>("k_D")),
+    
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
-	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
+	_screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction")),
+  	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
+	_melting_temperature_low(getParam<Real>("melting_temperature_low"))
 {
 }
 
 void
-CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
+CrystalPlasticityDislocationUpdateAluminum::initQpStatefulProperties()
 {
   // Slip resistance is resized here
   CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties();
@@ -203,6 +178,7 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   
   // Temperature dependence of the CRSS
   Real temperature_dependence;
+  Real temperature_Boltzmann; 
 
   // Initialize the dislocation density size
   _rho_ssd[_qp].resize(_number_slip_systems);
@@ -232,10 +208,9 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
 	_backstress[_qp][i] = 0.0;
   }
  
-  // Critical resolved shear stress decreases exponentially with temperature
-  // A + B exp(- C * (T - T0)) 
-  temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
-                                             * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
+  // Critical resolved shear stress decreases based on Boltzmann dependence with temperature
+  temperature_Boltzmann = 1.0 + std::exp((_temperature[_qp] - _reference_temperature - _k_C) / _k_D);
+  temperature_dependence = ((_k_A - _k_B) / temperature_Boltzmann) + _k_B;
   
   // Initialize value of the slip resistance
   // as a function of the dislocation density
@@ -284,14 +259,13 @@ CrystalPlasticityDislocationUpdate::initQpStatefulProperties()
   // that are called just after initialization  
   _edge_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
-
 }
 
 // Calculate Schmid tensor and
 // store edge and screw slip directions to calculate directional derivatives
 // of the plastic slip rate
 void
-CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
+CrystalPlasticityDislocationUpdateAluminum::calculateSchmidTensor(
     const unsigned int & number_slip_systems,
     const std::vector<RealVectorValue> & plane_normal_vector,
     const std::vector<RealVectorValue> & direction_vector,
@@ -357,11 +331,10 @@ CrystalPlasticityDislocationUpdate::calculateSchmidTensor(
 	  _screw_slip_direction[_qp][i * LIBMESH_DIM + j] = temp_screw_mo(j);
 	}
   }
-  
 }
 
 void
-CrystalPlasticityDislocationUpdate::setInitialConstitutiveVariableValues()
+CrystalPlasticityDislocationUpdateAluminum::setInitialConstitutiveVariableValues()
 {
   // Initialize state variables with the value at the previous time step
   _rho_ssd[_qp] = _rho_ssd_old[_qp];
@@ -375,7 +348,7 @@ CrystalPlasticityDislocationUpdate::setInitialConstitutiveVariableValues()
 }
 
 void
-CrystalPlasticityDislocationUpdate::setSubstepConstitutiveVariableValues()
+CrystalPlasticityDislocationUpdateAluminum::setSubstepConstitutiveVariableValues()
 {
   // Inialize state variable of the next substep
   // with the value at the previous substep
@@ -389,7 +362,7 @@ CrystalPlasticityDislocationUpdate::setSubstepConstitutiveVariableValues()
 // because it is the first method in which it is used,
 // while calculateConstitutiveSlipDerivative is called afterwards
 bool
-CrystalPlasticityDislocationUpdate::calculateSlipRate()
+CrystalPlasticityDislocationUpdateAluminum::calculateSlipRate()
 {
   calculateSlipResistance();
   
@@ -401,30 +374,17 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
   // temporary variable for each slip system
   Real effective_stress;
   
-  // Slip prefactor: if function is not given
-  // the constant value is used
-  Real ao;
-  
   // Creep prefactor: if function is not given
   // the constant value is used
   Real creep_ao;
   
-  // Tertiary creep contribution
-  Real tertiary_creep = 1.0;
-  
-  if (_t > _creep_t0 && _creep_activated) {
-    tertiary_creep += std::pow((_t - _creep_t0)/_creep_t_denominator, _m_exponent);
-  }
-  
-  if (_ao_function) {
-	  
-    ao = _ao_function->value(_t, _q_point[_qp]);
-	  
-  } else {
-	  
-    ao = _ao;
-	  
-  }  
+  // Strain rate sensitivity: if material property is not given
+  // the temperature dependent value is used
+  Real xm;
+  Real mu_f;
+  Real eta_f;
+  Real k_b = 1.38e-11;
+  Real xm_temp;
   
   if (_creep_ao_function) {
 	  
@@ -435,19 +395,32 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     creep_ao = _creep_ao;
 	  
   }
-  
-  // Strain rate sensitivity: if material property is not given
-  // the constant value is used
-  Real xm;
-  
+   
   if (_include_xm_matprop) {
 	  
-    xm = (*_xm_matprop)[_qp];	  
+    xm = (*_xm_matprop)[_qp];
 	  
   } else {
 	  
-    xm = _xm;
-	  
+    mu_f = _elasticity_tensor[_qp](1, 2, 1, 2);
+    eta_f = 0.5 * (_elasticity_tensor[_qp](0, 0, 0, 0) - _elasticity_tensor[_qp](0, 0, 1, 1));
+    xm_temp = 9 *_xm_cali * k_b *_temperature[_qp] / (_burgers_vector_mag * _burgers_vector_mag * _burgers_vector_mag * sqrt(mu_f * eta_f));
+  
+    if (_temperature[_qp] < _melting_temperature_high) {
+    
+      if (xm_temp <= _xm_max) {
+
+        if (xm_temp >= _xm) {
+          xm = xm_temp; 
+        } else {
+          xm = _xm;
+        }
+      } else {
+        xm = _xm_max;
+      }
+    } else { // temperature above melting point
+      xm = _xm;
+    }
   }
   
   for (const auto i : make_range(_number_slip_systems))
@@ -456,52 +429,37 @@ CrystalPlasticityDislocationUpdate::calculateSlipRate()
     
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
-    _slip_increment[_qp][i] = ao * std::pow(stress_ratio, 1.0 / xm);
-        
-    if (_creep_activated) { // add creep rate
-      
-      if (_creep_resistance_function) {
-        stress_ratio = std::abs(effective_stress / _creep_resistance_function->value(_t, _q_point[_qp]));
-      }
-      
-      _slip_increment[_qp][i] += creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm) * tertiary_creep;
-    }
+    _slip_increment[_qp][i] =
+        _ao * std::pow(stress_ratio, 1.0 / xm)
+      + creep_ao * std::pow(stress_ratio, 1.0 / _creep_xm);
       
     if (effective_stress < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
-      if (_cap_slip_increment) {
-		  
-        _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i])
-                                / _substep_dt;
-                                
-	  } else if (_print_convergence_message) {
-		  
-        mooseWarning("Maximum allowable slip increment exceeded ",
-                     std::abs(_slip_increment[_qp][i]) * _substep_dt);
 
-        return false;
-	  }
+      _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i]) / _substep_dt;
+
     }
   }
+  
   return true;
 }
 
 // Slip resistance based on Taylor hardening
 void
-CrystalPlasticityDislocationUpdate::calculateSlipResistance()
+CrystalPlasticityDislocationUpdateAluminum::calculateSlipResistance()
 {
   Real taylor_hardening;
   
   // Temperature dependence of the CRSS
   Real temperature_dependence;
+  Real temperature_Boltzmann;  
   
-  // Critical resolved shear stress decreases exponentially with temperature
-  // A + B exp(- C * (T - T0)) 
-  temperature_dependence = ( _dCRSS_dT_A + _dCRSS_dT_B 
-                                             * std::exp(- _dCRSS_dT_C * (_temperature[_qp] - _reference_temperature)));
+  // Critical resolved shear stress decreases based on Boltzmann dependence with temperature
+  temperature_Boltzmann = 1.0 + std::exp((_temperature[_qp] - _reference_temperature - _k_C) / _k_D);
+  temperature_dependence = ((_k_A - _k_B) / temperature_Boltzmann) + _k_B;
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -529,21 +487,16 @@ CrystalPlasticityDislocationUpdate::calculateSlipResistance()
 	    taylor_hardening += (_r * (_rho_ssd[_qp][j] 
 		          + std::abs(_rho_gnd_edge[_qp][j])
 				  + std::abs(_rho_gnd_screw[_qp][j])));
-
-        		  
-		  
 	  }
     }
 	
 	_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag
 	                          * std::sqrt(taylor_hardening) * temperature_dependence);
-	
   }
-
 }
 
 void
-CrystalPlasticityDislocationUpdate::calculateEquivalentSlipIncrement(
+CrystalPlasticityDislocationUpdateAluminum::calculateEquivalentSlipIncrement(
     RankTwoTensor & equivalent_slip_increment)
 {
   if (_include_twinning_in_Lp)
@@ -562,7 +515,7 @@ CrystalPlasticityDislocationUpdate::calculateEquivalentSlipIncrement(
 // therefore it is ok to calculate calculateSlipRate
 // only inside calculateSlipRate
 void
-CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
+CrystalPlasticityDislocationUpdateAluminum::calculateConstitutiveSlipDerivative(
     std::vector<Real> & dslip_dtau)
 {
   // Ratio between effective stress and CRSS
@@ -573,33 +526,17 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
   // temporary variable for each slip system
   Real effective_stress;
   
-  // Slip prefactor: if function is not given
-  // the constant value is used
-  Real ao;
-  
   // Creep prefactor: if function is not given
   // the constant value is used
   Real creep_ao;
   
-  // Tertiary creep contribution
-  Real tertiary_creep = 1.0;
-  
-  // Creep resistance
-  Real creep_resistance;
-  
-  if (_t > _creep_t0 && _creep_activated) {
-    tertiary_creep += std::pow((_t - _creep_t0)/_creep_t_denominator, _m_exponent);
-  }
-  
-  if (_ao_function) {
-	  
-    ao = _ao_function->value(_t, _q_point[_qp]);
-	  
-  } else {
-	  
-    ao = _ao;
-	  
-  }  
+  // Strain rate sensitivity: if material property is not given
+  // the temperature dependent value is used
+  Real xm;
+  Real mu_f;
+  Real eta_f;
+  Real k_b = 1.38e-11;
+  Real xm_temp;
   
   if (_creep_ao_function) {
 	  
@@ -610,24 +547,36 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
     creep_ao = _creep_ao;
 	  
   }	
-  
-  // Strain rate sensitivity: if material property is not given
-  // the constant value is used
-  Real xm;
-  
+
   if (_include_xm_matprop) {
 	  
     xm = (*_xm_matprop)[_qp];	  
 	  
   } else {
 	  
-    xm = _xm;
+    mu_f = _elasticity_tensor[_qp](1, 2, 1, 2);
+    eta_f = 0.5 * (_elasticity_tensor[_qp](0, 0, 0, 0) -  _elasticity_tensor[_qp](0, 0, 1, 1));
+    xm_temp = 9 *_xm_cali * k_b * _temperature[_qp] / (_burgers_vector_mag * _burgers_vector_mag * _burgers_vector_mag * sqrt(mu_f * eta_f));
 	  
+	if (_temperature[_qp] < _melting_temperature_high) { 
+    
+      if (xm_temp <= _xm_max) {
+        if(xm_temp >= _xm) {
+          xm = xm_temp; 
+        } else {
+          xm = _xm;
+        }
+      } else {
+        xm = _xm_max;
+      }
+    } else {
+      xm = _xm;
+    }
   }
-	
+
   for (const auto i : make_range(_number_slip_systems))
   {
-    effective_stress = _tau[_qp][i] - _backstress[_qp][i];
+    effective_stress = _tau[_qp][i] - _backstress[_qp][i];	  
 	  
     if (MooseUtils::absoluteFuzzyEqual(effective_stress, 0.0)) {
 		
@@ -637,28 +586,18 @@ CrystalPlasticityDislocationUpdate::calculateConstitutiveSlipDerivative(
 		
 	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
-      dslip_dtau[i] = ao / xm *
+      dslip_dtau[i] = _ao / xm *
                       std::pow(stress_ratio, 1.0 / xm - 1.0) /
+                      _slip_resistance[_qp][i]
+                    + creep_ao / _creep_xm *
+                      std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
                       _slip_resistance[_qp][i];
-                      
-      if (_creep_activated) {
-
-        if (_creep_resistance_function) {
-          creep_resistance = _creep_resistance_function->value(_t, _q_point[_qp]);
-          stress_ratio = std::abs(effective_stress / creep_resistance);
-        } else {
-          creep_resistance = _slip_resistance[_qp][i];
-        }
-
-        dslip_dtau[i] += creep_ao / _creep_xm * std::pow(stress_ratio, 1.0 / _creep_xm - 1.0) /
-                         creep_resistance * tertiary_creep;
-      }
     }
   }
 }
 
 bool
-CrystalPlasticityDislocationUpdate::areConstitutiveStateVariablesConverged()
+CrystalPlasticityDislocationUpdateAluminum::areConstitutiveStateVariablesConverged()
 {
   return isConstitutiveStateVariableConverged(_rho_ssd[_qp],
                                               _rho_ssd_before_update,
@@ -667,7 +606,7 @@ CrystalPlasticityDislocationUpdate::areConstitutiveStateVariablesConverged()
 }
 
 void
-CrystalPlasticityDislocationUpdate::updateSubstepConstitutiveVariableValues()
+CrystalPlasticityDislocationUpdateAluminum::updateSubstepConstitutiveVariableValues()
 {
   // Update temporary variables at the end of the substep
   _previous_substep_rho_ssd = _rho_ssd[_qp];
@@ -677,7 +616,7 @@ CrystalPlasticityDislocationUpdate::updateSubstepConstitutiveVariableValues()
 }
 
 void
-CrystalPlasticityDislocationUpdate::cacheStateVariablesBeforeUpdate()
+CrystalPlasticityDislocationUpdateAluminum::cacheStateVariablesBeforeUpdate()
 {
   _rho_ssd_before_update = _rho_ssd[_qp];
   _rho_gnd_edge_before_update = _rho_gnd_edge[_qp];
@@ -686,7 +625,7 @@ CrystalPlasticityDislocationUpdate::cacheStateVariablesBeforeUpdate()
 }
 
 void
-CrystalPlasticityDislocationUpdate::calculateStateVariableEvolutionRateComponent()
+CrystalPlasticityDislocationUpdateAluminum::calculateStateVariableEvolutionRateComponent()
 {
   Real rho_sum;
 
@@ -705,14 +644,12 @@ CrystalPlasticityDislocationUpdate::calculateStateVariableEvolutionRateComponent
   }
   
   // GND dislocation density increment
-  if (_include_slip_gradients) {
-    for (const auto i : make_range(_number_slip_systems))
-    {
+  for (const auto i : make_range(_number_slip_systems)) 
+  {
 
     _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
     _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
-
-    }
+    
   }
   
   // backstress increment
@@ -721,7 +658,7 @@ CrystalPlasticityDislocationUpdate::calculateStateVariableEvolutionRateComponent
 
 // Armstrong-Frederick update of the backstress
 void
-CrystalPlasticityDislocationUpdate::ArmstrongFrederickBackstressUpdate()
+CrystalPlasticityDislocationUpdateAluminum::ArmstrongFrederickBackstressUpdate()
 {
   for (const auto i : make_range(_number_slip_systems)) 
   {
@@ -731,7 +668,7 @@ CrystalPlasticityDislocationUpdate::ArmstrongFrederickBackstressUpdate()
 }
 
 bool
-CrystalPlasticityDislocationUpdate::updateStateVariables()
+CrystalPlasticityDislocationUpdateAluminum::updateStateVariables()
 {
   // Now perform the check to see if the slip system should be updated
   // SSD

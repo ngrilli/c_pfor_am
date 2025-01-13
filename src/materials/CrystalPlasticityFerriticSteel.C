@@ -1,5 +1,5 @@
-// Nicolò Grilli
 // Michael Salvini
+// Nicolò Grilli
 // University of Bristol
 // 8 Maggio 2023
 
@@ -68,6 +68,12 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("init_C_SC",0.0,"Initial concentration of irradiation solute clusters");
   params.addParam<Real>("rho_tol",1.0,"Tolerance on dislocation density update");
   
+  // Yield point phenomenon
+  params.addParam<bool>("yield_point_phenomenon_activated", false, "Activate the yield point phenomenon");
+  params.addParam<Real>("ypp_prefactor", 0.0, "Yield point phenomenon prefactor");
+  params.addParam<Real>("ypp_average_strain", 0.002, "Average cumulative plastic strain at which yield point phenomenon takes place");
+  params.addParam<Real>("ypp_strain_amplitude", 0.01, "Denominator in hyperbolic tangent describing the range of strain over which the stress drops");
+  
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
@@ -123,6 +129,12 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
 
 	// Tolerance on dislocation density update
 	_rho_tol(getParam<Real>("rho_tol")),
+	
+	// Yield point phenomenon
+	_yield_point_phenomenon_activated(getParam<bool>("yield_point_phenomenon_activated")),
+	_ypp_prefactor(getParam<Real>("ypp_prefactor")),
+	_ypp_average_strain(getParam<Real>("ypp_average_strain")),
+	_ypp_strain_amplitude(getParam<Real>("ypp_strain_amplitude")),
 
     // state variables
 
@@ -165,6 +177,9 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _rho_gnd_screw_before_update(_number_slip_systems, 0.0),
     _C_DL_before_update(_number_slip_systems, 0.0),
 	_C_SC_before_update(_number_slip_systems, 0.0),
+	
+	// Cumulative effective plastic strain
+	_epsilon_p_eff_cum(getMaterialProperty<Real>("epsilon_p_eff_cum")),
 
     // Twinning contributions, if used
     _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
@@ -178,10 +193,11 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
                                : nullptr),
 
     // Directional derivatives of the slip rate
-    _dslip_increment_dedge(isParamValid("dslip_increment_dedge")
+    _include_slip_gradients(isParamValid("dslip_increment_dedge") && isParamValid("dslip_increment_dscrew")),
+    _dslip_increment_dedge(_include_slip_gradients
                             ? coupledArrayValue("dslip_increment_dedge")
                             : _default_array_value_zero),
-    _dslip_increment_dscrew(isParamValid("dslip_increment_dscrew")
+    _dslip_increment_dscrew(_include_slip_gradients
                             ? coupledArrayValue("dslip_increment_dscrew")
                             : _default_array_value_zero),
 
@@ -204,7 +220,6 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
 
 	// Reference interaction matrix between slip systems
 	_a_ref(_number_slip_systems, _number_slip_systems)
-
 {
 }
 
@@ -431,8 +446,8 @@ CrystalPlasticityFerriticSteel::calculateSchmidTensor(
           _NS1_flow_direction[_qp][i](j, k) = local_direction_vector[i](j) * local_plane_60_deg_normal[i](k);
           _NS2_flow_direction[_qp][i](j, k) = temp_n_cross_m(j) * local_plane_normal[i](k);
           _NS3_flow_direction[_qp][i](j, k) = temp_n_prime_cross_m(j) * local_plane_60_deg_normal[i](k);
-        }	
-	}
+        }
+    }
   }
 
   // Calculate and store edge and screw slip directions are also assigned
@@ -542,8 +557,18 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
 void
 CrystalPlasticityFerriticSteel::calculateSlipResistance()
 {
+  // Resistance contribution from yield point phenomenon
+  Real ypp_resistance;
+  
   // Calculate total density of local obstacles
   calculateObstaclesDensity();
+  
+  if (_yield_point_phenomenon_activated) {
+
+    ypp_resistance = 0.5 - 0.5 * std::tanh((_epsilon_p_eff_cum[_qp] - _ypp_average_strain) / _ypp_strain_amplitude);
+    ypp_resistance *= _ypp_prefactor;
+
+  }
 
   // sum the contributions to the CRSS based on equation (11)
   for (const auto i : make_range(_number_slip_systems))
@@ -552,6 +577,12 @@ CrystalPlasticityFerriticSteel::calculateSlipResistance()
     _slip_resistance[_qp][i] = _const_slip_resistance[i];
 
     _slip_resistance[_qp][i] += _burgers_vector_mag * _shear_modulus * std::sqrt(_rho_obstacles[i]);
+    
+    if (_yield_point_phenomenon_activated) {
+
+      _slip_resistance[_qp][i] += ypp_resistance;
+    
+    }
     
   }
 }
@@ -707,12 +738,14 @@ CrystalPlasticityFerriticSteel::calculateStateVariableEvolutionRateComponent()
   }
 
   // GND dislocation density increment
-  for (const auto i : make_range(_number_slip_systems))
-  {
+  if (_include_slip_gradients) {
+    for (const auto i : make_range(_number_slip_systems))
+    {
 
-    _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
-    _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
+      _rho_gnd_edge_increment[i] = (-1.0) * _dslip_increment_dedge[_qp](i) / _burgers_vector_mag;
+      _rho_gnd_screw_increment[i] = _dslip_increment_dscrew[_qp](i) / _burgers_vector_mag;
 
+    }
   }
 }
 
