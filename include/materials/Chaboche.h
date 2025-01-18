@@ -58,4 +58,8 @@ protected:
   const MaterialProperty<RankTwoTensor> & _backstress1_old;
   MaterialProperty<RankTwoTensor> & _backstress2;
   const MaterialProperty<RankTwoTensor> & _backstress2_old;
+  
+  // Isotropic hardening R
+  MaterialProperty<Real> & _isotropic_hardening;
+  const MaterialProperty<Real> & _isotropic_hardening_old;
 };

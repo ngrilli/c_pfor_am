@@ -34,7 +34,9 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _backstress1(declareProperty<RankTwoTensor>(_base_name + "backstress1")),
     _backstress1_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress1")),
     _backstress2(declareProperty<RankTwoTensor>(_base_name + "backstress2")),
-    _backstress2_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress2"))
+    _backstress2_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress2")),
+    _isotropic_hardening(declareProperty<Real>(_base_name + "isotropic_hardening")),
+    _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening"))
 {
 }
 
