@@ -65,11 +65,18 @@ Chaboche::computeQpStress()
   _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
 }
 
-// Equation (24)
+// Trial stress assuming all strain increment is elastic
 RankTwoTensor
 Chaboche::computeTrialStress(const RankTwoTensor & plastic_strain_old,
                              RankTwoTensor & total_strain,
                              const RankFourTensor & E_ijkl)
 {
   return E_ijkl * (total_strain - plastic_strain_old);
+}
+
+// Calculate Mises equivalent stress
+Real
+Chaboche::getMisesEquivalent(const RankTwoTensor & stress)
+{
+  return std::sqrt(3 * stress.secondInvariant());
 }

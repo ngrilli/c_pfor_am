@@ -26,6 +26,11 @@ protected:
   virtual RankTwoTensor computeTrialStress(const RankTwoTensor & plastic_strain_old,
                                            RankTwoTensor & total_strain,
                                            const RankFourTensor & E_ijkl);
+  /**
+   * Calculate Mises equivalent stress using the secondInvariant function
+   * which is the Mises stress when multiplied by a factor 3
+   */
+  Real getMisesEquivalent(const RankTwoTensor & stress);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
