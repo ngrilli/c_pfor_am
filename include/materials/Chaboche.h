@@ -20,8 +20,11 @@ public:
   Chaboche(const InputParameters & parameters);
 
 protected:
-  virtual void computeQpStress();
   virtual void initQpStatefulProperties();
+  virtual void computeQpStress();
+  
+  /// Compute shear and bulk modulus
+  virtual void computeElasticConstants();
   
   virtual RankTwoTensor computeTrialStress(const RankTwoTensor & plastic_strain_old,
                                            RankTwoTensor & total_strain,
@@ -31,6 +34,11 @@ protected:
    * which is the Mises stress when multiplied by a factor 3
    */
   Real getMisesEquivalent(const RankTwoTensor & stress);
+  
+  virtual Real yieldFunction(const RankTwoTensor & stress,
+                             RankTwoTensor & backstress1,
+                             RankTwoTensor & backstress2, 
+                             const Real yield_stress);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
@@ -67,4 +75,15 @@ protected:
   // Isotropic hardening R
   MaterialProperty<Real> & _isotropic_hardening;
   const MaterialProperty<Real> & _isotropic_hardening_old;
+  
+  // Young's modulus and Poisson's ratio as a function of temperature 
+  const Function * const _E;
+  const Function * const _nu;
+  
+  // Yield function tolerance
+  const Real _tolerance;
+  
+  // Shear and bulk modulus
+  Real _G;
+  Real _K;
 };

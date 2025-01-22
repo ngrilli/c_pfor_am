@@ -3,6 +3,7 @@
 // 7 Gennaio 2025
 
 #include "Chaboche.h"
+#include "Function.h"
 
 registerMooseObject("c_pfor_amApp", Chaboche);
 
@@ -11,11 +12,11 @@ Chaboche::validParams()
 {
   InputParameters params = ComputeStressBase::validParams();
 
-  params.addClassDescription("A Chaboche model with return mapping that follows the implementation in "
-                             "0. S. Hopperstad and S. Remseth "
-                             "A return mapping algorithm for a class of cyclic plasticity models "
-                             "International Journal for Numerical Methods in Engineering, Vol. 38, 549-564 (1995) ");
+  params.addClassDescription("A Chaboche model with return mapping");
   params.addRequiredParam<Real>("sigma_0","Constant stress of the isotropic hardening");
+  params.addRequiredParam<FunctionName>("E","Young's modulus");
+  params.addRequiredParam<FunctionName>("nu","Poisson's ratio");
+  params.addParam<Real>("tolerance",1e-6,"Yield function tolerance");
   return params;
 }
 
@@ -36,7 +37,10 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _backstress2(declareProperty<RankTwoTensor>(_base_name + "backstress2")),
     _backstress2_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress2")),
     _isotropic_hardening(declareProperty<Real>(_base_name + "isotropic_hardening")),
-    _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening"))
+    _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening")),
+    _E(&this->getFunction("E")),
+    _nu(&this->getFunction("nu")),
+    _tolerance(getParam<Real>("tolerance"))
 {
 }
 
@@ -51,18 +55,30 @@ Chaboche::initQpStatefulProperties()
 void
 Chaboche::computeQpStress()
 {
+  // Compute elastic stiffness
+  computeElasticConstants();
+  
+  // Decompose stress 
 
   // Rotate the stress tensor to the current configuration
   _stress[_qp] = _rotation_increment[_qp] * _stress[_qp] * _rotation_increment[_qp].transpose();
 
   // Rotate plastic strain tensor to the current configuration
-  //_plastic_strain[_qp] =
-  //    _rotation_increment[_qp] * _plastic_strain[_qp] * _rotation_increment[_qp].transpose();
+  _plastic_strain[_qp] =
+      _rotation_increment[_qp] * _plastic_strain[_qp] * _rotation_increment[_qp].transpose();
 
   // Calculate the elastic strain_increment
-  //_elastic_strain[_qp] = _mechanical_strain[_qp] - _plastic_strain[_qp];
+  _elastic_strain[_qp] = _mechanical_strain[_qp] - _plastic_strain[_qp];
 
   _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
+}
+
+// Compute shear and bulk modulus
+void
+Chaboche::computeElasticConstants()
+{
+  _G = _E->value(_t, _q_point[_qp]) / 2.0 / (1.0 + _nu->value(_t, _q_point[_qp]));
+  _K = _E->value(_t, _q_point[_qp]) / 3.0 / (1.0 - 2.0 * _nu->value(_t, _q_point[_qp]));
 }
 
 // Trial stress assuming all strain increment is elastic
@@ -75,8 +91,18 @@ Chaboche::computeTrialStress(const RankTwoTensor & plastic_strain_old,
 }
 
 // Calculate Mises equivalent stress
+// this calculation intrinsically removes volumetric components
 Real
 Chaboche::getMisesEquivalent(const RankTwoTensor & stress)
 {
   return std::sqrt(3 * stress.secondInvariant());
+}
+
+Real
+Chaboche::yieldFunction(const RankTwoTensor & stress, 
+                        RankTwoTensor & backstress1, 
+                        RankTwoTensor & backstress2, 
+                        const Real yield_stress)
+{
+  return getMisesEquivalent(stress - backstress1 - backstress2) - yield_stress;
 }
