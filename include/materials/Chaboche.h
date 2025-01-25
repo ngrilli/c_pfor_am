@@ -7,10 +7,7 @@
 #include "ComputeStressBase.h"
 
 /**
- * A Chaboche model with return mapping that follows the implementation in
- * 0. S. Hopperstad and S. Remseth
- * A return mapping algorithm for a class of cyclic plasticity models
- * International Journal for Numerical Methods in Engineering, Vol. 38, 549-564 (1995)
+ * A Chaboche model with return mapping
  */
 class Chaboche : public ComputeStressBase
 {
@@ -26,18 +23,17 @@ protected:
   /// Compute shear and bulk modulus
   virtual void computeElasticConstants();
   
-  virtual RankTwoTensor computeTrialStress(const RankTwoTensor & plastic_strain_old,
-                                           RankTwoTensor & total_strain,
-                                           const RankFourTensor & E_ijkl);
+  /// Decompose stress into deviatoric and volumetric
+  virtual void decomposeStress(const RankTwoTensor & stress_old);
+  
+  virtual RankTwoTensor computeTrialStress(const RankTwoTensor & deviatoric_strain_increment);
   /**
    * Calculate Mises equivalent stress using the secondInvariant function
    * which is the Mises stress when multiplied by a factor 3
    */
   Real getMisesEquivalent(const RankTwoTensor & stress);
   
-  virtual Real yieldFunction(const RankTwoTensor & stress,
-                             RankTwoTensor & backstress1,
-                             RankTwoTensor & backstress2, 
+  virtual Real yieldFunction(const RankTwoTensor & effective_deviatoric_stress,
                              const Real yield_stress);
 
   // epsilon^p
@@ -86,4 +82,18 @@ protected:
   // Shear and bulk modulus
   Real _G;
   Real _K;
+  
+  // Volumetric and deviatoric stress  
+  RankTwoTensor _deviatoric_stress_old;
+  RankTwoTensor _volumetric_stress_old;
+  
+  // Deviatoric strain increment
+  RankTwoTensor _deviatoric_strain_increment;
+  
+  // Deviatoric trial stress
+  RankTwoTensor _trial_stress;
+  
+  // Return mapping variables changing at each iteration
+  RankTwoTensor _deviatoric_stress;
+  RankTwoTensor _effective_deviatoric_stress;
 };
