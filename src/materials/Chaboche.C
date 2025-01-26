@@ -17,6 +17,7 @@ Chaboche::validParams()
   params.addRequiredParam<FunctionName>("E","Young's modulus");
   params.addRequiredParam<FunctionName>("nu","Poisson's ratio");
   params.addParam<Real>("tolerance",1e-6,"Yield function tolerance");
+  params.addParam<int>("max_iterations",1000,"Number of return mapping iterations before unconverged");
   return params;
 }
 
@@ -27,7 +28,6 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _eqv_plastic_strain(declareProperty<Real>(_base_name + "eqv_plastic_strain")),
     _eqv_plastic_strain_old(getMaterialPropertyOld<Real>(_base_name + "eqv_plastic_strain")),
     _stress_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "stress")),
-    _total_strain_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "total_strain")), // is this necessary? total or mech?
     _strain_increment(getMaterialProperty<RankTwoTensor>(_base_name + "strain_increment")),
     _rotation_increment(getMaterialProperty<RankTwoTensor>(_base_name + "rotation_increment")),
     _elasticity_tensor_name(_base_name + "elasticity_tensor"),
@@ -40,7 +40,8 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening")),
     _E(&this->getFunction("E")),
     _nu(&this->getFunction("nu")),
-    _tolerance(getParam<Real>("tolerance"))
+    _tolerance(getParam<Real>("tolerance")),
+    _max_iterations(getParam<int>("max_iterations"))
 {
 }
 
@@ -63,27 +64,47 @@ Chaboche::computeQpStress()
   
   // Decompose stress
   decomposeStress(_stress_old[_qp]);
+  
+  // Decompose strain increment
+  decomposeStrainIncrement(_strain_increment[_qp]);
 
-  _deviatoric_strain_increment = _strain_increment[_qp].deviatoric();
-  
   // Compute trial stress: _trial_stress is deviatoric
-  _trial_stress = computeTrialStress(_deviatoric_strain_increment);
+  _trial_stress = computeTrialStress();
   
-  _deviatoric_stress.zero();
+  // Compute effective stress
   _deviatoric_stress = _trial_stress;
-  _effective_deviatoric_stress = _deviatoric_stress - _backstress1[_qp] - _backstress2[_qp];
+  _effective_deviatoric_stress = _deviatoric_stress - _backstress1[_qp] - _backstress2[_qp];  
   
-  // Return mapping variable that is being solved for
-  Real delta_gamma = 0.0;
-  
-  if (yieldFunction(_effective_deviatoric_stress,_isotropic_hardening[_qp]) > 1.0e-8) {
+  if (yieldFunction(_effective_deviatoric_stress,_isotropic_hardening[_qp]) > _tolerance) {
+
+    // Return mapping variable that is being solved for
+    //Real delta_gamma = 0.0;
+    // return mapping
 
     // unit vector in stress space that is perpendicular to the yield surface when convergence is reached
-    RankTwoTensor n = _effective_deviatoric_stress / getMisesEquivalent(_effective_deviatoric_stress);
+    //RankTwoTensor n = _effective_deviatoric_stress / getMisesEquivalent(_effective_deviatoric_stress);
+    
+    //void
+    //Chaboche::returnMap(const RankTwoTensor & sig_old,
+    //                                   const Real eqvpstrain_old,
+    //                                   const RankTwoTensor & plastic_strain_old,
+    //                                   RankTwoTensor & sig,
+    //                                   Real & eqvpstrain,
+    //                                   RankTwoTensor & plastic_strain)
+    //
+    //
+    //
+    //
 
+    //int counter = 0;
+    //counter++;
+    
+  } else { // purely elastic stress update
 
-    int counter = 0;
-    counter++;
+    _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
+    _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
+    _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment;
+
   }
 
   // Rotate the stress tensor to the current configuration
@@ -105,6 +126,7 @@ Chaboche::computeElasticConstants()
 {
   _G = _E->value(_t, _q_point[_qp]) / 2.0 / (1.0 + _nu->value(_t, _q_point[_qp]));
   _K = _E->value(_t, _q_point[_qp]) / 3.0 / (1.0 - 2.0 * _nu->value(_t, _q_point[_qp]));
+  _lambda = _K - (2.0 / 3.0) * _G;
 }
 
 void
@@ -115,11 +137,19 @@ Chaboche::decomposeStress(const RankTwoTensor & stress_old)
   _volumetric_stress_old.addIa(stress_old.trace() / 3.0);
 }
 
+void
+Chaboche::decomposeStrainIncrement(const RankTwoTensor & strain_increment)
+{
+  _deviatoric_strain_increment = strain_increment.deviatoric();
+  _volumetric_strain_increment.zero();
+  _volumetric_strain_increment.addIa(strain_increment.trace() / 3.0);
+}
+
 // Trial stress assuming the entire strain increment is elastic
 RankTwoTensor
-Chaboche::computeTrialStress(const RankTwoTensor & deviatoric_strain_increment)
+Chaboche::computeTrialStress()
 {
-  return _deviatoric_stress_old + 2.0 * _G * deviatoric_strain_increment;
+  return _deviatoric_stress_old + 2.0 * _G * _deviatoric_strain_increment;
 }
 
 // Calculate Mises equivalent stress
@@ -130,6 +160,7 @@ Chaboche::getMisesEquivalent(const RankTwoTensor & stress)
   return std::sqrt(3 * stress.secondInvariant());
 }
 
+// Yield function, plasticity if positive
 Real
 Chaboche::yieldFunction(const RankTwoTensor & effective_deviatoric_stress,
                         const Real yield_stress)

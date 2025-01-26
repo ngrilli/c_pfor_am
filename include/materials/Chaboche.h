@@ -26,7 +26,9 @@ protected:
   /// Decompose stress into deviatoric and volumetric
   virtual void decomposeStress(const RankTwoTensor & stress_old);
   
-  virtual RankTwoTensor computeTrialStress(const RankTwoTensor & deviatoric_strain_increment);
+  virtual void decomposeStrainIncrement(const RankTwoTensor & strain_increment);
+  
+  virtual RankTwoTensor computeTrialStress();
   /**
    * Calculate Mises equivalent stress using the secondInvariant function
    * which is the Mises stress when multiplied by a factor 3
@@ -46,9 +48,6 @@ protected:
 
   // The stress tensor at previous time step
   const MaterialProperty<RankTwoTensor> & _stress_old;
-  
-  // epsilon_n
-  const MaterialProperty<RankTwoTensor> & _total_strain_old;
 
   // delta epsilon_{n+1}
   const MaterialProperty<RankTwoTensor> & _strain_increment;
@@ -79,16 +78,21 @@ protected:
   // Yield function tolerance
   const Real _tolerance;
   
-  // Shear and bulk modulus
+  // Number of return mapping iterations before unconverged
+  const int _max_iterations;
+  
+  // Shear, bulk modulus and first Lamé parameter
   Real _G;
   Real _K;
+  Real _lambda;
   
   // Volumetric and deviatoric stress  
   RankTwoTensor _deviatoric_stress_old;
   RankTwoTensor _volumetric_stress_old;
   
-  // Deviatoric strain increment
+  // Volumetric and deviatoric strain increment
   RankTwoTensor _deviatoric_strain_increment;
+  RankTwoTensor _volumetric_strain_increment;
   
   // Deviatoric trial stress
   RankTwoTensor _trial_stress;
