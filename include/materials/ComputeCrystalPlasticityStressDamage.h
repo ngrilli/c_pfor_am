@@ -225,6 +225,10 @@ protected:
   bool _output_lattice_strain;
   MaterialProperty<RankTwoTensor> & _lattice_strain;
   
+  /// cumulative effective small plastic strain
+  MaterialProperty<Real> & _epsilon_p_eff_cum;
+  const MaterialProperty<Real> & _epsilon_p_eff_cum_old;
+  
   /// Volumetric thermal expansion
   Real _volumetric_thermal_expansion;
   

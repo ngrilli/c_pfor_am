@@ -87,7 +87,11 @@ ComputeCrystalPlasticityStressDamage::ComputeCrystalPlasticityStressDamage(
     
     // Lattice strain output
     _output_lattice_strain(getParam<bool>("output_lattice_strain")),
-    _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain"))
+    _lattice_strain(declareProperty<RankTwoTensor>("lattice_strain")),
+    
+    // cumulative effective small plastic strain
+    _epsilon_p_eff_cum(declareProperty<Real>("epsilon_p_eff_cum")),
+    _epsilon_p_eff_cum_old(getMaterialPropertyOld<Real>("epsilon_p_eff_cum"))
 {
   _convergence_failed = false;
 }
