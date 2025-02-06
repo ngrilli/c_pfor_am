@@ -164,6 +164,9 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
   
   // Initialize history variable
   _H[_qp] = 0.0;
+  
+  // Initialize cumulative effective small plastic strain
+  _epsilon_p_eff_cum[_qp] = 0.0;
 }
 
 void
@@ -348,6 +351,14 @@ ComputeCrystalPlasticityStressDamage::postSolveQp(RankTwoTensor & cauchy_stress,
   
   // update plastic work
   updatePlasticWork();
+  
+  // update the cumulative effective small plastic strain
+  // equivalent_slip_increment in calculateResidual is Lp * dt
+  // use doubleContraction function and sqrt and factor 3/2
+  RankTwoTensor delta_epsilon_p;
+  delta_epsilon_p = 0.5 * (_equivalent_slip_increment + _equivalent_slip_increment.transpose());
+  _epsilon_p_eff_cum[_qp] = _epsilon_p_eff_cum_old[_qp] + std::sqrt((2.0/3.0) * delta_epsilon_p.doubleContraction(delta_epsilon_p));
+
 
   _total_lagrangian_strain[_qp] =
       _deformation_gradient[_qp].transpose() * _deformation_gradient[_qp] -
@@ -586,6 +597,8 @@ ComputeCrystalPlasticityStressDamage::calculateResidual()
     _dislocation_models[i]->calculateEquivalentSlipIncrement(equivalent_slip_increment_per_model);
     equivalent_slip_increment += equivalent_slip_increment_per_model;
   }
+  
+  _equivalent_slip_increment = equivalent_slip_increment;
 
   RankTwoTensor residual_equivalent_slip_increment =
       RankTwoTensor::Identity() - equivalent_slip_increment;

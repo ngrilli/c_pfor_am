@@ -229,6 +229,9 @@ protected:
   MaterialProperty<Real> & _epsilon_p_eff_cum;
   const MaterialProperty<Real> & _epsilon_p_eff_cum_old;
   
+  /// used to update _epsilon_p_eff_cum
+  RankTwoTensor _equivalent_slip_increment;
+  
   /// Volumetric thermal expansion
   Real _volumetric_thermal_expansion;
   
