@@ -21,6 +21,9 @@ public:
 
 protected:
 
+  /// base name for the auxiliary variables
+  const std::string _base_name;
+
   /// Maximum number of active slip systems for the crystalline material being modeled
   const unsigned int _number_slip_systems;
 };

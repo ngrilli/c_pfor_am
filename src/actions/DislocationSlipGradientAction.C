@@ -13,6 +13,7 @@ DislocationSlipGradientAction::validParams()
 {
   InputParameters params = Action::validParams();
   params.addClassDescription("Set up slip rate auxkernels for the dislocation slip gradient model");
+  params.addParam<std::string>("base_name", "Auxiliary variables base name");
   params.addRequiredParam<unsigned int>(
       "number_slip_systems",
       "The total number of possible active slip systems for the crystalline material");
@@ -21,6 +22,7 @@ DislocationSlipGradientAction::validParams()
 
 DislocationSlipGradientAction::DislocationSlipGradientAction(const InputParameters & params)
   : Action(params),
+    _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
     _number_slip_systems(getParam<unsigned int>("number_slip_systems"))
 {
 }
@@ -31,8 +33,6 @@ DislocationSlipGradientAction::act()
   // Add slip rate auxvariables
   if (_current_task == "add_aux_variable")
   {
-    std::string type = "MooseVariable";
-
     for (const auto i : make_range(_number_slip_systems)) {
       
       std::string var_name = "slip_rate_" + Moose::stringify(i);
@@ -43,5 +43,8 @@ DislocationSlipGradientAction::act()
       
       _problem->addAuxVariable("MooseVariable", var_name, var_params);
     }
+  } 
+  else if (_current_task == "add_aux_kernel")
+  {
   }
 }
