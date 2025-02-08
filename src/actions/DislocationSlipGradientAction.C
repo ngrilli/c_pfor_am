@@ -7,6 +7,7 @@
 #include "Factory.h"
 
 registerMooseAction("c_pfor_amApp", DislocationSlipGradientAction, "add_aux_variable");
+registerMooseAction("c_pfor_amApp", DislocationSlipGradientAction, "add_aux_kernel");
 
 InputParameters
 DislocationSlipGradientAction::validParams()
@@ -35,10 +36,10 @@ DislocationSlipGradientAction::act()
   {
     for (const auto i : make_range(_number_slip_systems)) {
       
-      std::string var_name = "slip_rate_" + Moose::stringify(i);
+      std::string var_name = _base_name + "slip_rate_" + Moose::stringify(i);
       
       auto var_params = _factory.getValidParams("MooseVariable");
-      var_params.set<MooseEnum>("family") = "LAGRANGE";
+      var_params.set<MooseEnum>("family") = "MONOMIAL";
       var_params.set<MooseEnum>("order") = "FIRST";
       
       _problem->addAuxVariable("MooseVariable", var_name, var_params);
@@ -46,5 +47,18 @@ DislocationSlipGradientAction::act()
   } 
   else if (_current_task == "add_aux_kernel")
   {
+    for (const auto i : make_range(_number_slip_systems)) {
+
+      std::string kernel_name = _base_name + "slip_rate_" + Moose::stringify(i);
+      
+      auto kernel_params = _factory.getValidParams("MaterialStdVectorAux");
+      kernel_params.set<AuxVariableName>("variable") = kernel_name;
+      kernel_params.set<MaterialPropertyName>("property") = "slip_increment";
+      kernel_params.set<unsigned int>("index") = i;
+      kernel_params.set<ExecFlagEnum>("execute_on") = EXEC_TIMESTEP_END;
+      kernel_params.applyParameters(parameters());
+
+      _problem->addAuxKernel("MaterialStdVectorAux", kernel_name, kernel_params);
+    }
   }
 }

@@ -28,6 +28,8 @@ associateSyntaxInner(Syntax & syntax, ActionFactory & /*action_factory*/)
   registerSyntax("PolycrystalSolidificationKernelAction", "Kernels/PolycrystalSolidificationKernel");
   registerSyntax("LiquidSolidKernelAction", "Kernels/LiquidSolidKernel");
   registerSyntax("SolidificationVariablesAction", "Variables/SolidificationVariables");
+  registerSyntax("DislocationSlipGradientAction", "AuxVariables/DislocationSlipGradient");
+  registerSyntax("DislocationSlipGradientAction", "AuxKernels/DislocationSlipGradient");
 }
 
 void
