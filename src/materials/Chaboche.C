@@ -13,7 +13,9 @@ Chaboche::validParams()
   InputParameters params = ComputeStressBase::validParams();
 
   params.addClassDescription("A Chaboche model with return mapping");
-  params.addRequiredParam<Real>("sigma_0","Constant stress of the isotropic hardening");
+  params.addRequiredParam<FunctionName>("sigma_0","Constant stress of the isotropic hardening");
+  params.addRequiredParam<FunctionName>("Q","Maximum isotropic hardening");
+  params.addRequiredParam<FunctionName>("b","Hardening rate");
   params.addRequiredParam<FunctionName>("E","Young's modulus");
   params.addRequiredParam<FunctionName>("nu","Poisson's ratio");
   params.addParam<Real>("tolerance",1e-6,"Yield function tolerance");
@@ -38,6 +40,9 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _backstress2_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress2")),
     _isotropic_hardening(declareProperty<Real>(_base_name + "isotropic_hardening")),
     _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening")),
+    _sigma_0(&this->getFunction("sigma_0")),
+    _Q(&this->getFunction("Q")),
+    _b(&this->getFunction("b")),
     _E(&this->getFunction("E")),
     _nu(&this->getFunction("nu")),
     _tolerance(getParam<Real>("tolerance")),
@@ -53,7 +58,7 @@ Chaboche::initQpStatefulProperties()
   _eqv_plastic_strain[_qp] = 0.0;
   _backstress1[_qp].zero();
   _backstress2[_qp].zero();
-  _isotropic_hardening[_qp] = 0.0; // TO DO: yield surface initialization
+  _isotropic_hardening[_qp] = _sigma_0->value(_t, _q_point[_qp]);
 }
 
 void
@@ -72,38 +77,27 @@ Chaboche::computeQpStress()
   _trial_stress = computeTrialStress();
   
   // Compute effective stress
-  _deviatoric_stress = _trial_stress;
-  _effective_deviatoric_stress = _deviatoric_stress - _backstress1[_qp] - _backstress2[_qp];  
+  _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp]; 
   
-  if (yieldFunction(_effective_deviatoric_stress,_isotropic_hardening[_qp]) > _tolerance) {
-
-    // Return mapping variable that is being solved for
-    //Real delta_gamma = 0.0;
-    // return mapping
-
-    // unit vector in stress space that is perpendicular to the yield surface when convergence is reached
-    //RankTwoTensor n = _effective_deviatoric_stress / getMisesEquivalent(_effective_deviatoric_stress);
+  if (yieldFunction(_effective_deviatoric_stress,_isotropic_hardening[_qp]) >= 0.0) {
     
-    //void
-    //Chaboche::returnMap(const RankTwoTensor & sig_old,
-    //                                   const Real eqvpstrain_old,
-    //                                   const RankTwoTensor & plastic_strain_old,
-    //                                   RankTwoTensor & sig,
-    //                                   Real & eqvpstrain,
-    //                                   RankTwoTensor & plastic_strain)
-    //
-    //
-    //
-    //
-
-    //int counter = 0;
-    //counter++;
+    returnMap(_eqv_plastic_strain_old[_qp],
+              _plastic_strain_old[_qp],
+              _eqv_plastic_strain[_qp],
+              _plastic_strain[_qp]);
     
   } else { // purely elastic stress update
 
     _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
     _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
     _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment;
+    
+    _eqv_plastic_strain[_qp] = _eqv_plastic_strain_old[_qp];
+    _plastic_strain[_qp] = _plastic_strain_old[_qp];
+    
+    _backstress1[_qp] = _backstress1_old[_qp];
+    _backstress2[_qp] = _backstress2_old[_qp];
+    _isotropic_hardening[_qp] = _isotropic_hardening_old[_qp];
 
   }
 
@@ -146,6 +140,7 @@ Chaboche::decomposeStrainIncrement(const RankTwoTensor & strain_increment)
 }
 
 // Trial stress assuming the entire strain increment is elastic
+// Trial stress includes only the deviatoric component
 RankTwoTensor
 Chaboche::computeTrialStress()
 {
@@ -166,4 +161,64 @@ Chaboche::yieldFunction(const RankTwoTensor & effective_deviatoric_stress,
                         const Real yield_stress)
 {
   return getMisesEquivalent(effective_deviatoric_stress) - yield_stress;
+}
+
+void
+Chaboche::returnMap(const Real eqvpstrain_old,
+                    const RankTwoTensor & plastic_strain_old,
+                    Real & eqvpstrain,
+                    RankTwoTensor & plastic_strain)
+{
+  // scalar plastic multiplier that is solved for
+  Real delta_gamma = 0.0;
+  
+  // Residual and Jacobian as a function of delta_gamma
+  Real residual;
+  Real jacobian;
+  
+  // Direction of plastic flow, in tensor form
+  RankTwoTensor n;
+  
+  // Scalar plastic strain increment
+  Real delta_eps_p;
+  
+  // Mises equivalent of the effective deviatoric stress
+  Real eqv_effective_deviatoric_stress;
+  
+  // Iteration counter
+  unsigned int i = 0;
+  
+  do {
+    // update direction of plastic flow 
+    eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
+    n = _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
+
+    // update plastic strain increment, residual and Jacobian
+    // assume b = 0, then extend residual for isotropic hardening
+    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);
+    residual = eqv_effective_deviatoric_stress - 3 * _G * delta_gamma - _isotropic_hardening[_qp];
+    jacobian = -3 * _G;
+    
+    // Update plastic multiplier
+    delta_gamma -= residual / jacobian;
+    
+    // Update stress variables
+    _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp] - 2.0 * _G * delta_gamma * n;
+    
+    if (i > _max_iterations) // unconverged
+      mooseError("Constitutive failure");
+    
+    // update iteration counter
+    i++;
+  }
+  while (residual > _tolerance);
+  
+  // Update plastic strain, isotropic hardening and back stress
+  eqvpstrain = eqvpstrain_old + delta_eps_p;
+  plastic_strain = plastic_strain_old + delta_gamma * n;
+  
+  // Update total stress: recombine deviatoric and hydrostatic parts
+  _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
+  _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
+  _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment - 2.0 * _G * delta_gamma * n;
 }

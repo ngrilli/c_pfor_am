@@ -37,6 +37,11 @@ protected:
   
   virtual Real yieldFunction(const RankTwoTensor & effective_deviatoric_stress,
                              const Real yield_stress);
+                             
+  virtual void returnMap(const Real eqvpstrain_old,
+                         const RankTwoTensor & plastic_strain_old,
+                         Real & eqvpstrain,
+                         RankTwoTensor & plastic_strain);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
@@ -71,6 +76,11 @@ protected:
   MaterialProperty<Real> & _isotropic_hardening;
   const MaterialProperty<Real> & _isotropic_hardening_old;
   
+  // Isotropic hardening parameters
+  const Function * const _sigma_0;
+  const Function * const _Q;
+  const Function * const _b;
+  
   // Young's modulus and Poisson's ratio as a function of temperature 
   const Function * const _E;
   const Function * const _nu;
@@ -98,6 +108,5 @@ protected:
   RankTwoTensor _trial_stress;
   
   // Return mapping variables changing at each iteration
-  RankTwoTensor _deviatoric_stress;
   RankTwoTensor _effective_deviatoric_stress;
 };
