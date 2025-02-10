@@ -31,9 +31,9 @@ DislocationSlipGradientAction::DislocationSlipGradientAction(const InputParamete
 void
 DislocationSlipGradientAction::act()
 {
-  // Add slip rate auxvariables
   if (_current_task == "add_aux_variable")
   {
+    // Add slip rate auxvariables
     for (const auto i : make_range(_number_slip_systems)) {
       
       std::string var_name = _base_name + "slip_rate_" + Moose::stringify(i);
@@ -44,6 +44,15 @@ DislocationSlipGradientAction::act()
       
       _problem->addAuxVariable("MooseVariable", var_name, var_params);
     }
+    // Add slip rate vector auxvariable
+    std::string var_name = "slip_rate_vector";
+    
+    auto var_params = _factory.getValidParams("MooseVariable");
+    var_params.set<MooseEnum>("family") = "MONOMIAL";
+    var_params.set<MooseEnum>("order") = "FIRST";
+    var_params.set<unsigned int>("components") = _number_slip_systems;
+    
+    _problem->addAuxVariable("ArrayMooseVariable", var_name, var_params);
   } 
   else if (_current_task == "add_aux_kernel")
   {
