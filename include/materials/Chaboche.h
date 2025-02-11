@@ -42,6 +42,9 @@ protected:
                          const RankTwoTensor & plastic_strain_old,
                          Real & eqvpstrain,
                          RankTwoTensor & plastic_strain);
+                         
+  virtual void updateBackstress(const Real delta_gamma,
+                                const RankTwoTensor n);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
@@ -84,6 +87,12 @@ protected:
   // Young's modulus and Poisson's ratio as a function of temperature 
   const Function * const _E;
   const Function * const _nu;
+  
+  // Backstress parameters
+  const Function * const _C1;
+  const Function * const _gamma1;
+  const Function * const _C2;
+  const Function * const _gamma2;
   
   // Yield function tolerance
   const Real _tolerance;

@@ -18,6 +18,10 @@ Chaboche::validParams()
   params.addRequiredParam<FunctionName>("b","Hardening rate");
   params.addRequiredParam<FunctionName>("E","Young's modulus");
   params.addRequiredParam<FunctionName>("nu","Poisson's ratio");
+  params.addRequiredParam<FunctionName>("C1","C constant for the first backstress");
+  params.addRequiredParam<FunctionName>("gamma1","gamma constant for the first backstress");
+  params.addRequiredParam<FunctionName>("C2","C constant for the second backstress");
+  params.addRequiredParam<FunctionName>("gamma2","gamma constant for the second backstress");
   params.addParam<Real>("tolerance",1e-6,"Yield function tolerance");
   params.addParam<int>("max_iterations",1000,"Number of return mapping iterations before unconverged");
   return params;
@@ -45,6 +49,10 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _b(&this->getFunction("b")),
     _E(&this->getFunction("E")),
     _nu(&this->getFunction("nu")),
+    _C1(&this->getFunction("C1")),
+    _gamma1(&this->getFunction("gamma1")),
+    _C2(&this->getFunction("C2")),
+    _gamma2(&this->getFunction("gamma2")),
     _tolerance(getParam<Real>("tolerance")),
     _max_iterations(getParam<int>("max_iterations"))
 {
@@ -76,6 +84,13 @@ Chaboche::computeQpStress()
   // Compute trial stress: _trial_stress is deviatoric
   _trial_stress = computeTrialStress();
   
+  // Assume first this strain increment does not induce any plasticity
+  _eqv_plastic_strain[_qp] = _eqv_plastic_strain_old[_qp];
+  _plastic_strain[_qp] = _plastic_strain_old[_qp];
+  _backstress1[_qp] = _backstress1_old[_qp];
+  _backstress2[_qp] = _backstress2_old[_qp];
+  _isotropic_hardening[_qp] = _isotropic_hardening_old[_qp];  
+  
   // Compute effective stress
   _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp]; 
   
@@ -91,14 +106,6 @@ Chaboche::computeQpStress()
     _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
     _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
     _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment;
-    
-    _eqv_plastic_strain[_qp] = _eqv_plastic_strain_old[_qp];
-    _plastic_strain[_qp] = _plastic_strain_old[_qp];
-    
-    _backstress1[_qp] = _backstress1_old[_qp];
-    _backstress2[_qp] = _backstress2_old[_qp];
-    _isotropic_hardening[_qp] = _isotropic_hardening_old[_qp];
-
   }
 
   // Rotate the stress tensor to the current configuration
@@ -216,9 +223,21 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   // Update plastic strain, isotropic hardening and back stress
   eqvpstrain = eqvpstrain_old + delta_eps_p;
   plastic_strain = plastic_strain_old + delta_gamma * n;
+  updateBackstress(delta_gamma,n);
   
   // Update total stress: recombine deviatoric and hydrostatic parts
   _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
   _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
   _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment - 2.0 * _G * delta_gamma * n;
+}
+
+void
+Chaboche::updateBackstress(const Real delta_gamma,
+                           const RankTwoTensor n)
+{
+  _backstress1[_qp] += (2.0/3.0) * _C1->value(_t, _q_point[_qp]) * delta_gamma * n;
+  _backstress1[_qp] -= _gamma1->value(_t, _q_point[_qp]) * delta_gamma * _backstress1[_qp];
+  
+  _backstress2[_qp] += (2.0/3.0) * _C2->value(_t, _q_point[_qp]) * delta_gamma * n;
+  _backstress2[_qp] -= _gamma2->value(_t, _q_point[_qp]) * delta_gamma * _backstress2[_qp];
 }
