@@ -41,6 +41,7 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("init_d_struct",10.0,"Initial characteristic dislocation substructure length");
   params.addParam<Real>("init_rho_c",0.01,"Initial channel dislocation density");
   params.addParam<Real>("init_rho_w",0.01,"Initial wall dislocation density");
+  params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
   params.addParam<Real>("k_w",2.0,"Coefficient K in wall dislocations evolution, representing accumulation rate");
   params.addParam<Real>("y_e",0.003,"Critical annihilation diameter for edge dislocations");
   params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
@@ -53,7 +54,6 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("init_d_struct_PSB",1.0,"Characteristic PSB length");
   params.addParam<Real>("k_c_PSB",1.0,"Coefficient K in PSB dislocations evolution, representing accumulation rate");
   params.addParam<Real>("y_PSB",0.015,"Critical annihilation diameter for dislocations in PSBs");
-  params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
   
   params.addParam<UserObjectName>("read_init_d",
                                   "The ElementReadPropertyFile "

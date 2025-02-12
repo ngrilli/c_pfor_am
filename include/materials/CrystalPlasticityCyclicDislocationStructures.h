@@ -156,6 +156,9 @@ protected:
   // Initial values of the wall dislocation density
   const Real _init_rho_w;
   
+  // Initial PSB dislocation density
+  const Real _init_rho_PSB;
+  
   // Coefficient K in wall dislocations evolution, representing accumulation rate
   const Real _k_w;
   
@@ -188,9 +191,6 @@ protected:
   
   // Critical annihilation diameter for dislocations in PSBs
   const Real _y_PSB;
-  
-  // Initial PSB dislocation density
-  const Real _init_rho_PSB;
   
   // Dislocation densities: channel, wall, PSBs
   MaterialProperty<std::vector<Real>> & _rho_c;
