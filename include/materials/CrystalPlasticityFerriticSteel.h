@@ -185,6 +185,9 @@ protected:
   const Real _creep_t0;
   const Real _max_stress_ratio;
   const Real _reduced_ao;
+  
+  // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
+  const bool _cap_slip_increment;
 
   // Constant slip resistances of
   // 110 slip planes

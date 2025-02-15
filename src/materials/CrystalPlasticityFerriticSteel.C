@@ -48,6 +48,8 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("creep_t0", 0.0, "Initial time for tertiary creep");
   params.addParam<Real>("max_stress_ratio", 10.0, "Maximum ratio between RSS and CRSS above which slip law becomes linear");
   params.addParam<Real>("reduced_ao", 0.00001, "slip rate coefficient (s^{-1}) of the linear law once max stress ratio is exceeded");
+  params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
+                                                     "in one time step to _slip_incr_tol. ");
 
   // Constant slip resistances of the slip systems
   // Hall-Petch effect must be included in these constants
@@ -112,6 +114,7 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _creep_t0(getParam<Real>("creep_t0")),
     _max_stress_ratio(getParam<Real>("max_stress_ratio")),
     _reduced_ao(getParam<Real>("reduced_ao")),
+    _cap_slip_increment(getParam<bool>("cap_slip_increment")),
     _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
     _const_slip_resistance_112_TW(getParam<Real>("const_slip_resistance_112_TW")),
     _const_slip_resistance_112_AT(getParam<Real>("const_slip_resistance_112_AT")),
@@ -542,15 +545,21 @@ CrystalPlasticityFerriticSteel::calculateSlipRate()
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
     {
-      if (_print_convergence_message)
+      if (_cap_slip_increment) {
+
+        _slip_increment[_qp][i] = _slip_incr_tol * std::copysign(1.0, _slip_increment[_qp][i])
+                                / _substep_dt;
+
+      } else if (_print_convergence_message) {
+
         mooseWarning("Maximum allowable slip increment exceeded ",
                      std::abs(_slip_increment[_qp][i]) * _substep_dt);
-
-      return false;
+      
+        return false;
+      }
     }
   }
   return true;
-
 }
 
 // Slip resistance
