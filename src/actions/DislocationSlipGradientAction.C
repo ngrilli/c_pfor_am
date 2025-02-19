@@ -45,7 +45,7 @@ DislocationSlipGradientAction::act()
       _problem->addAuxVariable("MooseVariable", var_name, var_params);
     }
     // Add slip rate vector auxvariable
-    std::string var_name = "slip_rate_vector";
+    std::string var_name = _base_name + "slip_rate_vector";
     
     auto var_params = _factory.getValidParams("MooseVariable");
     var_params.set<MooseEnum>("family") = "MONOMIAL";
@@ -56,6 +56,7 @@ DislocationSlipGradientAction::act()
   } 
   else if (_current_task == "add_aux_kernel")
   {
+	// Add slip rate auxkernels storing material property slip_increment
     for (const auto i : make_range(_number_slip_systems)) {
 
       std::string kernel_name = _base_name + "slip_rate_" + Moose::stringify(i);
@@ -69,5 +70,20 @@ DislocationSlipGradientAction::act()
 
       _problem->addAuxKernel("MaterialStdVectorAux", kernel_name, kernel_params);
     }
+    // Add auxkernel to build slip rate vector
+    std::string kernel_name = _base_name + "slip_rate_vector";
+    
+    auto kernel_params = _factory.getValidParams("BuildArrayVariableAux");
+    kernel_params.set<AuxVariableName>("variable") = kernel_name;
+    
+    // String with list of slip rate variable names
+    std::string slip_rate_variable_names = "";
+    for (const auto i : make_range(_number_slip_systems)) {
+	  slip_rate_variable_names += _base_name + "slip_rate_" + Moose::stringify(i) + " ";
+	}
+    //kernel_params.set<std::vector<VariableValue>>("component_variables") = slip_rate_variable_names;
+    kernel_params.set<std::string>("component_variables") = slip_rate_variable_names;
+    
+    _problem->addAuxKernel("BuildArrayVariableAux", kernel_name, kernel_params);
   }
 }
