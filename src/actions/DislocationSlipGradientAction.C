@@ -77,12 +77,11 @@ DislocationSlipGradientAction::act()
     kernel_params.set<AuxVariableName>("variable") = kernel_name;
     
     // String with list of slip rate variable names
-    std::string slip_rate_variable_names = "";
+    std::vector<VariableName> slip_rate_variable_names;
     for (const auto i : make_range(_number_slip_systems)) {
-	  slip_rate_variable_names += _base_name + "slip_rate_" + Moose::stringify(i) + " ";
+	  slip_rate_variable_names.push_back(_base_name + "slip_rate_" + Moose::stringify(i));
 	}
-    //kernel_params.set<std::vector<VariableValue>>("component_variables") = slip_rate_variable_names;
-    kernel_params.set<std::string>("component_variables") = slip_rate_variable_names;
+    kernel_params.set<std::vector<VariableName>>("component_variables") = {slip_rate_variable_names};
     
     _problem->addAuxKernel("BuildArrayVariableAux", kernel_name, kernel_params);
   }
