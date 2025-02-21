@@ -45,6 +45,7 @@ DislocationSlipGradientAction::act()
       _problem->addAuxVariable("MooseVariable", var_name, var_params);
     }
     // Add slip rate vector auxvariable
+    {
     std::string var_name = _base_name + "slip_rate_vector";
     
     auto var_params = _factory.getValidParams("MooseVariable");
@@ -53,6 +54,29 @@ DislocationSlipGradientAction::act()
     var_params.set<unsigned int>("components") = _number_slip_systems;
     
     _problem->addAuxVariable("ArrayMooseVariable", var_name, var_params);
+    }
+    // Add derivatives of the slip rate vector with respect to
+    // the edge and screw dislocation motion directions
+    {
+    std::string var_name = _base_name + "dslip_rate_dedge";
+
+    auto var_params = _factory.getValidParams("MooseVariableConstMonomial");
+    var_params.set<MooseEnum>("family") = "MONOMIAL";
+    var_params.set<MooseEnum>("order") = "CONSTANT";
+    var_params.set<unsigned int>("components") = _number_slip_systems;
+
+    _problem->addAuxVariable("ArrayMooseVariable", var_name, var_params);
+    }
+    {
+    std::string var_name = _base_name + "dslip_rate_dscrew";
+
+    auto var_params = _factory.getValidParams("MooseVariableConstMonomial");
+    var_params.set<MooseEnum>("family") = "MONOMIAL";
+    var_params.set<MooseEnum>("order") = "CONSTANT";
+    var_params.set<unsigned int>("components") = _number_slip_systems;
+
+    _problem->addAuxVariable("ArrayMooseVariable", var_name, var_params);
+    }
   } 
   else if (_current_task == "add_aux_kernel")
   {
