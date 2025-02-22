@@ -18,11 +18,7 @@ SubdomainFileReader::validParams()
   params.addRequiredParam<FileName>(
       "subdomain_id_file_name",
       "Name of the file containing the subdomain ID for each element");
-//  params.addRequiredParam<std::vector<SubdomainID>>("subdomain_ids",
-//                                                    "New subdomain IDs of all elements");
-//  params.addParam<std::vector<dof_id_type>>("element_ids", "New element IDs of all elements");
-//  params.addClassDescription(
-//      "Allows the user to assign each element the subdomain ID of their choice");
+  params.addClassDescription("Subdomain ID for each element read from file for a structured mesh");
   return params;
 }
 
@@ -79,54 +75,6 @@ SubdomainFileReader::generate()
     else
       elements.push_back(elem);
   }
-  
-//  else
-//  {
-//    bool has_warned_remapping = false;
-
-    // On a distributed mesh, iterating over all elements in
-    // increasing order is tricky.  We have to consider element ids
-    // which aren't on a particular processor because they're remote,
-    // *and* elements which aren't on a particular processor because
-    // there's a hole in the current numbering.
-    //
-    // I don't see how to do this without a ton of communication,
-    // which is hopefully okay because it only happens at mesh setup,
-    // and because nobody who is here trying to use
-    // AssignElementSubdomainID to hand write every single element's
-    // subdomain ID will have a huge number of elements on their
-    // initial mesh.
-
-    // Using plain max_elem_id() currently gives the same result on
-    // every processor, but that isn't guaranteed by the libMesh
-    // documentation, so let's be paranoid.
-//    dof_id_type end_id = mesh->max_elem_id();
-//    this->comm().max(end_id);
-
-//    for (dof_id_type e = 0; e != end_id; ++e)
-//    {
-      // This is O(1) on ReplicatedMesh but O(log(N_elem)) on
-      // DistributedMesh.  We can switch to more complicated but
-      // asymptotically faster code if my "nobody who is here ... will
-      // have a huge number of elements" claim turns out to be false.
-//      Elem * elem = mesh->query_elem_ptr(e);
-//      bool someone_has_elem = elem;
-//      if (!mesh->is_replicated())
-//        this->comm().max(someone_has_elem);
-
-//      if (elem && elem->id() != e && (!has_warned_remapping))
-//      {
-//        mooseWarning("AssignElementSubdomainID will ignore the element remapping");
-//        has_warned_remapping = true;
-//      }
-
-//      if (someone_has_elem)
-//        elements.push_back(elem);
-//    }
-//  }
-
-  std::cout << "elements.size()" << std::endl;
-  std::cout << elements.size() << std::endl;
 
   if (bids.size() != elements.size())
     mooseError(" Size of subdomain_ids is not consistent with the number of elements");
