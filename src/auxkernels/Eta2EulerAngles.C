@@ -19,8 +19,8 @@ Eta2EulerAngles::validParams()
       "Euler_angles_file_name","",
       "Name of the file containing the Euler angles, each row must contain three Euler angles "
       "which correspond to each grain orientation. ");
-  params.addRequiredCoupledVar("v",
-                               "Array of coupled order parameter names for the eta variables");
+  params.addRequiredCoupledVarWithAutoBuild(
+      "v", "var_name_base", "op_num", "Array of coupled variables");
   return params;
 }
 
@@ -74,7 +74,7 @@ Eta2EulerAngles::precalculateValue()
   _value = 0.0;
   
   for (unsigned int i = 0; i < _op_num; ++i)
-    _value += _Euler_angles[i](_output_euler_angle) * (*_vals[i])[_qp];
+    _value += _Euler_angles[i](_output_euler_angle) * ((*_vals[i])[_qp]);
 }
 
 Real
