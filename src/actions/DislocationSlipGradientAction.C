@@ -95,6 +95,7 @@ DislocationSlipGradientAction::act()
       _problem->addAuxKernel("MaterialStdVectorAux", kernel_name, kernel_params);
     }
     // Add auxkernel to build slip rate vector
+    {
     std::string kernel_name = _base_name + "slip_rate_vector";
     
     auto kernel_params = _factory.getValidParams("BuildArrayVariableAux");
@@ -108,5 +109,31 @@ DislocationSlipGradientAction::act()
     kernel_params.set<std::vector<VariableName>>("component_variables") = {slip_rate_variable_names};
     
     _problem->addAuxKernel("BuildArrayVariableAux", kernel_name, kernel_params);
+    }
+    // Add auxkernels to calculate directional derivatives
+    {
+	std::string kernel_name = _base_name + "dslip_rate_dedge";
+	const std::string slip_rate_vector_name = _base_name + "slip_rate_vector";
+	
+	auto kernel_params = _factory.getValidParams("ArrayDirectionalDerivative");
+	kernel_params.set<AuxVariableName>("variable") = kernel_name;
+	kernel_params.set<std::vector<VariableName>>("gradient_variable") = {slip_rate_vector_name};
+	kernel_params.set<MooseEnum>("dislo_character") = "edge";
+	kernel_params.set<ExecFlagEnum>("execute_on") = {EXEC_TIMESTEP_END};
+	
+	_problem->addAuxKernel("ArrayDirectionalDerivative", kernel_name, kernel_params);
+	}
+    {
+	std::string kernel_name = _base_name + "dslip_rate_dscrew";
+	const std::string slip_rate_vector_name = _base_name + "slip_rate_vector";
+	
+	auto kernel_params = _factory.getValidParams("ArrayDirectionalDerivative");
+	kernel_params.set<AuxVariableName>("variable") = kernel_name;
+	kernel_params.set<std::vector<VariableName>>("gradient_variable") = {slip_rate_vector_name};
+	kernel_params.set<MooseEnum>("dislo_character") = "screw";
+	kernel_params.set<ExecFlagEnum>("execute_on") = {EXEC_TIMESTEP_END};
+	
+	_problem->addAuxKernel("ArrayDirectionalDerivative", kernel_name, kernel_params);
+	}
   }
 }
