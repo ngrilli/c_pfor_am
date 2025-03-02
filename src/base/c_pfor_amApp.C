@@ -30,6 +30,8 @@ associateSyntaxInner(Syntax & syntax, ActionFactory & /*action_factory*/)
   registerSyntax("SolidificationVariablesAction", "Variables/SolidificationVariables");
   registerSyntax("DislocationSlipGradientAction", "AuxVariables/DislocationSlipGradient");
   registerSyntax("DislocationSlipGradientAction", "AuxKernels/DislocationSlipGradient");
+  registerSyntax("DislocationVariablesAction", "AuxVariables/DislocationVariables");
+  registerSyntax("DislocationVariablesAction", "AuxKernels/DislocationVariables");
 }
 
 void
