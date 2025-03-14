@@ -142,6 +142,9 @@ protected:
   void elastoPlasticTangentModuli(RankFourTensor & jacobian_mult);
   ///@}
 
+  /// Calculate the thermal eigenstrain
+  virtual void calculateThermalEigenstrain();
+
   /// The user supplied crystal plasticity consititutive models
   std::vector<CrystalPlasticityDislocationUpdateBase *> _dislocation_models;
 
@@ -217,6 +220,11 @@ protected:
   /// and its first derivative with respect to temperature  
   const Real _thermal_expansion;
   const Real _dCTE_dT;
+  
+  /// Parameters used to deactivate thermal expansion above melting
+  const Real _melting_temperature_high;
+  const Real _melting_temperature_low;
+  const bool _liquid_thermal_expansion;
   
   /// Output old values of pk2 and Fp if NR algorithm fails
   bool _suppress_constitutive_failure;
