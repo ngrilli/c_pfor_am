@@ -38,6 +38,9 @@ CrystalPlasticityUndamagedStress::validParams()
   params.addParam<Real>("reference_temperature",303.0,"reference temperature for thermal expansion");
   params.addParam<Real>("thermal_expansion",0.0,"Linear thermal expansion coefficient");
   params.addParam<Real>("dCTE_dT",0.0,"First derivative of the thermal expansion coefficient with respect to temperature");
+  params.addParam<Real>("melting_temperature_high", 1673.15, "Melting temperature (liquidus) to activate/deactivate liquid thermal expansion.");
+  params.addParam<Real>("melting_temperature_low", 1648.15, "Solidus temperature to activate/deactivate liquid thermal expansion.");
+  params.addParam<bool>("liquid_thermal_expansion", true, "Liquid has thermal expansion above melting point.");
   params.addParam<MaterialPropertyName>("thermal_expansion_a_name",
                                         "Thermal expansion along a lattice direction. ");
   params.addParam<MaterialPropertyName>("thermal_expansion_b_name",
@@ -86,6 +89,13 @@ CrystalPlasticityUndamagedStress::CrystalPlasticityUndamagedStress(
     _reference_temperature(getParam<Real>("reference_temperature")),
     _thermal_expansion(getParam<Real>("thermal_expansion")),
     _dCTE_dT(getParam<Real>("dCTE_dT")),
+    
+	// Parameters used to deactivate thermal expansion above melting
+	_melting_temperature_high(getParam<Real>("melting_temperature_high")),
+	_melting_temperature_low(getParam<Real>("melting_temperature_low")),
+	_liquid_thermal_expansion(getParam<bool>("liquid_thermal_expansion")),
+	
+	// Anisotropic thermal expansion
     _anisotropic_thermal_expansion(parameters.isParamValid("thermal_expansion_a_name") &&
                                    parameters.isParamValid("thermal_expansion_b_name") &&
                                    parameters.isParamValid("thermal_expansion_c_name")),
@@ -632,16 +642,11 @@ CrystalPlasticityUndamagedStress::calculateResidual()
   elastic_strain = ce - RankTwoTensor::Identity();
   elastic_strain *= 0.5;
   
-  // Calculate volumetric thermal expansion and thermal eigenstrain
-  _volumetric_thermal_expansion = 1.5 * (
-    std::exp((2.0/3.0)*(
-        0.5 * dCTE_dT * (temperature-reference_temperature)*(temperature-reference_temperature)
-        + thermal_expansion * (temperature - reference_temperature)
-      )
-    ) - 1.0);
-
-  _thermal_eigenstrain = (1.0/3.0) * _volumetric_thermal_expansion * RankTwoTensor::Identity();
+  calculateThermalEigenstrain();
   
+  // Calculate volumetric thermal expansion from thermal eigenstrain
+  _volumetric_thermal_expansion = _thermal_eigenstrain.trace();
+
   // Decompose ee into volumetric and non-volumetric
   // and calculate elastic energy and stress
   // pk2_new is the undamaged stress
@@ -896,4 +901,46 @@ CrystalPlasticityUndamagedStress::elastoPlasticTangentModuli(RankFourTensor & ja
         dfedf(i, j, i, l) = feiginvfpinv(l, j);
 
   jacobian_mult = tan_mod * dfedf;
+}
+
+// Calculate the thermal eigenstrain
+void
+CrystalPlasticityUndamagedStress::calculateThermalEigenstrain()
+{
+  // thermal eigenstrain without considering liquid
+  RankTwoTensor max_thermal_eigenstrain;
+  
+  // difference between liquidus and solidus temperatures
+  Real deltaT;
+  
+  max_thermal_eigenstrain = 0.5 * (
+                                    std::exp(
+                                              (1.0 / 3.0) * _dCTE_dT * ( _temperature[_qp] - _reference_temperature ) * ( _temperature[_qp] - _reference_temperature )
+                                            + (2.0 / 3.0) * _thermal_expansion * ( _temperature[_qp] - _reference_temperature ) 
+                                            ) 
+								    - 1.0
+								  ) * RankTwoTensor::Identity();
+
+  if (_liquid_thermal_expansion) { 
+	  
+    _thermal_eigenstrain = max_thermal_eigenstrain;
+    
+  }	else { // degrade linearly the thermal expansion of the liquid above solidus temperature
+	  
+    if (_temperature[_qp] > _melting_temperature_high) { // above liquidus temperature
+	
+	  _thermal_eigenstrain.zero();
+	
+	} else if (_temperature[_qp] > _melting_temperature_low) { // between solidus and liquidus temperature
+		
+      deltaT = _melting_temperature_high - _melting_temperature_low;
+      
+      _thermal_eigenstrain = (_melting_temperature_high - _temperature[_qp]) * max_thermal_eigenstrain / deltaT;
+		
+	} else { // solid state
+
+      _thermal_eigenstrain = max_thermal_eigenstrain;
+
+	} 
+  }
 }
