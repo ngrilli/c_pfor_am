@@ -19,41 +19,48 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   InputParameters params = CrystalPlasticityDislocationUpdateBase::validParams();
   params.addClassDescription("Dislocation based model for crystal plasticity "
                              "using the stress update code. "
-                             "Includes slip, creep and backstress. ");
-  params.addParam<Real>("ao", 0.004, "slip rate coefficient");
-  params.addParam<Real>("xm", 0.1, "exponent for slip rate");
+                             "Includes slip and backstress. ");
+  params.addParam<Real>("gamma_o", 0.004, "reference slip rate");
+  params.addParam<Real>("m_exp", 0.1, "strain rate sensitivity exponent");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol");												 
   params.addParam<Real>("burgers_vector_mag", 0.000256, "Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus", 86000.0, "Shear modulus in Taylor hardening law G");
-  params.addParam<Real>("s_0", 256.0, "Thermal slip resistance");
+  params.addParam<Real>("s_0", 256.0, "Initial slip resistance");
   params.addParam<Real>("nu", 0.3, "Poisson's ratio for backstress calculation by Eshelby's inclusion");
-  params.addParam<Real>("K_struct",3.0,"Constant of similitude for dislocation substructure");
-  params.addParam<Real>("tau_0", 80.0, "Resolved shear stress at initial yield");
-  params.addParam<Real>("k_c",2.0,"Coefficient K in channel dislocations evolution, representing accumulation rate");
-  params.addParam<Real>("y_s",0.013,"Critical annihilation diameter for screw dislocations");
-  params.addParam<Real>("f_0",0.5,"Initial dislocation walls volume fraction");
-  params.addParam<Real>("f_inf",0.25,"Saturated dislocation walls volume fraction");
-  params.addParam<Real>("k_f",2.0,"Rate constant for the evolution of the dislocation walls volume fraction");
-  params.addParam<Real>("eta_0",50,"Initial Max/Min axis length ratio of the dislocation substructure");
-  params.addParam<Real>("eta_inf",1,"Saturated Max/Min axis length ratio of the dislocation substructure");
-  params.addParam<Real>("X_norm",400,"Normalization constant for the evolution of the dislocation substructure");
-  params.addParam<Real>("init_d_struct",10.0,"Initial characteristic dislocation substructure length");
+  params.addParam<Real>("k_c",2.0,"Coefficient of accumulation rate of dislocations in channel phase");
+  params.addParam<Real>("y_c",0.013,"Critical annihilation distance for dislocations in channel phase");
+  params.addParam<Real>("k_w",2.0,"Coefficient of accumulation rate of dislocations in wall phase");
+  params.addParam<Real>("y_w",0.003,"Critical annihilation distance for dislocations in wall phase");
+  params.addParam<Real>("f_0",0.5,"Initial wall volume fraction");
+  params.addParam<Real>("f_inf",0.25,"Saturated wall volume fraction");
+  params.addParam<Real>("k_f",2.0,"Rate constant for evolution of wall volume fraction");
+  params.addParam<Real>("eta_0",50,"Initial channel aspect ratio of dislocation structure");
+  params.addParam<Real>("eta_inf",1,"Saturated channel aspect ratio of dislocation structure");
+  params.addParam<Real>("X_norm",400,"Normalization constant for evolution of dislocation structure");
+  params.addParam<Real>("K_struct",3.0,"Constant of similitude for dislocation structure");
+  params.addParam<Real>("tau_0", 80.0, "Resolved shear stress at initial yield for similitude scaling law");
+  params.addParam<Real>("init_d_struct",10.0,"Initial characteristic dislocation structure length");
   params.addParam<Real>("init_rho_c",0.01,"Initial channel dislocation density");
   params.addParam<Real>("init_rho_w",0.01,"Initial wall dislocation density");
-  params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
-  params.addParam<Real>("k_w",2.0,"Coefficient K in wall dislocations evolution, representing accumulation rate");
-  params.addParam<Real>("y_e",0.003,"Critical annihilation diameter for edge dislocations");
   params.addRequiredParam<std::vector<Real>>("B_ii", "Initial macroscopic backstress tensor components");
-  params.addParam<Real>("f_PSB_0",0.0,"Initial PSB fraction");
-  params.addParam<Real>("f_PSB_inf",0.2,"PSB fraction at stabilization");
-  params.addParam<Real>("k_PSB",0.11,"Increasing rate of PSB fraction");
-  params.addParam<Real>("epsilon_p_eff_cum_PSB",0.06,"Critical accumulated plastic strain to develop PSBs");
-  params.addParam<Real>("eta_PSB",20,"Max/Min axis length ratio of the PSB");
-  params.addParam<Real>("f_w_PSB",0.42,"PSB dislocation walls volume fraction");
-  params.addParam<Real>("init_d_struct_PSB",1.0,"Characteristic PSB length");
-  params.addParam<Real>("k_c_PSB",1.0,"Coefficient K in PSB dislocations evolution, representing accumulation rate");
-  params.addParam<Real>("y_PSB",0.015,"Critical annihilation diameter for dislocations in PSBs");
+  params.addParam<Real>("f_PSB_0",0.0,"Initial PSB volume fraction");
+  params.addParam<Real>("f_PSB_inf",0.2,"Saturated PSB volume fraction");
+  params.addParam<Real>("k_PSB",0.11,"Rate constant for evolution of PSB volume fraction");
+  params.addParam<Real>("epsilon_p_eff_cum_PSB",0.06,"Critical cumulative effective plastic strain to develop PSB");
+  params.addParam<Real>("k_c_PSB",1.0,"Coefficient of accumulation rate of dislocations in PSB channel phase");
+  params.addParam<Real>("y_PSB",0.015,"Critical annihilation distance for dislocations in PSB phase");
+  params.addParam<Real>("f_w_PSB",0.42,"PSB wall volume fraction");
+  params.addParam<Real>("eta_PSB",20,"Channel aspect ratio of PSB");
+  params.addParam<Real>("init_d_struct_PSB",1.0,"Initial characteristic PSB length");
+  params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
+  
+  params.addParam<Real>("A_self",0.122,"Self interaction coefficient");
+  params.addParam<Real>("A_copl",0.122,"Coplanar interaction coefficient");
+  params.addParam<Real>("A_CS",0.625,"Collinear interaction coefficient");
+  params.addParam<Real>("A_GJ",0.137,"Glissile junction interaction coefficient");
+  params.addParam<Real>("A_HL",0.07,"Hirth lock interaction coefficient");
+  params.addParam<Real>("A_LC",0.122,"Lomer-Cottrel lock interaction coefficient");
   
   params.addParam<UserObjectName>("read_init_d",
                                   "The ElementReadPropertyFile "
@@ -72,43 +79,52 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
   : CrystalPlasticityDislocationUpdateBase(parameters),
   
     // Constitutive model parameters
-    _ao(getParam<Real>("ao")),
-    _xm(getParam<Real>("xm")),
+    _gamma_o(getParam<Real>("gamma_o")),
+    _m_exp(getParam<Real>("m_exp")),
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_s_0(getParam<Real>("s_0")),
 	_nu(getParam<Real>("nu")),
-	_K_struct(getParam<Real>("K_struct")),
-	_tau_0(getParam<Real>("tau_0")),
 	_k_c(getParam<Real>("k_c")),
-	_y_s(getParam<Real>("y_s")),
+	_y_c(getParam<Real>("y_c")),
+	_k_w(getParam<Real>("k_w")),
+	_y_w(getParam<Real>("y_w")),
 	_f_0(getParam<Real>("f_0")),
 	_f_inf(getParam<Real>("f_inf")),
 	_k_f(getParam<Real>("k_f")),
 	_eta_0(getParam<Real>("eta_0")),
 	_eta_inf(getParam<Real>("eta_inf")),
 	_X_norm(getParam<Real>("X_norm")),
-	_init_d_struct(getParam<Real>("init_d_struct")),
+	_K_struct(getParam<Real>("K_struct")),
+	_tau_0(getParam<Real>("tau_0")),
 	
 	// Initial values of the state variables
+	_init_d_struct(getParam<Real>("init_d_struct")),
     _init_rho_c(getParam<Real>("init_rho_c")),
 	_init_rho_w(getParam<Real>("init_rho_w")),
-	_init_rho_PSB(getParam<Real>("init_rho_PSB")),
-	
-	_k_w(getParam<Real>("k_w")),
-	_y_e(getParam<Real>("y_e")),
 	
 	// PSBs variables and parameters
 	_f_PSB_0(getParam<Real>("f_PSB_0")),
 	_f_PSB_inf(getParam<Real>("f_PSB_inf")),
 	_k_PSB(getParam<Real>("k_PSB")),
 	_epsilon_p_eff_cum_PSB(getParam<Real>("epsilon_p_eff_cum_PSB")),
-	_eta_PSB(getParam<Real>("eta_PSB")),
-	_f_w_PSB(getParam<Real>("f_w_PSB")),
-	_init_d_struct_PSB(getParam<Real>("init_d_struct_PSB")),
 	_k_c_PSB(getParam<Real>("k_c_PSB")),
 	_y_PSB(getParam<Real>("y_PSB")),
+	_f_w_PSB(getParam<Real>("f_w_PSB")),
+	_eta_PSB(getParam<Real>("eta_PSB")),
+	
+	_init_d_struct_PSB(getParam<Real>("init_d_struct_PSB")),
+	_init_rho_PSB(getParam<Real>("init_rho_PSB")),
+	
+	// Interaction matrix coefficients between slip systems
+	
+	_A_self(getParam<Real>("A_self")),
+	_A_copl(getParam<Real>("A_copl")),
+	_A_CS(getParam<Real>("A_CS")),
+	_A_GJ(getParam<Real>("A_GJ")),
+	_A_HL(getParam<Real>("A_HL")),
+	_A_LC(getParam<Real>("A_LC")),
 	
 	// State variables of the dislocation model
     _rho_c(declareProperty<std::vector<Real>>("rho_c")),
@@ -124,27 +140,27 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	// Instantaneous plastic deformation tangent at the slip system level
 	_dslip_dtau(declareProperty<std::vector<Real>>("dslip_dtau")),
 	
-    // Dislocation walls volume fraction
+    // Wall volume fraction
     _f_w(declareProperty<Real>("f_w")),
 
-	// Max/min axis length ratio of the dislocation substructure
+	// Channel aspect ratio of dislocation structure
     _eta(declareProperty<Real>("eta")),
 	
-	// Characteristic dislocation substructure length
+	// Characteristic dislocation structure length
     _d_struct(declareProperty<Real>("d_struct")),
     _d_struct_old(getMaterialPropertyOld<Real>("d_struct")),
 	
-	// Mean glide distance for dislocations in the channel phase
+	// Mean glide distance for dislocations in channel phase
     _l_c(declareProperty<Real>("l_c")),    
     
-	// Characteristic dislocation substructure length in PSB
+	// Characteristic PSB length
     _d_struct_PSB(declareProperty<Real>("d_struct_PSB")),
 	_d_struct_PSB_old(getMaterialPropertyOld<Real>("d_struct_PSB")),
 	
-	// Mean glide distance for dislocations in the PSB
+	// Mean glide distance for dislocations in PSB
     _l_PSB(declareProperty<Real>("l_PSB")),
 	
-	// PSB fraction
+	// PSB volume fraction
     _f_PSB(declareProperty<Real>("f_PSB")),
 	_f_PSB_old(getMaterialPropertyOld<Real>("f_PSB")),
 	
@@ -169,7 +185,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_slip_increment_w(declareProperty<std::vector<Real>>("slip_increment_w")),
 	_slip_increment_PSB(declareProperty<std::vector<Real>>("slip_increment_PSB")),
 
-    // increments of state variables
+    // Increments of state variables
     _rho_c_increment(_number_slip_systems, 0.0),
 	_rho_w_increment(_number_slip_systems, 0.0),
 	_rho_PSB_increment(_number_slip_systems, 0.0),
@@ -177,7 +193,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_backstress_w_increment(_number_slip_systems, 0.0),
 	_backstress_PSB_increment(_number_slip_systems, 0.0),
 	
-	// resize local caching vectors used for substepping
+	// Resize local caching vectors used for substepping
 	_previous_substep_rho_c(_number_slip_systems, 0.0),
 	_previous_substep_rho_w(_number_slip_systems, 0.0),
 	_previous_substep_rho_PSB(_number_slip_systems, 0.0),
@@ -228,12 +244,12 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   _backstress_w[_qp].resize(_number_slip_systems);
   _backstress_PSB[_qp].resize(_number_slip_systems);
   
-  // Initialize slip resistance inside channel, wall and PSB
+  // Initialize slip resistance size
   _slip_resistance_c[_qp].resize(_number_slip_systems);
   _slip_resistance_w[_qp].resize(_number_slip_systems);
   _slip_resistance_PSB[_qp].resize(_number_slip_systems);
   
-  // Initialize slip increment inside channel, wall and PSB
+  // Initialize slip increment size
   _slip_increment_c[_qp].resize(_number_slip_systems);
   _slip_increment_w[_qp].resize(_number_slip_systems);
   _slip_increment_PSB[_qp].resize(_number_slip_systems);
@@ -241,36 +257,34 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   // Initialize instantaneous plastic deformation tangent at the slip system level
   _dslip_dtau[_qp].resize(_number_slip_systems);
   
-  // Initialize walls fraction
+  // Initialize wall volume fraction
   _f_w[_qp] = _f_0;
   
-  // Initialize max/min axis length ratio of the dislocation substructure
+  // Initialize channel aspect ratio of the dislocation structure
   _eta[_qp] = _eta_0;
   
-  // Initialize characteristic dislocation substructure length
+  // Initialize characteristic dislocation structure length
   
-  if (_read_init_d) { // Read initial characteristic dislocation substructure length from file
+  if (_read_init_d) { // Read initial characteristic dislocation structure length from file
   
     _d_struct[_qp] = _read_init_d->getData(_current_elem, 0);
     
-    } else { // Initialize uniform characteristic dislocation substructure length
+    } else { // Initialize uniform characteristic dislocation structure length
     
     _d_struct[_qp] = _init_d_struct;
-	// _d_struct_PSB[_qp] = _init_d_struct_PSB;
     
   }
   
-  // Initialize characteristic dislocation substructure length in PSB
-  
+  // Initialize characteristic PSB length
   _d_struct_PSB[_qp] = _d_struct[_qp];
   
-  // Initialize mean glide distance for dislocations in the channel phase
+  // Initialize mean glide distance for dislocations in channel phase
   _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
   
-  // Initialize mean glide distance for dislocations in the PSB
+  // Initialize mean glide distance for dislocations in PSB
   _l_PSB[_qp] = _eta_PSB * _d_struct_PSB[_qp];
   
-  // Initialize PSB fraction
+  // Initialize PSB volume fraction
   _f_PSB[_qp] = _f_PSB_0;
   
   assignEulerAngles();
@@ -334,12 +348,12 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 void
 CrystalPlasticityCyclicDislocationStructures::initializeInteractionMatrix()
 {
-  Real G0 = 0.122;
-  Real G1 = 0.122;
-  Real G2 = 0.625;
-  Real G3 = 0.137;
-  Real G4 = 0.07;
-  Real G5 = 0.122;
+  Real G0 = _A_self;
+  Real G1 = _A_copl;
+  Real G2 = _A_CS;
+  Real G3 = _A_GJ;
+  Real G4 = _A_HL;
+  Real G5 = _A_LC;
   
   Real A_int[_number_slip_systems][_number_slip_systems] = {
   {G0,G1,G1,G2,G3,G3,G4,G3,G5,G4,G5,G3},
@@ -434,7 +448,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
     stress_ratio_c = std::abs(effective_stress_c / _slip_resistance_c[_qp][i]);
     
     _slip_increment_c[_qp][i] =
-        _ao * std::pow(stress_ratio_c, 1.0 / _xm);
+        _gamma_o * std::pow(stress_ratio_c, 1.0 / _m_exp);
       
     if (effective_stress_c < 0.0)
       _slip_increment_c[_qp][i] *= -1.0;
@@ -450,7 +464,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
     stress_ratio_w = std::abs(effective_stress_w / _slip_resistance_w[_qp][i]);
     
     _slip_increment_w[_qp][i] =
-        _ao * std::pow(stress_ratio_w, 1.0 / _xm);
+        _gamma_o * std::pow(stress_ratio_w, 1.0 / _m_exp);
       
     if (effective_stress_w < 0.0)
       _slip_increment_w[_qp][i] *= -1.0;
@@ -466,7 +480,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipRate()
     stress_ratio_PSB = std::abs(effective_stress_PSB / _slip_resistance_PSB[_qp][i]);
     
     _slip_increment_PSB[_qp][i] =
-        _ao * std::pow(stress_ratio_PSB, 1.0 / _xm);
+        _gamma_o * std::pow(stress_ratio_PSB, 1.0 / _m_exp);
       
     if (effective_stress_PSB < 0.0)
       _slip_increment_PSB[_qp][i] *= -1.0;
@@ -576,8 +590,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
 		
 	  stress_ratio_c = std::abs(effective_stress_c / _slip_resistance_c[_qp][i]);
 
-      dslip_dtau_c[i] = _ao / _xm *
-                      std::pow(stress_ratio_c, 1.0 / _xm - 1.0) /
+      dslip_dtau_c[i] = _gamma_o / _m_exp *
+                      std::pow(stress_ratio_c, 1.0 / _m_exp - 1.0) /
                       _slip_resistance_c[_qp][i];		
 	}
   }
@@ -596,8 +610,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
 		
 	  stress_ratio_w = std::abs(effective_stress_w / _slip_resistance_w[_qp][i]);
 
-      dslip_dtau_w[i] = _ao / _xm *
-                      std::pow(stress_ratio_w, 1.0 / _xm - 1.0) /
+      dslip_dtau_w[i] = _gamma_o / _m_exp *
+                      std::pow(stress_ratio_w, 1.0 / _m_exp - 1.0) /
                       _slip_resistance_w[_qp][i];		
 	}
   }
@@ -616,8 +630,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateConstitutiveSlipDerivativ
 		
 	  stress_ratio_PSB = std::abs(effective_stress_PSB / _slip_resistance_PSB[_qp][i]);
 
-      dslip_dtau_PSB[i] = _ao / _xm *
-                      std::pow(stress_ratio_PSB, 1.0 / _xm - 1.0) /
+      dslip_dtau_PSB[i] = _gamma_o / _m_exp *
+                      std::pow(stress_ratio_PSB, 1.0 / _m_exp - 1.0) /
                       _slip_resistance_PSB[_qp][i];		
 	}
   }
@@ -676,13 +690,13 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
 	// and the rate equation gets multiplied by time step in updateStateVariables
-    _rho_c_increment[i] = _k_c / _l_c[_qp] - 2.0 * _y_s * _rho_c[_qp][i];
+    _rho_c_increment[i] = _k_c / _l_c[_qp] - 2.0 * _y_c * _rho_c[_qp][i];
     _rho_c_increment[i] *= std::abs(_slip_increment_c[_qp][i]) / _burgers_vector_mag;
 	
 	slip_increment_matrix = (1.0 - _f_w[_qp]) * _slip_increment_c[_qp][i] + _f_w[_qp] * _slip_increment_w[_qp][i];
 	
 	_rho_w_increment[i] = ( _k_w * std::abs(_slip_increment_c[_qp][i]) ) / ( _burgers_vector_mag * _l_c[_qp] );
-    _rho_w_increment[i] -= ( 2.0 * _y_e * _rho_w[_qp][i] * std::abs(slip_increment_matrix) ) / _burgers_vector_mag;
+    _rho_w_increment[i] -= ( 2.0 * _y_w * _rho_w[_qp][i] * std::abs(slip_increment_matrix) ) / _burgers_vector_mag;
 	
 	if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
   
@@ -711,17 +725,17 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
   // degree of plastic accommodation at the interface of the two phases
   Real f_accom;
   
-  // modified Poisson's ratio
+  // secant elastoplastic Poisson's ratio
   Real nu_p;
 
   // S1212 is a component of the Eshelby tensor
   Real S_1212;
   Real S_1212_PSB;
   
-  // modified shear modulus
+  // secant elastoplastic shear modulus
   Real mu_m;
 	
-  // Function that depends on the shape of the channel phase
+  // Function that depends on the channel aspect ratio
   Real f_eta;
   Real f_eta_PSB;
   
@@ -765,6 +779,7 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
   }
 }
 
+// Update dislocation densities and backstress based on increments
 bool
 CrystalPlasticityCyclicDislocationStructures::updateStateVariables()
 {		
@@ -823,7 +838,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateWallVolumeFraction()
   _f_w[_qp] = _f_inf + (_f_0 - _f_inf) * std::exp(-_epsilon_p_eff_cum[_qp] / _k_f);
 }
 
-// Calculate substructure parameter eta based on (41), (42), (43)
+// Calculate channel aspect ratio based on (41), (42), (43)
 void
 CrystalPlasticityCyclicDislocationStructures::calculateSubstructureParameter()
 {
@@ -853,7 +868,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureParameter()
 	
 }
 
-// Calculate substructure size based on (40)
+// Calculate characteristic dislocation structure length based on (40)
 void
 CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
 {
@@ -887,7 +902,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSubstructureSize()
   _l_PSB[_qp] = _eta_PSB * _d_struct_PSB[_qp];
 }
 
-// Calculate PSB fraction
+// Calculate PSB volume fraction
 void
 CrystalPlasticityCyclicDislocationStructures::calculatePSBFraction()
 {  
