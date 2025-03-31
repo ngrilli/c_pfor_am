@@ -99,8 +99,8 @@ protected:
   virtual void calculatePSBFraction();
   
   // Slip rate constants
-  const Real _ao;
-  const Real _xm;
+  const Real _gamma_o;
+  const Real _m_exp;
   
   // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
   const bool _cap_slip_increment;
@@ -111,86 +111,95 @@ protected:
   // Shear modulus in Taylor hardening law G
   const Real _shear_modulus;
   
-  // Thermal slip resistance
+  // Initial slip resistance
   const Real _s_0;
   
   // Poisson's ratio for backstress calculation by Eshelby's inclusion
   const Real _nu;
   
-  // Constant of similitude for dislocation substructure
-  const Real _K_struct;
-  
-  // Resolved shear stress at initial yield
-  const Real _tau_0;
-  
-  // Coefficient K in channel dislocations evolution, representing accumulation rate
+  // Coefficient of accumulation rate of dislocations in channel phase
   const Real _k_c;
   
-  // Critical annihilation diameter for screw dislocations
-  const Real _y_s;
+  // Critical annihilation distance for dislocations in channel phase
+  const Real _y_c;
   
-  // Initial dislocation walls volume fraction
-  const Real _f_0;
-  
-  // Saturated dislocation walls volume fraction
-  const Real _f_inf;
-  
-  // Rate constant for the evolution of the dislocation walls volume fraction
-  const Real _k_f;
-  
-  // Initial Max/Min axis length ratio of the dislocation substructure
-  const Real _eta_0;
-  
-  // Saturated Max/Min axis length ratio of the dislocation substructure
-  const Real _eta_inf;
-  
-  // Normalization constant for the evolution of the dislocation substructure
-  const Real _X_norm;
-  
-  // Initial characteristic dislocation substructure length
-  const Real _init_d_struct;
-
-  // Initial values of the channel dislocation density
-  const Real _init_rho_c;
-  
-  // Initial values of the wall dislocation density
-  const Real _init_rho_w;
-  
-  // Initial PSB dislocation density
-  const Real _init_rho_PSB;
-  
-  // Coefficient K in wall dislocations evolution, representing accumulation rate
+  // Coefficient of accumulation rate of dislocations in wall phase
   const Real _k_w;
   
-  // Critical annihilation diameter for edge dislocations
-  const Real _y_e;
+  // Critical annihilation distance for dislocations in wall phase
+  const Real _y_w;
   
-  // Initial PSB fraction
+  // Initial wall volume fraction
+  const Real _f_0;
+  
+  // Saturated wall volume fraction
+  const Real _f_inf;
+  
+  // Rate constant for evolution of wall volume fraction
+  const Real _k_f;
+  
+  // Initial channel aspect ratio of dislocation structure
+  const Real _eta_0;
+  
+  // Saturated channel aspect ratio of dislocation structure
+  const Real _eta_inf;
+  
+  // Normalization constant for evolution of dislocation structure
+  const Real _X_norm;
+  
+  // Constant of similitude for dislocation structure
+  const Real _K_struct;
+  
+  // Resolved shear stress at initial yield for similitude scaling law
+  const Real _tau_0;
+  
+  // Initial characteristic dislocation structure length
+  const Real _init_d_struct;
+
+  // Initial channel dislocation density
+  const Real _init_rho_c;
+  
+  // Initial wall dislocation density
+  const Real _init_rho_w;
+  
+  // Initial PSB volume fraction
   const Real _f_PSB_0;
   
-  // PSB fraction at stabilization
+  // Saturated PSB volume fraction
   const Real _f_PSB_inf;
   
-  // Increasing rate of PSB fraction
+  // Rate constant for evolution of PSB volume fraction
   const Real _k_PSB;
   
-  // Critical accumulated plastic strain to develop PSBs
+  // Critical cumulative effective plastic strain to develop PSB
   const Real _epsilon_p_eff_cum_PSB;
   
-  // Max/Min axis length ratio of the PSB
-  const Real _eta_PSB;
+  // Coefficient of accumulation rate of dislocations in PSB channel phase
+  const Real _k_c_PSB;
   
-  // PSB dislocation walls volume fraction
+  // Critical annihilation distance for dislocations in PSB phase
+  const Real _y_PSB;
+  
+  // PSB wall volume fraction
   const Real _f_w_PSB;
+  
+  // Channel aspect ratio of PSB
+  const Real _eta_PSB;
   
   // Initial characteristic PSB length
   const Real _init_d_struct_PSB;
   
-  // Coefficient K in PSB dislocations evolution, representing accumulation rate
-  const Real _k_c_PSB;
+  // Initial PSB dislocation density
+  const Real _init_rho_PSB;
   
-  // Critical annihilation diameter for dislocations in PSBs
-  const Real _y_PSB;
+  // Interaction matrix coefficients between slip systems
+  
+  const Real _A_self;
+  const Real _A_copl;
+  const Real _A_CS;
+  const Real _A_GJ;
+  const Real _A_HL;
+  const Real _A_LC;
   
   // Dislocation densities: channel, wall, PSBs
   MaterialProperty<std::vector<Real>> & _rho_c;
@@ -206,31 +215,31 @@ protected:
   // Instantaneous plastic deformation tangent at the slip system level
   MaterialProperty<std::vector<Real>> & _dslip_dtau;
   
-  // Dislocation walls volume fraction
+  // Wall volume fraction
   MaterialProperty<Real> & _f_w;
   
-  // Max/min axis length ratio of the dislocation substructure
+  // Channel aspect ratio of dislocation structure
   MaterialProperty<Real> & _eta;
   
-  // Characteristic dislocation substructure length
+  // Characteristic dislocation structure length
   MaterialProperty<Real> & _d_struct;
   const MaterialProperty<Real> & _d_struct_old;
   
   // Mean glide distance for dislocations in the channel phase
   MaterialProperty<Real> & _l_c;
   
-  // Characteristic dislocation substructure length in PSB
+  // Characteristic PSB length
   MaterialProperty<Real> & _d_struct_PSB;
   const MaterialProperty<Real> & _d_struct_PSB_old;
   
   // Mean glide distance for dislocations in the PSB
   MaterialProperty<Real> & _l_PSB;
   
-  // PSB fraction
+  // PSB volume fraction
   MaterialProperty<Real> & _f_PSB;
   const MaterialProperty<Real> & _f_PSB_old;
   
-  // Backstress variables (channel, wall and PSB)
+  // Backstress variables in channel, wall and PSB
   MaterialProperty<std::vector<Real>> & _backstress_c;
   const MaterialProperty<std::vector<Real>> & _backstress_c_old;
   MaterialProperty<std::vector<Real>> & _backstress_w;
