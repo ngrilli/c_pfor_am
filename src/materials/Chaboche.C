@@ -199,10 +199,8 @@ Chaboche::returnMap(const Real eqvpstrain_old,
     // update direction of plastic flow 
     eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
     n = _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
-
-    // update plastic strain increment, residual and Jacobian
-    // assume b = 0, then extend residual for isotropic hardening
-    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);
+    
+    // Calculate residual and Jacobian
     residual = eqv_effective_deviatoric_stress - 3 * _G * delta_gamma - _isotropic_hardening[_qp];
     jacobian = -3 * _G;
     
@@ -211,6 +209,13 @@ Chaboche::returnMap(const Real eqvpstrain_old,
     
     // Update stress variables
     _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp] - 2.0 * _G * delta_gamma * n;
+    
+    // Update plastic strain increment
+    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);    
+    
+    // Update isotropic hardening
+    eqvpstrain = eqvpstrain_old + delta_eps_p;
+    
     
     if (i > _max_iterations) // unconverged
       mooseError("Constitutive failure");
@@ -229,6 +234,14 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
   _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
   _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment - 2.0 * _G * delta_gamma * n;
+}
+
+void
+Chaboche::updateIsotropicHardening(const Real eqvpstrain)
+{
+  _isotropic_hardening[_qp] = _sigma_0->value(_t, _q_point[_qp]);
+  _isotropic_hardening[_qp] += _Q->value(_t, _q_point[_qp]) 
+                               * (1.0 - std::exp(_b->value(_t, _q_point[_qp]) * eqvpstrain));
 }
 
 void

@@ -43,6 +43,9 @@ protected:
                          Real & eqvpstrain,
                          RankTwoTensor & plastic_strain);
                          
+  virtual void updateIsotropicHardening(const Real eqvpstrain);                 
+                         
+  /// update backstress after return mapping converged
   virtual void updateBackstress(const Real delta_gamma,
                                 const RankTwoTensor n);
 
