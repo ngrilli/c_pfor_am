@@ -115,7 +115,7 @@ Chaboche::computeQpStress()
   _plastic_strain[_qp] =
       _rotation_increment[_qp] * _plastic_strain[_qp] * _rotation_increment[_qp].transpose();
 
-  // Calculate the elastic strain_increment
+  // Calculate the elastic strain
   _elastic_strain[_qp] = _mechanical_strain[_qp] - _plastic_strain[_qp];
 
   _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
@@ -192,6 +192,10 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   // Mises equivalent of the effective deviatoric stress
   Real eqv_effective_deviatoric_stress;
   
+  // Isotropic hardening parameters
+  Real Q = _Q->value(_t, _q_point[_qp]);
+  Real b = _b->value(_t, _q_point[_qp]);
+  
   // Iteration counter
   unsigned int i = 0;
   
@@ -200,23 +204,23 @@ Chaboche::returnMap(const Real eqvpstrain_old,
     eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
     n = _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
     
+    // Update plastic strain increment
+    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);    
+    
+    // Update isotropic hardening
+    eqvpstrain = eqvpstrain_old + delta_eps_p;
+    updateIsotropicHardening(eqvpstrain);
+    
     // Calculate residual and Jacobian
     residual = eqv_effective_deviatoric_stress - 3 * _G * delta_gamma - _isotropic_hardening[_qp];
-    jacobian = -3 * _G;
+    jacobian = -3 * _G - Q * b * std::exp(-b * eqvpstrain) * std::sqrt(2.0 / 3.0);
     
     // Update plastic multiplier
     delta_gamma -= residual / jacobian;
     
     // Update stress variables
     _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp] - 2.0 * _G * delta_gamma * n;
-    
-    // Update plastic strain increment
-    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);    
-    
-    // Update isotropic hardening
-    eqvpstrain = eqvpstrain_old + delta_eps_p;
-    
-    
+
     if (i > _max_iterations) // unconverged
       mooseError("Constitutive failure");
     
@@ -226,7 +230,9 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   while (residual > _tolerance);
   
   // Update plastic strain, isotropic hardening and back stress
+  delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);
   eqvpstrain = eqvpstrain_old + delta_eps_p;
+  updateIsotropicHardening(eqvpstrain);
   plastic_strain = plastic_strain_old + delta_gamma * n;
   updateBackstress(delta_gamma,n);
   
@@ -239,9 +245,12 @@ Chaboche::returnMap(const Real eqvpstrain_old,
 void
 Chaboche::updateIsotropicHardening(const Real eqvpstrain)
 {
-  _isotropic_hardening[_qp] = _sigma_0->value(_t, _q_point[_qp]);
-  _isotropic_hardening[_qp] += _Q->value(_t, _q_point[_qp]) 
-                               * (1.0 - std::exp(_b->value(_t, _q_point[_qp]) * eqvpstrain));
+  // Isotropic hardening parameters
+  Real Q = _Q->value(_t, _q_point[_qp]);
+  Real b = _b->value(_t, _q_point[_qp]);
+  Real sigma_0 = _sigma_0->value(_t, _q_point[_qp]);
+	
+  _isotropic_hardening[_qp] = sigma_0 + Q * (1.0 - std::exp(-b * eqvpstrain));
 }
 
 void
