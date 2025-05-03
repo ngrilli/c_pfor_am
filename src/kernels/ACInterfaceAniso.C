@@ -19,6 +19,7 @@ ACInterfaceAniso::validParams()
       "Name of the file containing the Euler angles, each row must contain three Euler angles "
       "which correspond to each grain orientation. ");
   params.addParam<bool>("continuous_anisotropy", false, "Flag to activate continuous model for anisotropy");
+  params.addParam<MaterialPropertyName>("l_GB", "l_GB", "grain boundary width l_g in equations (14) and (16)");
   return params;
 }
 
@@ -29,6 +30,7 @@ ACInterfaceAniso::ACInterfaceAniso(const InputParameters & parameters)
   _op_num(getParam<int>("op_num")),
   _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name")),
   _continuous_anisotropy(getParam<bool>("continuous_anisotropy")),
+  _l_GB(getMaterialProperty<Real>("l_GB")),
   _Euler_angles(0,0,0),
   _R(_Euler_angles)
 {
@@ -149,9 +151,7 @@ ACInterfaceAniso::computeAnisotropy()
 	// continuous model for anisotropy: anisotropy coefficient proportional to gradient of eta_i
     if (_continuous_anisotropy) {
 		
-		// TO DO: add length scale
-		
-      return 1.0 + _e_anisotropy * _grad_u[_qp].norm() * (std::pow(cos_min_phi_inc,4) + std::pow(sin_min_phi_inc,4));		
+      return 1.0 + _e_anisotropy * _l_GB[_qp] * _grad_u[_qp].norm() * (std::pow(cos_min_phi_inc,4) + std::pow(sin_min_phi_inc,4));		
 		
 	} else {
 		

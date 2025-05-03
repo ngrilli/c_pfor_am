@@ -53,6 +53,11 @@ protected:
   /// for the identification of grain boundaries
   const bool _continuous_anisotropy;
   
+  /// Grain boundary width l_g in equations (14) and (16)
+  /// This is used for the continuous model for anisotropy
+  /// for compensating the additional gradient of eta_i
+  const MaterialProperty<Real> & _l_GB;
+  
   /// Euler angles in degrees for the current grain orientation
   /// and rotation matrices
   RealVectorValue _Euler_angles;

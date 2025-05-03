@@ -19,7 +19,7 @@ PolycrystalSolidificationKernelAction::validParams()
   params.addParam<Real>("gamma_p", 1.0, "Interaction coefficient between zeta and eta variables. ");
   params.addParam<bool>("GB_anisotropy", false, "Flag to activate grain boundary anisotropy. ");
   params.addParam<Real>("e_anisotropy", 0.0, "Grain boundary energy anisotropy coefficient. ");
-  params.addParam<bool>("continuous_anisotropy", false, "Flag to activate continuous model for anisotropy");
+  params.addParam<bool>("continuous_anisotropy", false, "Flag to activate continuous model for anisotropy. ");
   params.addParam<FileName>(
       "Euler_angles_file_name","",
       "Name of the file containing the Euler angles, each row must contain three Euler angles "
