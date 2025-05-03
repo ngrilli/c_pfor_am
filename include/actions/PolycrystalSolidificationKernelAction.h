@@ -33,6 +33,11 @@ protected:
   
   /// Grain boundary energy anisotropy coefficient
   const Real _e_anisotropy;
+  
+  /// Flag to activate continuous model for anisotropy
+  /// which does not have a threshold on the gradient of eta_i
+  /// for the identification of grain boundaries
+  const bool _continuous_anisotropy;
 
   /// Euler angles file (in degrees) 
   /// each row must contain three Euler angles 

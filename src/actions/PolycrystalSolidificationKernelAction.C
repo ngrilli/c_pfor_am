@@ -19,6 +19,7 @@ PolycrystalSolidificationKernelAction::validParams()
   params.addParam<Real>("gamma_p", 1.0, "Interaction coefficient between zeta and eta variables. ");
   params.addParam<bool>("GB_anisotropy", false, "Flag to activate grain boundary anisotropy. ");
   params.addParam<Real>("e_anisotropy", 0.0, "Grain boundary energy anisotropy coefficient. ");
+  params.addParam<bool>("continuous_anisotropy", false, "Flag to activate continuous model for anisotropy");
   params.addParam<FileName>(
       "Euler_angles_file_name","",
       "Name of the file containing the Euler angles, each row must contain three Euler angles "
@@ -31,6 +32,7 @@ PolycrystalSolidificationKernelAction::PolycrystalSolidificationKernelAction(con
     _gamma_p(getParam<Real>("gamma_p")),
     _GB_anisotropy(this->template getParam<bool>("GB_anisotropy")),
     _e_anisotropy(getParam<Real>("e_anisotropy")),
+    _continuous_anisotropy(getParam<bool>("continuous_anisotropy")),
     _Euler_angles_file_name(getParam<FileName>("Euler_angles_file_name"))
 {
 }
@@ -100,6 +102,7 @@ PolycrystalSolidificationKernelAction::act()
       InputParameters params = _factory.getValidParams("ACInterfaceAniso");
       params.set<NonlinearVariableName>("variable") = var_name;
       params.set<Real>("e_anisotropy") = _e_anisotropy;
+      params.set<bool>("continuous_anisotropy") = _continuous_anisotropy;
       params.set<int>("op") = op;
       params.set<int>("op_num") = _op_num;
       
