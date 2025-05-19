@@ -204,6 +204,9 @@ protected:
   const Real _const_slip_resistance_110;
   const Real _const_slip_resistance_112_TW;
   const Real _const_slip_resistance_112_AT;
+  
+  // Reinitialises interaction matrix and constant slip resistance at restart
+  bool _is_restart;
  
   // Dislocation multiplication and annihilation parameters
   const Real _k_0;

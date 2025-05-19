@@ -57,6 +57,7 @@ CrystalPlasticityFerriticSteel::validParams()
   params.addParam<Real>("const_slip_resistance_110", 360.0, "Constant slip resistance of 110 slip planes (MPa)");
   params.addParam<Real>("const_slip_resistance_112_TW", 410.0, "Constant slip resistance of 112 slip planes in twinning direction (MPa)");
   params.addParam<Real>("const_slip_resistance_112_AT", 480.0, "Constant slip resistance of 112 slip planes in anti-twinning direction (MPa)");
+  params.addParam<bool>("is_restart", false, "Reinitialises interaction matrix and constant slip resistance at restart");
   
   // Dislocation multiplication and annihilation parameters
   params.addParam<Real>("k_0",1.0,"Coefficient in SSD evolution, representing the constant accumulation rate");  
@@ -118,6 +119,7 @@ CrystalPlasticityFerriticSteel::CrystalPlasticityFerriticSteel(
     _const_slip_resistance_110(getParam<Real>("const_slip_resistance_110")),
     _const_slip_resistance_112_TW(getParam<Real>("const_slip_resistance_112_TW")),
     _const_slip_resistance_112_AT(getParam<Real>("const_slip_resistance_112_AT")),
+    _is_restart(getParam<bool>("is_restart")),
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
   
