@@ -240,7 +240,10 @@ void
 CrystalPlasticityUndamagedStress::computeQpStress()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
+  {
     _dislocation_models[i]->setQp(_qp);
+    _dislocation_models[i]->setMaterialVectorSize();
+  }
 
   for (unsigned int i = 0; i < _num_eigenstrains; ++i)
     _eigenstrains[i]->setQp(_qp);
@@ -283,6 +286,8 @@ CrystalPlasticityUndamagedStress::updateStress(RankTwoTensor & cauchy_stress,
       _dislocation_models[i]->setSubstepDt(_substep_dt);
 
     // calculate F^{eigen} only when we have eigenstrain
+    _inverse_eigenstrain_deformation_grad.zero();
+    _inverse_eigenstrain_deformation_grad.addIa(1.0);
     if (_num_eigenstrains)
       calculateEigenstrainDeformationGrad();
 
