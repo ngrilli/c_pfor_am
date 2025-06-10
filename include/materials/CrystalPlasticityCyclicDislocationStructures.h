@@ -114,6 +114,10 @@ protected:
   // Initial slip resistance
   const Real _s_0;
   
+  // Initial slip resistance in the channel and wall
+  const Real _s_0c;
+  const Real _s_0w;
+  
   // Poisson's ratio for backstress calculation by Eshelby's inclusion
   const Real _nu;
   
@@ -218,8 +222,9 @@ protected:
   // Wall volume fraction
   MaterialProperty<Real> & _f_w;
   
-  // Channel aspect ratio of dislocation structure
+  // Channel aspect ratio of dislocation structure: scalar or dependent on slip system
   MaterialProperty<Real> & _eta;
+  MaterialProperty<std::vector<Real>> & _eta_vector;
   
   // Characteristic dislocation structure length
   MaterialProperty<Real> & _d_struct;

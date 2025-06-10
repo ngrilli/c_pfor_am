@@ -27,6 +27,8 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("burgers_vector_mag", 0.000256, "Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus", 86000.0, "Shear modulus in Taylor hardening law G");
   params.addParam<Real>("s_0", 256.0, "Initial slip resistance");
+  params.addParam<Real>("s_0c", 256.0, "Initial slip resistance in channel");
+  params.addParam<Real>("s_0w", 256.0, "Initial slip resistance in wall");
   params.addParam<Real>("nu", 0.3, "Poisson's ratio for backstress calculation by Eshelby's inclusion");
   params.addParam<Real>("k_c",2.0,"Coefficient of accumulation rate of dislocations in channel phase");
   params.addParam<Real>("y_c",0.013,"Critical annihilation distance for dislocations in channel phase");
@@ -85,6 +87,8 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
 	_s_0(getParam<Real>("s_0")),
+	_s_0c(getParam<Real>("s_0c")),
+	_s_0w(getParam<Real>("s_0w")),
 	_nu(getParam<Real>("nu")),
 	_k_c(getParam<Real>("k_c")),
 	_y_c(getParam<Real>("y_c")),
@@ -145,6 +149,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 
 	// Channel aspect ratio of dislocation structure
     _eta(declareProperty<Real>("eta")),
+    _eta_vector(declareProperty<std::vector<Real>>("eta_vector")),
 	
 	// Characteristic dislocation structure length
     _d_struct(declareProperty<Real>("d_struct")),
