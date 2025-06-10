@@ -148,6 +148,9 @@ protected:
   // Saturated channel aspect ratio of dislocation structure
   const Real _eta_inf;
   
+  // Initial channel aspect ratio of cellular structure at slip system level
+  const std::vector<Real> _eta_0_alpha;
+  
   // Normalization constant for evolution of dislocation structure
   const Real _X_norm;
   

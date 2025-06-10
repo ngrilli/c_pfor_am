@@ -39,6 +39,7 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("k_f",2.0,"Rate constant for evolution of wall volume fraction");
   params.addParam<Real>("eta_0",50,"Initial channel aspect ratio of dislocation structure");
   params.addParam<Real>("eta_inf",1,"Saturated channel aspect ratio of dislocation structure");
+  params.addParam<std::vector<Real>>("eta_0_alpha", {}, "Initial channel aspect ratio of cellular structure at slip system level");
   params.addParam<Real>("X_norm",400,"Normalization constant for evolution of dislocation structure");
   params.addParam<Real>("K_struct",3.0,"Constant of similitude for dislocation structure");
   params.addParam<Real>("tau_0", 80.0, "Resolved shear stress at initial yield for similitude scaling law");
@@ -99,6 +100,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	_k_f(getParam<Real>("k_f")),
 	_eta_0(getParam<Real>("eta_0")),
 	_eta_inf(getParam<Real>("eta_inf")),
+	_eta_0_alpha(getParam<std::vector<Real>>("eta_0_alpha")),
 	_X_norm(getParam<Real>("X_norm")),
 	_K_struct(getParam<Real>("K_struct")),
 	_tau_0(getParam<Real>("tau_0")),
@@ -267,6 +269,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   
   // Initialize channel aspect ratio of the dislocation structure
   _eta[_qp] = _eta_0;
+  _eta_vector[_qp].resize(_number_slip_systems);
   
   // Initialize characteristic dislocation structure length
   
