@@ -158,7 +158,8 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
     _d_struct_old(getMaterialPropertyOld<Real>("d_struct")),
 	
 	// Mean glide distance for dislocations in channel phase
-    _l_c(declareProperty<Real>("l_c")),    
+    _l_c(declareProperty<Real>("l_c")),
+    _l_c_vector(declareProperty<std::vector<Real>>("l_c_vector")),
     
 	// Characteristic PSB length
     _d_struct_PSB(declareProperty<Real>("d_struct_PSB")),
@@ -236,10 +237,13 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 void
 CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 {
-  // Slip resistance is resized here (not anymore)
   CrystalPlasticityDislocationUpdateBase::initQpStatefulProperties();
   
   Real taylor_hardening;
+  
+  // Peierls stress for wall and channel
+  Real s_0w;
+  Real s_0c;
 
   // Initialize the dislocation density size
   _rho_c[_qp].resize(_number_slip_systems);
@@ -271,6 +275,13 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   _eta[_qp] = _eta_0;
   _eta_vector[_qp].resize(_number_slip_systems);
   
+  if (isParamValid("eta_0_alpha")) {
+    for (const auto i : make_range(_number_slip_systems))
+    {
+      _eta_vector[_qp][i] = _eta_0_alpha[i];
+    }
+  }
+  
   // Initialize characteristic dislocation structure length
   
   if (_read_init_d) { // Read initial characteristic dislocation structure length from file
@@ -288,6 +299,15 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   
   // Initialize mean glide distance for dislocations in channel phase
   _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
+  
+  _l_c_vector[_qp].resize(_number_slip_systems);
+  
+  if (isParamValid("eta_0_alpha")) {
+    for (const auto i : make_range(_number_slip_systems))
+    {
+      _l_c_vector[_qp][i] = _eta_vector[_qp][i] * _d_struct[_qp];
+    }
+  }
   
   // Initialize mean glide distance for dislocations in PSB
   _l_PSB[_qp] = _eta_PSB * _d_struct_PSB[_qp];
@@ -315,16 +335,25 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
 
   // Initialize value of the slip resistance
   // as a function of the dislocation density
+  
+  if (isParamValid("s_0w") && isParamValid("s_0c")) {
+    s_0w = _s_0w;
+    s_0c = _s_0c;
+  } else {
+    s_0w = _s_0;
+    s_0c = _s_0;
+  }
+  
   for (const auto i : make_range(_number_slip_systems))
   {
     // Add Peierls stress
-    _slip_resistance_c[_qp][i] = _s_0;
+    _slip_resistance_c[_qp][i] = s_0c;
 	
 	_slip_resistance_c[_qp][i] += (_shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(_A_int(i,i) * _rho_c[_qp][i]));
 							   
 	// Add Peierls stress
-	_slip_resistance_w[_qp][i] = _s_0;
+	_slip_resistance_w[_qp][i] = s_0w;
 	
 	taylor_hardening = 0.0;
 	
@@ -336,7 +365,7 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
     _slip_resistance_w[_qp][i] += _shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(taylor_hardening);
 	
-	_slip_resistance_PSB[_qp][i] = _s_0;
+	_slip_resistance_PSB[_qp][i] = s_0c;
 	
 	_slip_resistance_PSB[_qp][i] += (_shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(_A_int(i,i) * _rho_PSB[_qp][i]));
@@ -528,16 +557,28 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
 {
   Real taylor_hardening;
   
+  // Peierls stress for wall and channel
+  Real s_0w;
+  Real s_0c;
+  
+  if (isParamValid("s_0w") && isParamValid("s_0c")) {
+    s_0w = _s_0w;
+    s_0c = _s_0c;
+  } else {
+    s_0w = _s_0;
+    s_0c = _s_0;
+  }
+  
   for (const auto i : make_range(_number_slip_systems))
   {
     // Add Peierls stress
-    _slip_resistance_c[_qp][i] = _s_0;
+    _slip_resistance_c[_qp][i] = s_0c;
 	
 	_slip_resistance_c[_qp][i] += (_shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(_A_int(i,i) * _rho_c[_qp][i]));
 							   
 	// Add Peierls stress
-	_slip_resistance_w[_qp][i] = _s_0;
+	_slip_resistance_w[_qp][i] = s_0w;
 	
 	taylor_hardening = 0.0;
 	
@@ -549,7 +590,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateSlipResistance()
     _slip_resistance_w[_qp][i] += _shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(taylor_hardening);
 	
-	_slip_resistance_PSB[_qp][i] = _s_0;
+	_slip_resistance_PSB[_qp][i] = s_0c;
 	
 	_slip_resistance_PSB[_qp][i] += (_shear_modulus * _burgers_vector_mag
 	                           * std::sqrt(_A_int(i,i) * _rho_PSB[_qp][i]));

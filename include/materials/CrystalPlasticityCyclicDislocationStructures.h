@@ -235,6 +235,7 @@ protected:
   
   // Mean glide distance for dislocations in the channel phase
   MaterialProperty<Real> & _l_c;
+  MaterialProperty<std::vector<Real>> & _l_c_vector;
   
   // Characteristic PSB length
   MaterialProperty<Real> & _d_struct_PSB;
