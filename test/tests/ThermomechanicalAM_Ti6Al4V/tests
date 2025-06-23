@@ -1,0 +1,8 @@
+[Tests]
+  [./TwoLayers20x20x6]
+    type = 'Exodiff'
+    input = 'TwoLayers20x20x6.i'
+    exodiff = 'TwoLayers20x20x6_out.e'
+	heavy = true
+  [../]
+[]
