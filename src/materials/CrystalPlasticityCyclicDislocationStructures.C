@@ -734,7 +734,7 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
   
   // Mean glide distance for dislocations in channel phase
   // temporary variable used for each slip system
-  Real l_c;
+  Real l_c = _l_c[_qp];
 
   // channel and wall dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -742,12 +742,8 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
     if (isParamValid("eta_0_alpha")) {
 		
       l_c = _l_c_vector[_qp][i];
-      
-	} else {
-		
-      l_c = _l_c[_qp]; 
 	}
-	  
+
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
 	// and the rate equation gets multiplied by time step in updateStateVariables
@@ -800,9 +796,13 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
   Real f_eta;
   Real f_eta_PSB;
   
-  K_shape = _eta[_qp] * std::sqrt( std::pow(_eta[_qp], 2.0) - 1.0) - std::acosh(_eta[_qp]);
-  K_shape *= 2.0 * libMesh::pi * _eta[_qp];
-  K_shape /= std::sqrt(std::pow(std::pow(_eta[_qp], 2.0) - 1.0, 3.0));
+  // channel aspect ratio 
+  // temporary variable for each slip system
+  Real eta = _eta[_qp];
+  
+  K_shape = eta * std::sqrt( std::pow(eta, 2.0) - 1.0) - std::acosh(eta);
+  K_shape *= 2.0 * libMesh::pi * eta;
+  K_shape /= std::sqrt(std::pow(std::pow(eta, 2.0) - 1.0, 3.0));
   
   K_shape_PSB = _eta_PSB * std::sqrt( std::pow(_eta_PSB, 2.0) - 1.0) - std::acosh(_eta_PSB);
   K_shape_PSB *= 2.0 * libMesh::pi * _eta_PSB;
@@ -815,10 +815,19 @@ CrystalPlasticityCyclicDislocationStructures::BackstressUpdate()
     nu_p = _nu + (2.0/3.0) * (1.0 + _nu) * _shear_modulus * f_accom;
 	nu_p /= 1.0 + (4.0/3.0) * (1.0 + _nu) * _shear_modulus * f_accom;
 	
-	S_1212 = std::pow(_eta[_qp], 2.0) - 1.75 - 2.0 * nu_p * std::pow(_eta[_qp], 2.0) + nu_p;
+	if (isParamValid("eta_0_alpha")) {
+		
+	  eta = _eta_vector[_qp][i];
+
+      K_shape = eta * std::sqrt( std::pow(eta, 2.0) - 1.0) - std::acosh(eta);
+      K_shape *= 2.0 * libMesh::pi * eta;
+      K_shape /= std::sqrt(std::pow(std::pow(eta, 2.0) - 1.0, 3.0));  
+	}
+	
+	S_1212 = std::pow(eta, 2.0) - 1.75 - 2.0 * nu_p * std::pow(eta, 2.0) + nu_p;
 	S_1212 *= K_shape;
-	S_1212 += libMesh::pi * std::pow(_eta[_qp], 2.0);
-	S_1212 /= 8.0 * libMesh::pi * (1.0 - nu_p) * (std::pow(_eta[_qp], 2.0) - 1.0);
+	S_1212 += libMesh::pi * std::pow(eta, 2.0);
+	S_1212 /= 8.0 * libMesh::pi * (1.0 - nu_p) * (std::pow(eta, 2.0) - 1.0);
 	
 	mu_m = _shear_modulus / (1.0 + 2.0 * _shear_modulus * f_accom);
 	
