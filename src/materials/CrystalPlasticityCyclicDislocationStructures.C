@@ -299,7 +299,6 @@ CrystalPlasticityCyclicDislocationStructures::initQpStatefulProperties()
   
   // Initialize mean glide distance for dislocations in channel phase
   _l_c[_qp] = _eta[_qp] * _d_struct[_qp];
-  
   _l_c_vector[_qp].resize(_number_slip_systems);
   
   if (isParamValid("eta_0_alpha")) {
@@ -732,19 +731,32 @@ CrystalPlasticityCyclicDislocationStructures::calculateStateVariableEvolutionRat
   
   // Slip increment within the matrix
   Real slip_increment_matrix;
+  
+  // Mean glide distance for dislocations in channel phase
+  // temporary variable used for each slip system
+  Real l_c;
 
   // channel and wall dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
   {
+    if (isParamValid("eta_0_alpha")) {
+		
+      l_c = _l_c_vector[_qp][i];
+      
+	} else {
+		
+      l_c = _l_c[_qp]; 
+	}
+	  
     // Multiplication and annihilation
 	// note that _slip_increment here is the rate
 	// and the rate equation gets multiplied by time step in updateStateVariables
-    _rho_c_increment[i] = _k_c / _l_c[_qp] - 2.0 * _y_c * _rho_c[_qp][i];
+    _rho_c_increment[i] = _k_c / l_c - 2.0 * _y_c * _rho_c[_qp][i];
     _rho_c_increment[i] *= std::abs(_slip_increment_c[_qp][i]) / _burgers_vector_mag;
 	
 	slip_increment_matrix = (1.0 - _f_w[_qp]) * _slip_increment_c[_qp][i] + _f_w[_qp] * _slip_increment_w[_qp][i];
 	
-	_rho_w_increment[i] = ( _k_w * std::abs(_slip_increment_c[_qp][i]) ) / ( _burgers_vector_mag * _l_c[_qp] );
+	_rho_w_increment[i] = ( _k_w * std::abs(_slip_increment_c[_qp][i]) ) / ( _burgers_vector_mag * l_c );
     _rho_w_increment[i] -= ( 2.0 * _y_w * _rho_w[_qp][i] * std::abs(slip_increment_matrix) ) / _burgers_vector_mag;
 	
 	if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {

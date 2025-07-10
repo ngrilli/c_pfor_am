@@ -233,7 +233,7 @@ protected:
   MaterialProperty<Real> & _d_struct;
   const MaterialProperty<Real> & _d_struct_old;
   
-  // Mean glide distance for dislocations in the channel phase
+  // Mean glide distance for dislocations in the channel phase: scalar or dependent on slip system
   MaterialProperty<Real> & _l_c;
   MaterialProperty<std::vector<Real>> & _l_c_vector;
   
