@@ -73,6 +73,7 @@ CrystalPlasticityHCP::validParams()
                         "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
   params.addParam<Real>("dCRSS_dT_C_pyra",0.0,"C coefficient for the exponential decrease of the critical "
                         "resolved shear stress with temperature: A + B exp(- C * (T - 273.0))");
+  params.addParam<bool>("is_restart", false, "Reinitialises _burgers_vector_vec at restart");
   return params;
 }
 
@@ -177,6 +178,9 @@ CrystalPlasticityHCP::CrystalPlasticityHCP(const InputParameters & parameters)
   _dCRSS_dT_A_pyra(getParam<Real>("dCRSS_dT_A_pyra")),
   _dCRSS_dT_B_pyra(getParam<Real>("dCRSS_dT_B_pyra")),
   _dCRSS_dT_C_pyra(getParam<Real>("dCRSS_dT_C_pyra")),
+  
+  // Reinitialises _burgers_vector_vec at restart
+  _is_restart(getParam<bool>("is_restart")),
 
   // store edge and screw slip directions to calculate directional derivatives
   // of the plastic slip rate    

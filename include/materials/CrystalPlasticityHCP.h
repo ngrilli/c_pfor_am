@@ -236,6 +236,9 @@ protected:
   const Real _dCRSS_dT_B_pyra;
   const Real _dCRSS_dT_C_pyra;
   
+  // Reinitialises _burgers_vector_vec at restart
+  bool _is_restart;
+  
   // Rotated slip direction to calculate the directional derivative
   // of the plastic strain rate
   // it indicates the edge dislocation velocity direction for all slip systems
