@@ -37,6 +37,12 @@ protected:
   virtual void initQpStatefulProperties() override;
   
   /**
+   * initialize Burgers vector array
+   * used for restart 
+   */
+  virtual void initializeBurgersVector();
+  
+  /**
    * A helper method to rotate the a direction and plane normal system set into
    * the local crystal lattice orientation as defined by the crystal rotation
    * tensor from the Elasticity tensor class.

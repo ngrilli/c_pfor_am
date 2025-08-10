@@ -306,6 +306,20 @@ CrystalPlasticityHCP::initQpStatefulProperties()
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
 }
 
+void
+CrystalPlasticityHCP::initializeBurgersVector()
+{
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    if (i < 12) {
+      _burgers_vector_vec[i] = _burgers_vector_mag_1;
+    }
+    else {
+      _burgers_vector_vec[i] = _burgers_vector_mag_2;
+    }
+  }
+}
+
 // Calculate Schmid tensor and
 // store edge and screw slip directions to calculate directional derivatives
 // of the plastic slip rate
