@@ -571,7 +571,7 @@ CrystalPlasticityFerriticSteel::calculateSlipResistance()
   // Resistance contribution from yield point phenomenon
   Real ypp_resistance;
   
-  // MS If this is a restarted simulation then the interaction matrix is reinitialised
+  // If this is a restarted simulation then the interaction matrix is reinitialised
   if (_is_restart) {
     initializeReferenceInteractionMatrix();
     initializeConstSlipResistance();

@@ -306,6 +306,7 @@ CrystalPlasticityHCP::initQpStatefulProperties()
   _screw_slip_direction[_qp].resize(LIBMESH_DIM * _number_slip_systems);
 }
 
+// Initialize Burgers vector array used for restart 
 void
 CrystalPlasticityHCP::initializeBurgersVector()
 {
@@ -502,6 +503,12 @@ CrystalPlasticityHCP::calculateSlipResistance()
   // Temperature dependence of the CRSS
   Real temperature_dependence_pris;
   Real temperature_dependence_pyra;
+  
+  // If this is a restarted simulation then the Burgers vector array is reinitialised
+  if (_is_restart) {
+    initializeBurgersVector();
+    _is_restart = false;
+  }
   
   // Critical resolved shear stress decreases exponentially with temperature
   // A + B exp(- C * (T - T0)) 
