@@ -6,7 +6,6 @@ Emin = 1e-4
 power = 2
 
 [GlobalParams]
-  #displacements = 'disp_x disp_y disp_z'
 []
 
 [Mesh]
@@ -27,7 +26,7 @@ power = 2
     type = ExtraNodesetGenerator
     input = MeshGenerator
     new_boundary = pull
-    coord = '0 0 5'
+    coord = '0 5 5'
   []
 []
 
@@ -35,11 +34,21 @@ power = 2
   [Dc]
     initial_condition = -1.0
   []
-  [./disp_x]
+
+  # displacement for elastic problem  
+  [./ue_x]
   [../]
-  [./disp_y]
+  [./ue_y]
   [../]
-  [./disp_z]
+  [./ue_z]
+  [../]
+  
+  # displacement for thermo-elastic problem  
+  [./ut_x]
+  [../]
+  [./ut_y]
+  [../]
+  [./ut_z]
   [../]
 []
 
@@ -100,75 +109,129 @@ power = 2
   # so that two problems with different displacement variables
   # can be solved at the same time, for example these are the 3 equations
   # for equilibrium for the mechanics problem
-  [./disp_x]
+  [./ue_x]
     type = StressDivergenceTensors
-    variable = disp_x
+    variable = ue_x
     component = 0
     base_name = "mech"
-    displacements = 'disp_x disp_y disp_z'
+    displacements = 'ue_x ue_y ue_z'
   [../]
-  [./disp_y]
+  [./ue_y]
     type = StressDivergenceTensors
-    variable = disp_y
+    variable = ue_y
     component = 1
     base_name = "mech"
-    displacements = 'disp_x disp_y disp_z'
+    displacements = 'ue_x ue_y ue_z'
   [../]
-  [./disp_z]
+  [./ue_z]
     type = StressDivergenceTensors
-    variable = disp_z
+    variable = ue_z
     component = 2
     base_name = "mech"
-    displacements = 'disp_x disp_y disp_z'
+    displacements = 'ue_x ue_y ue_z'
+  [../]
+  
+  # and these other 3 equations for equilibrium for the thermo-mechanical problem
+  [./ut_x]
+    type = StressDivergenceTensors
+    variable = ut_x
+    component = 0
+    base_name = "mech"
+    displacements = 'ut_x ut_y ut_z'
+    eigenstrain_names = eigenstrain
+  [../]
+  [./ut_y]
+    type = StressDivergenceTensors
+    variable = ut_y
+    component = 1
+    base_name = "mech"
+    displacements = 'ut_x ut_y ut_z'
+    eigenstrain_names = eigenstrain
+  [../]
+  [./ut_z]
+    type = StressDivergenceTensors
+    variable = ut_z
+    component = 2
+    base_name = "mech"
+    displacements = 'ut_x ut_y ut_z'
+    eigenstrain_names = eigenstrain
   [../]
 []
 
 [BCs]
-  [no_x]
+  [no_e_x]
     type = DirichletBC
-    variable = disp_x
+    variable = ue_x
     boundary = right
     value = 0.0
   []
-  [no_y]
+  [no_e_y]
     type = DirichletBC
-    variable = disp_y
+    variable = ue_y
     boundary = right
     value = 0.0
   []
-  [no_z]
+  [no_e_z]
     type = DirichletBC
-    variable = disp_z
+    variable = ue_z
     boundary = right
     value = 0.0
   []
+  
   [boundary_penalty]
     type = ADRobinBC
     variable = Dc
     boundary = 'left top front back'
     coefficient = 10
   []
+  
+  # boundary condition for substrate in thermal simulation
+  [no_t_x]
+    type = DirichletBC
+    variable = ut_x
+    boundary = 'right left'
+    value = 0.0
+  []
+  [no_t_y]
+    type = DirichletBC
+    variable = ut_y
+    boundary = 'right left'
+    value = 0.0
+  []
+  [no_t_z]
+    type = DirichletBC
+    variable = ut_z
+    boundary = 'right left'
+    value = 0.0
+  []
 []
 
 [NodalKernels]
   [pull]
     type = NodalGravity
-    variable = disp_y
+    variable = ue_y
     boundary = pull
     gravity_value = -1
     mass = 1
-    #base_name = "mech"
   []
 []
 
 [Materials]
-  [elasticity_tensor]
+  [elasticity_tensor_e]
     type = ComputeVariableIsotropicElasticityTensor
     youngs_modulus = E_phys
     poissons_ratio = poissons_ratio
     args = 'mat_den'
     base_name = "mech"
   []
+  [elasticity_tensor_t]
+    type = ComputeVariableIsotropicElasticityTensor
+    youngs_modulus = E_phys
+    poissons_ratio = poissons_ratio
+    args = 'mat_den'
+    base_name = "thermo"
+  []
+  
   [E_phys]
     type = DerivativeParsedMaterial
     # Emin + (density^penal) * (E0 - Emin)
@@ -182,15 +245,31 @@ power = 2
     prop_values = 0.3
   []
   
-  [stress] # calculate stress
+  [stress_e] # calculate stress
     type = ComputeLinearElasticStress
     base_name = "mech"
   []
-  [strain] # calculate strain
+  [strain_e] # calculate strain
     type = ComputeSmallStrain
     base_name = "mech"
-    displacements = 'disp_x disp_y disp_z'
+    displacements = 'ue_x ue_y ue_z'
   []
+  
+  [stress_t] # calculate stress
+    type = ComputeLinearElasticStress
+    base_name = "thermo"
+  []
+  [strain_t] # calculate strain
+    type = ComputeSmallStrain
+    base_name = "thermo"
+    displacements = 'ut_x ut_y ut_z'
+  []
+  [./eigenstrain]
+    type = ComputeEigenstrain
+    #eigen_base = '0'
+    eigen_base = '-1e-6 -1e-6 1e-6 0 0 0'
+    eigenstrain_name = eigenstrain
+  [../]
   
   [dc]
     type = ComplianceSensitivity
@@ -224,6 +303,7 @@ power = 2
   petsc_options_iname = '-pc_type '
   petsc_options_value = 'lu'
   nl_abs_tol = 1e-10
+  nl_max_its = 10
   line_search = none
   dt = 1.0
   num_steps = 10
