@@ -47,6 +47,22 @@ protected:
    * value again.
    */
   virtual void setSubstepConstitutiveVariableValues() override;
+  
+  /**
+   * Stores the current value of the state variables into a separate
+   * material property in case substepping is needed.
+   */
+  virtual void updateSubstepConstitutiveVariableValues() override;
+  
+  /// Cache the state variables before the update for the diff in the convergence check
+  virtual void cacheStateVariablesBeforeUpdate() override;
+  
+  /// Calculate increment of state variables
+  virtual void calculateStateVariableEvolutionRateComponent() override;
+  
+  /// Finalizes the values of the state variables
+  /// for the current timestep after convergence has been reached.
+  virtual bool updateStateVariables() override;
 
   /// Standard deviation of the spatial distribution of the
   /// initial lattice friction strength of the material

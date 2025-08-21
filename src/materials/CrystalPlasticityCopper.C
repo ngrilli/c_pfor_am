@@ -31,7 +31,14 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
 
     // Backstress variable
     _backstress(declareProperty<std::vector<Real>>("backstress")),
-    _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress"))
+    _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
+    
+    // increments of state variables
+    _backstress_increment(_number_slip_systems, 0.0),
+    
+    // resize local caching vectors used for substepping
+    _previous_substep_backstress(_number_slip_systems, 0.0),
+    _backstress_before_update(_number_slip_systems, 0.0)
 {
 }
 
@@ -63,6 +70,7 @@ void
 CrystalPlasticityCopper::setInitialConstitutiveVariableValues()
 {
   // Initialize state variables with the value at the previous time step
+  CrystalPlasticityKalidindiUpdate::setInitialConstitutiveVariableValues();
   _backstress[_qp] = _backstress_old[_qp];
   _previous_substep_backstress = _backstress_old[_qp];
 }
@@ -72,5 +80,46 @@ CrystalPlasticityCopper::setSubstepConstitutiveVariableValues()
 {
   // Inialize state variable of the next substep
   // with the value at the previous substep
+  CrystalPlasticityKalidindiUpdate::setSubstepConstitutiveVariableValues();
   _backstress[_qp] = _previous_substep_backstress;
+}
+
+void
+CrystalPlasticityCopper::updateSubstepConstitutiveVariableValues()
+{
+  // Update temporary variables at the end of the substep
+  CrystalPlasticityKalidindiUpdate::updateSubstepConstitutiveVariableValues();
+  _previous_substep_backstress = _backstress[_qp];
+}
+
+void
+CrystalPlasticityCopper::cacheStateVariablesBeforeUpdate()
+{
+  // Cache the state variables before the update for the diff in the convergence check
+  CrystalPlasticityKalidindiUpdate::cacheStateVariablesBeforeUpdate();
+  _backstress_before_update = _backstress[_qp];
+}
+
+void
+CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
+{
+  // Calculate increment of state variables
+  CrystalPlasticityKalidindiUpdate::calculateStateVariableEvolutionRateComponent();
+  for (const auto i : make_range(_number_slip_systems)) 
+  {
+    _backstress_increment[i] = _h * _slip_increment[_qp][i];
+    _backstress_increment[i] -= _h_D * _backstress[_qp][i] * std::abs(_slip_increment[_qp][i]);  
+  }
+}
+
+bool
+CrystalPlasticityCopper::updateStateVariables()
+{
+  for (const auto i : make_range(_number_slip_systems))
+  { 
+    _backstress_increment[i] *= _substep_dt;
+    _backstress[_qp][i] = _previous_substep_backstress[i] + _backstress_increment[i];
+  }
+  
+  return CrystalPlasticityKalidindiUpdate::updateStateVariables();
 }
