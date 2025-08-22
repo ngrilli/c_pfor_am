@@ -17,6 +17,9 @@ CrystalPlasticityCopper::validParams()
                                                 "initial lattice friction strength of the material.");
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
   params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
+  params.addParam<Real>("climbing_dislocations_frequency",0.0,"Frequency of climbing dislocations for thermal recovery");
+  params.addParam<Real>("creep_activation_energy",0.0,"Creep activation energy");
+  params.addParam<Real>("d",0.0,"Exponent controlling the evolution of recovery");
   return params;
 }
 
@@ -28,6 +31,12 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     // Backstress parameters
     _h(getParam<Real>("h")),
     _h_D(getParam<Real>("h_D")),
+    
+    // Parameters for temperature-dependent recovery process during creep
+    _climbing_dislocations_frequency(getParam<Real>("climbing_dislocations_frequency")),
+    _creep_activation_energy(getParam<Real>("creep_activation_energy")),
+    _d(getParam<Real>("d")),
+    _R(8.314), // universal gas constant (J/mol/K)
 
     // Backstress variable
     _backstress(declareProperty<std::vector<Real>>("backstress")),

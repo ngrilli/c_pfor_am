@@ -72,6 +72,12 @@ protected:
   const Real _h;
   const Real _h_D;
   
+  /// Parameters for temperature-dependent recovery process during creep
+  const Real _climbing_dislocations_frequency;
+  const Real _creep_activation_energy;
+  const Real _d;
+  const Real _R;
+  
   /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
   const MaterialProperty<std::vector<Real>> & _backstress_old;
