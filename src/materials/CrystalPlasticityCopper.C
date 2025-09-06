@@ -15,11 +15,12 @@ CrystalPlasticityCopper::validParams()
   params.addClassDescription("Phenomenological model for copper with spatially random gss_initial.");
   params.addParam<Real>("gss_initial_std", 0.0, "Standard deviation of the spatial distribution of the " 
                                                 "initial lattice friction strength of the material.");
-  params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
+  params.addParam<Real>("h_C",0.0,"Direct hardening coefficient for backstress");
   params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
   params.addParam<Real>("climbing_dislocations_frequency",0.0,"Frequency of climbing dislocations for thermal recovery");
   params.addParam<Real>("creep_activation_energy",0.0,"Creep activation energy");
   params.addParam<Real>("d",0.0,"Exponent controlling the evolution of recovery");
+  params.addCoupledVar("temperature", 0.0, "Coupled Temperature");
   return params;
 }
 
@@ -29,7 +30,7 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     _gss_initial_std(getParam<Real>("gss_initial_std")),
     
     // Backstress parameters
-    _h(getParam<Real>("h")),
+    _h_C(getParam<Real>("h_C")),
     _h_D(getParam<Real>("h_D")),
     
     // Parameters for temperature-dependent recovery process during creep
@@ -37,8 +38,11 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     _creep_activation_energy(getParam<Real>("creep_activation_energy")),
     _d(getParam<Real>("d")),
     _R(8.314), // universal gas constant (J/mol/K)
+    
+    // Temperature variable
+    _temperature(coupledValue("temperature")),
 
-    // Backstress variable
+    // Backstress material property
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
     
@@ -113,19 +117,24 @@ void
 CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
 {
   // Calculate increment of state variables
-  // TO DO: option to change this original function with the update based on cumulative slip system
+  // TO DO: option to change this original function with the update based on cumulative slip
+  // Peirce, Asaro, Needleman formulation for hardening from:
+  // https://www.sciencedirect.com/science/article/pii/0001616082900050
   CrystalPlasticityKalidindiUpdate::calculateStateVariableEvolutionRateComponent();
   
   // Temperature dependent recovery
+  Real recovery_prefactor = _climbing_dislocations_frequency * _h 
+                          * std::exp(_creep_activation_energy / (_R * _temperature[_qp]));
   for (const auto i : make_range(_number_slip_systems))
   {
-    _slip_resistance_increment[i] += _climbing_dislocations_frequency * _h * 0.0;
+	// TO DO: add cumulative slip
+    _slip_resistance_increment[i] -= recovery_prefactor * 0.0;
   }
   
   // Backstress increment using Armstrong-Frederick
   for (const auto i : make_range(_number_slip_systems)) 
   {
-    _backstress_increment[i] = _h * _slip_increment[_qp][i];
+    _backstress_increment[i] = _h_C * _slip_increment[_qp][i];
     _backstress_increment[i] -= _h_D * _backstress[_qp][i] * std::abs(_slip_increment[_qp][i]);  
   }
 }

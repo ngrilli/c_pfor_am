@@ -69,7 +69,7 @@ protected:
   const Real _gss_initial_std;
   
   /// Backstress parameters
-  const Real _h;
+  const Real _h_C;
   const Real _h_D;
   
   /// Parameters for temperature-dependent recovery process during creep
@@ -77,6 +77,9 @@ protected:
   const Real _creep_activation_energy;
   const Real _d;
   const Real _R;
+  
+  /// Temperature
+  const VariableValue & _temperature;
   
   /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
