@@ -113,7 +113,16 @@ void
 CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
 {
   // Calculate increment of state variables
+  // TO DO: option to change this original function with the update based on cumulative slip system
   CrystalPlasticityKalidindiUpdate::calculateStateVariableEvolutionRateComponent();
+  
+  // Temperature dependent recovery
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    _slip_resistance_increment[i] += _climbing_dislocations_frequency * _h * 0.0;
+  }
+  
+  // Backstress increment using Armstrong-Frederick
   for (const auto i : make_range(_number_slip_systems)) 
   {
     _backstress_increment[i] = _h * _slip_increment[_qp][i];
