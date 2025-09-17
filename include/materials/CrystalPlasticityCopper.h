@@ -81,6 +81,9 @@ protected:
   /// Temperature
   const VariableValue & _temperature;
   
+  /// Peirce hardening law parameters
+  const bool _Peirce_hardening;
+  
   /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
   const MaterialProperty<std::vector<Real>> & _backstress_old;

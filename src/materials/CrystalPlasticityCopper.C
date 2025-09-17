@@ -1,4 +1,5 @@
 // Nicolò Grilli
+// Wan Wan Mohammad
 // Università di Bristol
 // 2 Agosto 2025
 
@@ -20,7 +21,8 @@ CrystalPlasticityCopper::validParams()
   params.addParam<Real>("climbing_dislocations_frequency",0.0,"Frequency of climbing dislocations for thermal recovery");
   params.addParam<Real>("creep_activation_energy",0.0,"Creep activation energy");
   params.addParam<Real>("d",0.0,"Exponent controlling the evolution of recovery");
-  params.addCoupledVar("temperature", 0.0, "Coupled Temperature");
+  params.addCoupledVar("temperature", 293.0, "Coupled Temperature");
+  params.addParam<bool>("Peirce_hardening",false,"Use Peirce hardening formulation instead of Kalidindi");
   return params;
 }
 
@@ -41,6 +43,9 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     
     // Temperature variable
     _temperature(coupledValue("temperature")),
+    
+    // Peirce hardening law parameters
+    _Peirce_hardening(getParam<bool>("Peirce_hardening")),
 
     // Backstress material property
     _backstress(declareProperty<std::vector<Real>>("backstress")),
