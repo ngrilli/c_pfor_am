@@ -51,12 +51,19 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     _backstress(declareProperty<std::vector<Real>>("backstress")),
     _backstress_old(getMaterialPropertyOld<std::vector<Real>>("backstress")),
     
+    // Cumulative slip on all slip systems
+    _cumulative_slip(declareProperty<Real>("cumulative_slip")),
+    _cumulative_slip_old(getMaterialPropertyOld<Real>("cumulative_slip")),
+    
     // increments of state variables
     _backstress_increment(_number_slip_systems, 0.0),
+    _cumulative_slip_increment(0.0),
     
     // resize local caching vectors used for substepping
     _previous_substep_backstress(_number_slip_systems, 0.0),
-    _backstress_before_update(_number_slip_systems, 0.0)
+    _previous_substep_cumulative_slip(0.0),
+    _backstress_before_update(_number_slip_systems, 0.0),
+    _cumulative_slip_before_update(0.0)
 {
 }
 
@@ -82,6 +89,9 @@ CrystalPlasticityCopper::initQpStatefulProperties()
     // Initialize backstress
     _backstress[_qp][i] = 0.0;
   }
+  
+  // Initialize the cumulative slip on all slip systems
+  _cumulative_slip[_qp] = 0.0;
 }
 
 void
@@ -90,7 +100,9 @@ CrystalPlasticityCopper::setInitialConstitutiveVariableValues()
   // Initialize state variables with the value at the previous time step
   CrystalPlasticityKalidindiUpdate::setInitialConstitutiveVariableValues();
   _backstress[_qp] = _backstress_old[_qp];
+  _cumulative_slip[_qp] = _cumulative_slip_old[_qp];
   _previous_substep_backstress = _backstress_old[_qp];
+  _previous_substep_cumulative_slip = _cumulative_slip_old[_qp];
 }
 
 void
@@ -100,6 +112,7 @@ CrystalPlasticityCopper::setSubstepConstitutiveVariableValues()
   // with the value at the previous substep
   CrystalPlasticityKalidindiUpdate::setSubstepConstitutiveVariableValues();
   _backstress[_qp] = _previous_substep_backstress;
+  _cumulative_slip[_qp] = _previous_substep_cumulative_slip;
 }
 
 void
@@ -108,6 +121,7 @@ CrystalPlasticityCopper::updateSubstepConstitutiveVariableValues()
   // Update temporary variables at the end of the substep
   CrystalPlasticityKalidindiUpdate::updateSubstepConstitutiveVariableValues();
   _previous_substep_backstress = _backstress[_qp];
+  _previous_substep_cumulative_slip = _cumulative_slip[_qp];
 }
 
 void
@@ -116,6 +130,7 @@ CrystalPlasticityCopper::cacheStateVariablesBeforeUpdate()
   // Cache the state variables before the update for the diff in the convergence check
   CrystalPlasticityKalidindiUpdate::cacheStateVariablesBeforeUpdate();
   _backstress_before_update = _backstress[_qp];
+  _cumulative_slip_before_update = _cumulative_slip[_qp];
 }
 
 void
@@ -130,9 +145,11 @@ CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
   // Temperature dependent recovery
   Real recovery_prefactor = _climbing_dislocations_frequency * _h 
                           * std::exp(_creep_activation_energy / (_R * _temperature[_qp]));
+                          
+  _cumulative_slip_increment = 0.0;
   for (const auto i : make_range(_number_slip_systems))
   {
-	// TO DO: add cumulative slip
+	_cumulative_slip_increment += std::abs(_slip_increment[_qp][i]);
     _slip_resistance_increment[i] -= recovery_prefactor * 0.0;
   }
   
@@ -152,6 +169,9 @@ CrystalPlasticityCopper::updateStateVariables()
     _backstress_increment[i] *= _substep_dt;
     _backstress[_qp][i] = _previous_substep_backstress[i] + _backstress_increment[i];
   }
+  
+  _cumulative_slip_increment *= _substep_dt;
+  _cumulative_slip[_qp] = _previous_substep_cumulative_slip + _cumulative_slip_increment;
   
   return CrystalPlasticityKalidindiUpdate::updateStateVariables();
 }

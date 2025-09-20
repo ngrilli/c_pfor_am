@@ -88,14 +88,20 @@ protected:
   MaterialProperty<std::vector<Real>> & _backstress;
   const MaterialProperty<std::vector<Real>> & _backstress_old;
   
+  /// Cumulative slip on all slip systems
+  MaterialProperty<Real> & _cumulative_slip;
+  const MaterialProperty<Real> & _cumulative_slip_old;
+  
   /// Increment of state variables
   std::vector<Real> _backstress_increment;
+  Real _cumulative_slip_increment;
 
   /**
    * Stores the values of the state variables
    * from the previous substep
    */
   std::vector<Real> _previous_substep_backstress;
+  Real _previous_substep_cumulative_slip;
 
   /**
    * Caches the value of the current state variables immediately prior
@@ -104,5 +110,6 @@ protected:
    * only one substep is taken) for the convergence check tolerance comparison
    */
   std::vector<Real> _backstress_before_update;
+  Real _cumulative_slip_before_update;
   
 };
