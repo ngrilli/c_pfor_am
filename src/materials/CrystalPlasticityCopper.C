@@ -161,6 +161,12 @@ CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
   }
 }
 
+void
+CrystalPlasticityCopper::calculatePeirceStateVariableEvolutionRateComponent()
+{
+
+}
+
 bool
 CrystalPlasticityCopper::updateStateVariables()
 {

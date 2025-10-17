@@ -1,4 +1,5 @@
 // Nicolò Grilli
+// Wan Wan Mohammad
 // Università di Bristol
 // 2 Agosto 2025
 
@@ -59,6 +60,9 @@ protected:
   
   /// Calculate increment of state variables
   virtual void calculateStateVariableEvolutionRateComponent() override;
+  
+  /// Calculate increment of state variables for Peirce, Asaro, Needleman formulation for hardening
+  virtual void calculatePeirceStateVariableEvolutionRateComponent();
   
   /// Finalizes the values of the state variables
   /// for the current timestep after convergence has been reached.
