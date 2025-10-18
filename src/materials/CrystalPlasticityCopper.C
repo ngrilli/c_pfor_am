@@ -23,6 +23,8 @@ CrystalPlasticityCopper::validParams()
   params.addParam<Real>("d",0.0,"Exponent controlling the evolution of recovery");
   params.addCoupledVar("temperature", 293.0, "Coupled Temperature");
   params.addParam<bool>("Peirce_hardening",false,"Use Peirce hardening formulation instead of Kalidindi");
+  params.addParam<Real>("tau_sec_hard",0.0,"Secondary hardening stress prefactor");
+  params.addParam<Real>("h_sec_hard",0.0,"Hardening rate of secondary hardening");
   return params;
 }
 
@@ -46,6 +48,10 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     
     // Peirce hardening law parameters
     _Peirce_hardening(getParam<bool>("Peirce_hardening")),
+    
+    // Secondary hardening parameters
+    _tau_sec_hard(getParam<Real>("tau_sec_hard")),
+    _h_sec_hard(getParam<Real>("h_sec_hard")),
 
     // Backstress material property
     _backstress(declareProperty<std::vector<Real>>("backstress")),
@@ -115,6 +121,28 @@ CrystalPlasticityCopper::setSubstepConstitutiveVariableValues()
   _cumulative_slip[_qp] = _previous_substep_cumulative_slip;
 }
 
+bool
+CrystalPlasticityCopper::calculateSlipRate()
+{
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    _slip_increment[_qp][i] =
+        _ao * std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm);
+    if (_tau[_qp][i] < 0.0)
+      _slip_increment[_qp][i] *= -1.0;
+
+    if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
+    {
+      if (_print_convergence_message)
+        mooseWarning("Maximum allowable slip increment exceeded ",
+                     std::abs(_slip_increment[_qp][i]) * _substep_dt);
+
+      return false;
+    }
+  }
+  return true;
+}
+
 void
 CrystalPlasticityCopper::updateSubstepConstitutiveVariableValues()
 {
@@ -137,10 +165,11 @@ void
 CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
 {
   // Calculate increment of state variables
-  // TO DO: option to change this original function with the update based on cumulative slip
-  // Peirce, Asaro, Needleman formulation for hardening from:
-  // https://www.sciencedirect.com/science/article/pii/0001616082900050
-  CrystalPlasticityKalidindiUpdate::calculateStateVariableEvolutionRateComponent();
+  if (_Peirce_hardening) {
+    calculatePeirceStateVariableEvolutionRateComponent();
+  } else {
+    CrystalPlasticityKalidindiUpdate::calculateStateVariableEvolutionRateComponent();
+  }
   
   // Temperature dependent recovery
   Real recovery_prefactor = _climbing_dislocations_frequency * _h 
@@ -164,7 +193,9 @@ CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
 void
 CrystalPlasticityCopper::calculatePeirceStateVariableEvolutionRateComponent()
 {
-
+  // TO DO: option to change this original function with the update based on cumulative slip
+  // Peirce, Asaro, Needleman formulation for hardening from:
+  // https://www.sciencedirect.com/science/article/pii/0001616082900050
 }
 
 bool

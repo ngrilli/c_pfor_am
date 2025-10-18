@@ -50,6 +50,11 @@ protected:
   virtual void setSubstepConstitutiveVariableValues() override;
   
   /**
+   * Calculate slip rate using the slip resistance that includes secondary hardening
+   */
+  virtual bool calculateSlipRate() override;
+  
+  /**
    * Stores the current value of the state variables into a separate
    * material property in case substepping is needed.
    */
@@ -87,6 +92,10 @@ protected:
   
   /// Peirce hardening law parameters
   const bool _Peirce_hardening;
+  
+  /// Secondary hardening parameters
+  const Real _tau_sec_hard;
+  const Real _h_sec_hard;
   
   /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
