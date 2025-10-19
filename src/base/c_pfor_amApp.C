@@ -8,10 +8,8 @@ InputParameters
 c_pfor_amApp::validParams()
 {
   InputParameters params = MooseApp::validParams();
-
-  // Do not use legacy DirichletBC, that is, set DirichletBC default for preset = true
-  params.set<bool>("use_legacy_dirichlet_bc") = false;
-
+  params.set<bool>("use_legacy_material_output") = false;
+  params.set<bool>("use_legacy_initial_residual_evaluation_behavior") = false;
   return params;
 }
 
@@ -37,7 +35,7 @@ associateSyntaxInner(Syntax & syntax, ActionFactory & /*action_factory*/)
 void
 c_pfor_amApp::registerAll(Factory & f, ActionFactory & af, Syntax & s)
 {
-  ModulesApp::registerAll(f, af, s);
+  ModulesApp::registerAllObjects<c_pfor_amApp>(f, af, s);
   Registry::registerObjectsTo(f, {"c_pfor_amApp"});
   Registry::registerActionsTo(af, {"c_pfor_amApp"});
 
@@ -51,20 +49,20 @@ c_pfor_amApp::registerApps()
   registerApp(c_pfor_amApp);
 }
 
-void
-c_pfor_amApp::registerObjects(Factory & factory)
-{
-  mooseDeprecated("use registerAll instead of registerObjects");
-  Registry::registerObjectsTo(factory, {"c_pfor_amApp"});
-}
+//void
+//c_pfor_amApp::registerObjects(Factory & factory)
+//{
+//  mooseDeprecated("use registerAll instead of registerObjects");
+//  Registry::registerObjectsTo(factory, {"c_pfor_amApp"});
+//}
 
-void
-c_pfor_amApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
-{
-  mooseDeprecated("use registerAll instead of associateSyntax");
-  Registry::registerActionsTo(action_factory, {"c_pfor_amApp"});
-  associateSyntaxInner(syntax, action_factory);
-}
+//void
+//c_pfor_amApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
+//{
+//  mooseDeprecated("use registerAll instead of associateSyntax");
+//  Registry::registerActionsTo(action_factory, {"c_pfor_amApp"});
+//  associateSyntaxInner(syntax, action_factory);
+//}
 
 /***************************************************************************************************
  *********************** Dynamic Library Entry Points - DO NOT MODIFY ******************************

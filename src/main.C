@@ -8,10 +8,7 @@
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
 #include "c_pfor_amTestApp.h"
-#include "MooseInit.h"
-#include "Moose.h"
-#include "MooseApp.h"
-#include "AppFactory.h"
+#include "MooseMain.h"
 
 // Create a performance log
 PerfLog Moose::perf_log("c_pfor_am");
@@ -20,17 +17,5 @@ PerfLog Moose::perf_log("c_pfor_am");
 int
 main(int argc, char * argv[])
 {
-  // Initialize MPI, solvers and MOOSE
-  MooseInit init(argc, argv);
-
-  // Register this application's MooseApp and any it depends on
-  c_pfor_amTestApp::registerApps();
-
-  // Create an instance of the application and store it in a smart pointer for easy cleanup
-  std::shared_ptr<MooseApp> app = AppFactory::createAppShared("c_pfor_amTestApp", argc, argv);
-
-  // Execute the application
-  app->run();
-
-  return 0;
+  return Moose::main<c_pfor_amTestApp>(argc, argv);
 }
