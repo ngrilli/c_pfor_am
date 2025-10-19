@@ -54,6 +54,9 @@ protected:
    */
   virtual bool calculateSlipRate() override;
   
+  /**
+   * Calculate secondary hardening contribution to the slip resistance 
+   */
   virtual void calculateSecondaryHardening();
   
   /**
@@ -126,5 +129,10 @@ protected:
    */
   std::vector<Real> _backstress_before_update;
   Real _cumulative_slip_before_update;
+  
+  /**
+   * Secondary hardening state variable
+   */
+  Real _secondary_hardening;
   
 };

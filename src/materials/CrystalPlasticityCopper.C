@@ -69,7 +69,10 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     _previous_substep_backstress(_number_slip_systems, 0.0),
     _previous_substep_cumulative_slip(0.0),
     _backstress_before_update(_number_slip_systems, 0.0),
-    _cumulative_slip_before_update(0.0)
+    _cumulative_slip_before_update(0.0),
+    
+    // secondary hardening state variable
+    _secondary_hardening(0.0)
 {
 }
 
@@ -124,10 +127,17 @@ CrystalPlasticityCopper::setSubstepConstitutiveVariableValues()
 bool
 CrystalPlasticityCopper::calculateSlipRate()
 {
+  calculateSecondaryHardening();
+  
+  // total slip resistance including secondary hardening
+  Real total_slip_resistance;
+
   for (const auto i : make_range(_number_slip_systems))
   {
+    total_slip_resistance = _slip_resistance[_qp][i] + _secondary_hardening;
+	  
     _slip_increment[_qp][i] =
-        _ao * std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm);
+        _ao * std::pow(std::abs(_tau[_qp][i] / total_slip_resistance), 1.0 / _xm);
     if (_tau[_qp][i] < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
@@ -146,7 +156,7 @@ CrystalPlasticityCopper::calculateSlipRate()
 void
 CrystalPlasticityCopper::calculateSecondaryHardening()
 {
-	// TO DO
+  _secondary_hardening = _tau_sec_hard * (1.0 - std::exp(-_h_sec_hard * _cumulative_slip[_qp]));
 }
 
 void
