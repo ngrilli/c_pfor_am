@@ -54,6 +54,8 @@ protected:
    */
   virtual bool calculateSlipRate() override;
   
+  virtual void calculateSecondaryHardening();
+  
   /**
    * Stores the current value of the state variables into a separate
    * material property in case substepping is needed.

@@ -144,6 +144,12 @@ CrystalPlasticityCopper::calculateSlipRate()
 }
 
 void
+CrystalPlasticityCopper::calculateSecondaryHardening()
+{
+	// TO DO
+}
+
+void
 CrystalPlasticityCopper::updateSubstepConstitutiveVariableValues()
 {
   // Update temporary variables at the end of the substep
