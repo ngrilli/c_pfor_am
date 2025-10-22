@@ -74,6 +74,9 @@ protected:
   /// Calculate increment of state variables for Peirce, Asaro, Needleman formulation for hardening
   virtual void calculatePeirceStateVariableEvolutionRateComponent();
   
+  /// Calculate increment of state variables for Kalidindi formulation for hardening
+  virtual void calculateKalidindiStateVariableEvolutionRateComponent();
+  
   /// Finalizes the values of the state variables
   /// for the current timestep after convergence has been reached.
   virtual bool updateStateVariables() override;
