@@ -206,12 +206,36 @@ CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
   }
 }
 
+// Peirce, Asaro, Needleman formulation for hardening from:
+// https://www.sciencedirect.com/science/article/pii/0001616082900050
 void
 CrystalPlasticityCopper::calculatePeirceStateVariableEvolutionRateComponent()
 {
-  // TO DO: option to change this original function with the update based on cumulative slip
-  // Peirce, Asaro, Needleman formulation for hardening from:
-  // https://www.sciencedirect.com/science/article/pii/0001616082900050
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    // Clear out increment from the previous iteration
+    _slip_resistance_increment[i] = 0.0;
+
+    // Can be either positive (hardening) or negative (softening)
+    _hb[i] = _h * std::pow(std::abs(1.0 + ((_h * _cumulative_slip[_qp]) / (_gss_initial * _gss_a))), _gss_a-1.0);
+  }	
+	
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    for (const auto j : make_range(_number_slip_systems))
+    {
+      unsigned int iplane, jplane;
+      iplane = i / 3;
+      jplane = j / 3;
+
+      if (iplane == jplane) // self vs. latent hardening
+        _slip_resistance_increment[i] +=
+            std::abs(_slip_increment[_qp][j]) * _hb[j]; // q_{ab} = 1.0 for self hardening
+      else
+        _slip_resistance_increment[i] +=
+            std::abs(_slip_increment[_qp][j]) * _r * _hb[j]; // latent hardening
+    }
+  }
 }
 
 void
@@ -239,7 +263,7 @@ CrystalPlasticityCopper::calculateKalidindiStateVariableEvolutionRateComponent()
             std::abs(_slip_increment[_qp][j]) * _hb[j]; // q_{ab} = 1.0 for self hardening
       else
         _slip_resistance_increment[i] +=
-            std::abs(_slip_increment[_qp][j]) * _r * _hb[j]; // latent hardenign
+            std::abs(_slip_increment[_qp][j]) * _r * _hb[j]; // latent hardening
     }
   }
 }
