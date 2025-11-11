@@ -195,7 +195,7 @@ CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
   for (const auto i : make_range(_number_slip_systems))
   {
 	_cumulative_slip_increment += std::abs(_slip_increment[_qp][i]);
-    _slip_resistance_increment[i] -= recovery_prefactor * 0.0;
+    _slip_resistance_increment[i] -= recovery_prefactor * _cumulative_slip[_qp];
   }
   
   // Backstress increment using Armstrong-Frederick
