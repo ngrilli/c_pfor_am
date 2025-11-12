@@ -1,5 +1,6 @@
 // Nicolò Grilli
 // Wan Wan Mohammad
+// Farhan Ashraf
 // Università di Bristol
 // 2 Agosto 2025
 
@@ -25,6 +26,9 @@ CrystalPlasticityCopper::validParams()
   params.addParam<bool>("Peirce_hardening",false,"Use Peirce hardening formulation instead of Kalidindi");
   params.addParam<Real>("tau_sec_hard",0.0,"Secondary hardening stress prefactor");
   params.addParam<Real>("h_sec_hard",0.0,"Hardening rate of secondary hardening");
+  params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
+  params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
+  params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
   return params;
 }
 
@@ -52,6 +56,11 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     // Secondary hardening parameters
     _tau_sec_hard(getParam<Real>("tau_sec_hard")),
     _h_sec_hard(getParam<Real>("h_sec_hard")),
+
+    // Creep contribution to slip rate
+    _creep_activated(getParam<bool>("creep_activated")),
+    _creep_ao(getParam<Real>("creep_ao")),
+    _creep_xm(getParam<Real>("creep_xm")),
 
     // Backstress material property
     _backstress(declareProperty<std::vector<Real>>("backstress")),
@@ -138,6 +147,11 @@ CrystalPlasticityCopper::calculateSlipRate()
 	  
     _slip_increment[_qp][i] =
         _ao * std::pow(std::abs(_tau[_qp][i] / total_slip_resistance), 1.0 / _xm);
+        
+    if (_creep_activated) { // add creep rate
+      _slip_increment[_qp][i] += _creep_ao * std::pow(std::abs(_tau[_qp][i] / total_slip_resistance), 1.0 / _creep_xm);
+    }
+        
     if (_tau[_qp][i] < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
@@ -151,6 +165,28 @@ CrystalPlasticityCopper::calculateSlipRate()
     }
   }
   return true;
+}
+
+void
+CrystalPlasticityCopper::calculateConstitutiveSlipDerivative(
+    std::vector<Real> & dslip_dtau)
+{
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
+      dslip_dtau[i] = 0.0;
+    else {
+      dslip_dtau[i] = _ao / _xm *
+                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
+                      _slip_resistance[_qp][i];
+                      
+      if (_creep_activated) { // add creep rate
+        dslip_dtau[i] += _creep_ao / _creep_xm *
+                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _creep_xm - 1.0) /
+                      _slip_resistance[_qp][i];
+      }                
+    }
+  }
 }
 
 void

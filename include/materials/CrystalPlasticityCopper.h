@@ -54,6 +54,8 @@ protected:
    */
   virtual bool calculateSlipRate() override;
   
+  virtual void calculateConstitutiveSlipDerivative(std::vector<Real> & dslip_dtau) override;
+  
   /**
    * Calculate secondary hardening contribution to the slip resistance 
    */
@@ -104,6 +106,13 @@ protected:
   /// Secondary hardening parameters
   const Real _tau_sec_hard;
   const Real _h_sec_hard;
+  
+  /// Activate creep strain rate
+  bool _creep_activated;
+  
+  /// Creep rate constants
+  const Real _creep_ao;
+  const Real _creep_xm;
   
   /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
