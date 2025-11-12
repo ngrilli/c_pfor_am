@@ -1,6 +1,6 @@
 // Nicolò Grilli
-// Wan Wan Mohammad
 // Farhan Ashraf
+// Wan Wan Mohammad
 // Università di Bristol
 // 2 Agosto 2025
 
@@ -232,8 +232,14 @@ CrystalPlasticityCopper::calculateStateVariableEvolutionRateComponent()
   _cumulative_slip_increment = 0.0;
   for (const auto i : make_range(_number_slip_systems))
   {
-	_cumulative_slip_increment += std::abs(_slip_increment[_qp][i]);
-    _slip_resistance_increment[i] -= recovery_prefactor * _cumulative_slip[_qp];
+    _cumulative_slip_increment += std::abs(_slip_increment[_qp][i]);
+  }
+  
+  if (_t > _creep_t0 && _creep_activated) {
+    for (const auto i : make_range(_number_slip_systems))
+    {
+      _slip_resistance_increment[i] -= recovery_prefactor * _cumulative_slip[_qp];
+    }
   }
   
   // Backstress increment using Armstrong-Frederick
