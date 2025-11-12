@@ -114,6 +114,9 @@ protected:
   const Real _creep_ao;
   const Real _creep_xm;
   
+  /// Start time for secondary creep
+  const Real _creep_t0;
+  
   /// Backstress variables
   MaterialProperty<std::vector<Real>> & _backstress;
   const MaterialProperty<std::vector<Real>> & _backstress_old;

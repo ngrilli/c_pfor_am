@@ -29,6 +29,7 @@ CrystalPlasticityCopper::validParams()
   params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
   params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
+  params.addParam<Real>("creep_t0", 0.0, "start time for secondary creep");
   return params;
 }
 
@@ -61,6 +62,7 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     _creep_activated(getParam<bool>("creep_activated")),
     _creep_ao(getParam<Real>("creep_ao")),
     _creep_xm(getParam<Real>("creep_xm")),
+    _creep_t0(getParam<Real>("creep_t0")),
 
     // Backstress material property
     _backstress(declareProperty<std::vector<Real>>("backstress")),
@@ -144,15 +146,15 @@ CrystalPlasticityCopper::calculateSlipRate()
   for (const auto i : make_range(_number_slip_systems))
   {
     total_slip_resistance = _slip_resistance[_qp][i] + _secondary_hardening;
-	  
+    
     _slip_increment[_qp][i] =
-        _ao * std::pow(std::abs(_tau[_qp][i] / total_slip_resistance), 1.0 / _xm);
-        
-    if (_creep_activated) { // add creep rate
-      _slip_increment[_qp][i] += _creep_ao * std::pow(std::abs(_tau[_qp][i] / total_slip_resistance), 1.0 / _creep_xm);
+        _ao * std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / total_slip_resistance), 1.0 / _xm);
+    
+    if (_creep_activated && _t > _creep_t0) { // add creep rate
+      _slip_increment[_qp][i] += _creep_ao * std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / total_slip_resistance), 1.0 / _creep_xm);
     }
-        
-    if (_tau[_qp][i] < 0.0)
+    
+    if ((_tau[_qp][i] - _backstress[_qp][i]) < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
@@ -173,16 +175,16 @@ CrystalPlasticityCopper::calculateConstitutiveSlipDerivative(
 {
   for (const auto i : make_range(_number_slip_systems))
   {
-    if (MooseUtils::absoluteFuzzyEqual(_tau[_qp][i], 0.0))
+    if (MooseUtils::absoluteFuzzyEqual((_tau[_qp][i] - _backstress[_qp][i]), 0.0))
       dslip_dtau[i] = 0.0;
     else {
       dslip_dtau[i] = _ao / _xm *
-                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
+                      std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / _slip_resistance[_qp][i]), 1.0 / _xm - 1.0) /
                       _slip_resistance[_qp][i];
                       
-      if (_creep_activated) { // add creep rate
+      if (_creep_activated && _t > _creep_t0) { // add creep rate
         dslip_dtau[i] += _creep_ao / _creep_xm *
-                      std::pow(std::abs(_tau[_qp][i] / _slip_resistance[_qp][i]), 1.0 / _creep_xm - 1.0) /
+                      std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / _slip_resistance[_qp][i]), 1.0 / _creep_xm - 1.0) /
                       _slip_resistance[_qp][i];
       }                
     }
