@@ -165,7 +165,12 @@ CrystalPlasticityCopper::calculateSlipRate()
       _slip_increment[_qp][i] *= -1.0;
 
     if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
+    {
+      if (_print_convergence_message)
+        mooseWarning("Maximum allowable slip increment exceeded ",
+                     std::abs(_slip_increment[_qp][i]) * _substep_dt);
       return false;
+    }
   }
   return true;
 }
