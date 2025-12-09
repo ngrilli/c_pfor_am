@@ -24,8 +24,12 @@ CrystalPlasticityCopper::validParams()
   params.addParam<Real>("d",0.0,"Exponent controlling the evolution of recovery");
   params.addCoupledVar("temperature", 293.0, "Coupled Temperature");
   params.addParam<bool>("Peirce_hardening",false,"Use Peirce hardening formulation instead of Kalidindi");
-  params.addParam<Real>("tau_sec_hard",0.0,"Secondary hardening stress prefactor");
+  //wan-new secondaty term parameters
+  params.addParam<Real>("tau_sec_hard",0.0,"Secondary hardening saturation");
   params.addParam<Real>("h_sec_hard",0.0,"Hardening rate of secondary hardening");
+  params.addParam<Real>("b_sec_hard", 1.0, "nonlinearity exponent for secondary hardening.");
+  params.addParam<Real>(
+      "gamma_sec_crit", 0.0, "Slip threshold at which secondary hardening activates.");
   params.addParam<bool>("creep_activated", false, "Activate creep strain rate.");
   params.addParam<Real>("creep_ao", 0.0, "creep rate coefficient");
   params.addParam<Real>("creep_xm", 0.1, "exponent for creep rate");
@@ -57,6 +61,8 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     // Secondary hardening parameters
     _tau_sec_hard(getParam<Real>("tau_sec_hard")),
     _h_sec_hard(getParam<Real>("h_sec_hard")),
+    _b_sec_hard(getParam<Real>("b_sec_hard")),
+    _gamma_sec_crit(getParam<Real>("gamma_sec_crit")),
 
     // Creep contribution to slip rate
     _creep_activated(getParam<bool>("creep_activated")),
@@ -81,7 +87,7 @@ CrystalPlasticityCopper::CrystalPlasticityCopper(
     _previous_substep_cumulative_slip(0.0),
     _backstress_before_update(_number_slip_systems, 0.0),
     _cumulative_slip_before_update(0.0),
-    
+
     // secondary hardening state variable
     _secondary_hardening(0.0)
 {
@@ -138,22 +144,23 @@ CrystalPlasticityCopper::setSubstepConstitutiveVariableValues()
 bool
 CrystalPlasticityCopper::calculateSlipRate()
 {
+  // Update isotropic secondary hardening term - wan
   calculateSecondaryHardening();
-  
-  // total slip resistance including secondary hardening
-  Real total_slip_resistance;
 
   for (const auto i : make_range(_number_slip_systems))
   {
-    total_slip_resistance = _slip_resistance[_qp][i] + _secondary_hardening;
-    
+    const Real total_slip_resistance = _slip_resistance[_qp][i] + _secondary_hardening;
+
     _slip_increment[_qp][i] =
-        _ao * std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / total_slip_resistance), 1.0 / _xm);
-    
-    if (_creep_activated && _t > _creep_t0) { // add creep rate
-      _slip_increment[_qp][i] += _creep_ao * std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / total_slip_resistance), 1.0 / _creep_xm);
-    }
-    
+        _ao *
+        std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / total_slip_resistance), 1.0 / _xm);
+
+    if (_creep_activated && _t > _creep_t0) // add creep rate
+      _slip_increment[_qp][i] +=
+          _creep_ao *
+          std::pow(std::abs((_tau[_qp][i] - _backstress[_qp][i]) / total_slip_resistance),
+                   1.0 / _creep_xm);
+
     if ((_tau[_qp][i] - _backstress[_qp][i]) < 0.0)
       _slip_increment[_qp][i] *= -1.0;
 
@@ -162,7 +169,6 @@ CrystalPlasticityCopper::calculateSlipRate()
       if (_print_convergence_message)
         mooseWarning("Maximum allowable slip increment exceeded ",
                      std::abs(_slip_increment[_qp][i]) * _substep_dt);
-
       return false;
     }
   }
@@ -191,10 +197,37 @@ CrystalPlasticityCopper::calculateConstitutiveSlipDerivative(
   }
 }
 
+//
+// ============================================================
+// NEW PHENOMENOLOGICAL SECONDARY HARDENING LAW - WAN 
+// ============================================================
+//
 void
 CrystalPlasticityCopper::calculateSecondaryHardening()
 {
-  _secondary_hardening = _tau_sec_hard * (1.0 - std::exp(-_h_sec_hard * _cumulative_slip[_qp]));
+  const Real gamma = _cumulative_slip[_qp];
+
+  // slip beyond threshold
+  const Real gamma_eff = std::max(0.0, gamma - _gamma_sec_crit);
+
+  // no secondary hardening if not past threshold or parameters zero
+  if (gamma_eff <= 0.0 || _tau_sec_hard <= 0.0 || _h_sec_hard <= 0.0)
+  {
+    _secondary_hardening = 0.0;
+    return;
+  }
+
+  // Exponential saturation:
+  //   g_sec = tau_sec * [1 - exp(-gamma_eff / h_sec)]^(b_sec)
+  const Real expo = std::exp(-gamma_eff / _h_sec_hard);
+  Real bracket = 1.0 - expo;
+
+  if (bracket < 0.0)
+    bracket = 0.0;
+  else if (bracket > 1.0)
+    bracket = 1.0;
+
+  _secondary_hardening = _tau_sec_hard * std::pow(bracket, _b_sec_hard);
 }
 
 void
@@ -282,9 +315,22 @@ CrystalPlasticityCopper::calculatePeirceStateVariableEvolutionRateComponent()
   }
 }
 
+//
+// ============================================================
+// PRIMARY KALIDINDI SWITCH-OFF ABOVE γ_sec_crit -WAN 
+// ============================================================
+//
 void
 CrystalPlasticityCopper::calculateKalidindiStateVariableEvolutionRateComponent()
 {
+  // --- NEW: switch off primary softening beyond slip threshold ---
+  if (_cumulative_slip[_qp] > _gamma_sec_crit)
+  {
+    for (const auto i : make_range(_number_slip_systems))
+      _slip_resistance_increment[i] = 0.0;
+    return;
+  }
+  //--- original kalidindi increment (active only while gamma <= gamma_sec_crit) ---
   for (const auto i : make_range(_number_slip_systems))
   {
     // Clear out increment from the previous iteration

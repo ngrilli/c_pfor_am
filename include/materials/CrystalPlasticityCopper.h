@@ -106,6 +106,8 @@ protected:
   /// Secondary hardening parameters
   const Real _tau_sec_hard;
   const Real _h_sec_hard;
+  const Real _b_sec_hard;
+  const Real _gamma_sec_crit; //
   
   /// Activate creep strain rate
   bool _creep_activated;
