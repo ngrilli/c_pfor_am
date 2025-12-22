@@ -133,7 +133,7 @@ GrainPropertyReadFile::getData(const Elem * elem, unsigned int prop_num) const
       return getElementData(elem, prop_num);
 
     case 1:
-      return getGrainData(elem, prop_num);
+      return getGrainData(elem->vertex_average(), prop_num);
 	  
 	case 2:
 	  return getIndexGrainData(elem, prop_num);
@@ -155,14 +155,13 @@ GrainPropertyReadFile::getElementData(const Elem * elem, unsigned int prop_num) 
 }
 
 Real
-GrainPropertyReadFile::getGrainData(const Elem * elem, unsigned int prop_num) const
+GrainPropertyReadFile::getGrainData(const Point & point, unsigned int prop_num) const
 {
   mooseAssert(prop_num < _nprop,
               "Error ElementPropertyReadFile: Property number "
                   << prop_num << " greater than total number of properties " << _nprop
                   << "\n");
 
-  Point centroid = elem->centroid();
   Real min_dist = _max_range;
   unsigned int igrain = 0;
 
@@ -174,13 +173,13 @@ GrainPropertyReadFile::getGrainData(const Elem * elem, unsigned int prop_num) co
       case 0:
         // Calculates minimum periodic distance when "periodic" is specified
         // for rve_type
-        dist = minPeriodicDistance(_center[i], centroid);
+        dist = minPeriodicDistance(_center[i], point);
         break;
 
       default:
         // Calculates minimum distance when nothing is specified
         // for rve_type
-        Point dist_vec = _center[i] - centroid;
+        Point dist_vec = _center[i] - point;
         dist = dist_vec.norm();
     }
 

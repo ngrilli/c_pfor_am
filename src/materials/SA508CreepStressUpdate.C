@@ -67,7 +67,7 @@ SA508CreepStressUpdateTempl<is_ad>::computeStressInitialize(
     const GenericRankFourTensor<is_ad> & /*elasticity_tensor*/)
 {
   if (_temperature)
-    _exponential = std::exp(-_activation_energy_QA / (_gas_constant * (*_temperature)[_qp]));
+    _exponential = exp(-_activation_energy_QA / (_gas_constant * (*_temperature)[_qp]));
 
 }
 
@@ -81,7 +81,7 @@ SA508CreepStressUpdateTempl<is_ad>::computeResidualInternal(
   const ScalarType stress_delta = effective_trial_stress - _three_shear_modulus * scalar;
   
   // Calculate grain boundary sliding creep rate
-  const ScalarType GBS_creep_rate = _A0 * std::pow(stress_delta, _nA_exponent) * _exponential;
+  const ScalarType GBS_creep_rate = _A0 * pow(stress_delta, _nA_exponent) * _exponential;
   
   // Calculate time scale for primary creep in equation 6c
   ScalarType t_T = 0.0;
@@ -102,12 +102,12 @@ SA508CreepStressUpdateTempl<is_ad>::computeResidualInternal(
   if (_beta > 1.0) {
 	
 	// Assume that simulation starts at time 0  
-    primary_creep_rate = (GBS_creep_rate / (_beta - 1.0)) * std::exp(-_t / t_T);
+    primary_creep_rate = (GBS_creep_rate / (_beta - 1.0)) * exp(-_t / t_T);
 	  
   }
   
   // Calculate secondary creep rate
-  const ScalarType secondary_creep_rate = _k[_qp] * std::exp(_Mprime[_qp] * _k[_qp] * _t);
+  const ScalarType secondary_creep_rate = _k[_qp] * exp(_Mprime[_qp] * _k[_qp] * _t);
   
   const ScalarType creep_rate = primary_creep_rate + secondary_creep_rate;
 
@@ -126,10 +126,10 @@ SA508CreepStressUpdateTempl<is_ad>::computeDerivative(
   const GenericReal<is_ad> stress_delta = effective_trial_stress - _three_shear_modulus * scalar;
   
   // Calculate grain boundary sliding creep rate
-  const GenericReal<is_ad> GBS_creep_rate = _A0 * std::pow(stress_delta, _nA_exponent) * _exponential;
+  const GenericReal<is_ad> GBS_creep_rate = _A0 * pow(stress_delta, _nA_exponent) * _exponential;
   
   // Derivative of grain boundary sliding creep rate with respect to the stress
-  const GenericReal<is_ad> dGBS_creep_rate_dstress = _A0 * _nA_exponent * std::pow(stress_delta, _nA_exponent - 1.0) * _exponential;
+  const GenericReal<is_ad> dGBS_creep_rate_dstress = _A0 * _nA_exponent * pow(stress_delta, _nA_exponent - 1.0) * _exponential;
 
   // Calculate the derivative of the time scale for primary creep with respect to the stress
   GenericReal<is_ad> dt_T_dstress = 0.0;
@@ -164,7 +164,7 @@ SA508CreepStressUpdateTempl<is_ad>::computeDerivative(
     
     creep_rate_derivative += GBS_creep_rate * _t * dt_T_dstress / ((_beta - 1.0) * t_T * t_T);
     
-    creep_rate_derivative *= std::exp(-_t / t_T);
+    creep_rate_derivative *= exp(-_t / t_T);
   
   }
   

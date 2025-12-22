@@ -58,7 +58,7 @@ public:
    * This function assign properties to element read from file with grain  based properties
    * Grain distribution in the RVE can be Periodic or non-periodic (default)
    */
-  Real getGrainData(const Elem *, unsigned int) const;
+  Real getGrainData(const Point & point, unsigned int) const;
 
   /**
    * This function assign properties to element read from file with grain based properties
