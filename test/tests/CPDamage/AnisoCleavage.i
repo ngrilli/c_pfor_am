@@ -283,8 +283,8 @@
   [../]
   [./degradation]
     type = DerivativeParsedMaterial
-    f_name = degradation
-    args = 'c'
+    property_name = degradation
+    coupled_variables = 'c'
     function = '(1.0-c)^2*(1.0 - eta) + eta'
     constant_names       = 'eta'
     constant_expressions = '1.0e-6'
@@ -309,18 +309,18 @@
   [../]
   [./local_fracture_energy]
     type = DerivativeParsedMaterial
-    f_name = local_fracture_energy
-    args = 'c'
+    property_name = local_fracture_energy
+    coupled_variables = 'c'
     material_property_names = 'gc_prop l'
     function = 'c^2 * gc_prop / 2 / l'
     derivative_order = 2
   [../]
   [./fracture_driving_energy]
     type = DerivativeSumMaterial
-    args = c
+    coupled_variables = c
     sum_materials = 'elastic_energy local_fracture_energy'
     derivative_order = 2
-    f_name = F
+    property_name = F
   [../]
 []
 
@@ -359,5 +359,5 @@
 
 [Outputs]
   exodus = true
-  interval = 1
+  time_step_interval = 1
 []
