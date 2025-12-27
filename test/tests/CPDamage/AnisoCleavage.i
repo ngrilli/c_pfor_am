@@ -285,7 +285,7 @@
     type = DerivativeParsedMaterial
     property_name = degradation
     coupled_variables = 'c'
-    function = '(1.0-c)^2*(1.0 - eta) + eta'
+    expression = '(1.0-c)^2*(1.0 - eta) + eta'
     constant_names       = 'eta'
     constant_expressions = '1.0e-6'
     derivative_order = 2
