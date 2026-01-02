@@ -189,30 +189,32 @@ protected:
   const Real _k_hp; // <-- Hall-Petch
   // const Real _d_grain; 
   
+  // --- Parameters for Precipitate Strengthening (PDF 3.2) ---
+ // g' (L12) parameters
+  const Real _C_g_prime;         // NEW: C_gamma' constant in strengthening eqn
+  const Real _Gamma_APB_g_prime; // NEW: APB energy for g' (L12)
+  const Real _f_vol_g_prime;     // NEW: Volume fraction of g' (L12)
+  
+  // g'' (DO22) parameters
+  const Real _C_g_pp;            // NEW: C_gamma'' constant in strengthening eqn (pp = prime-prime)  
+  
+  const Real _Gamma_APB_g_pp;    // NEW: APB energy for g'' (DO22)  
+  
+  const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22)
+  
+  // --- Initial values for new ISVs ---
+  const Real _init_r_eff_g_prime; // NEW: Initial effective radius of g' (L12)
+  const Real _init_r_eff_g_pp;    // NEW: Initial effective radius of g'' (DO22)  
+  
   // Coefficient K in SSD evolution, representing accumulation rate
+  const Real _C_shear_g_prime; // Shearing efficiency coefficient for g'
+  const Real _C_shear_g_pp;    // Shearing efficiency coefficient for g''
   const Real _k_0;
   
   // Critical annihilation diameter
   const Real _y_c;
   const Real _Q_drv;   // NEW: energy for DRV activation  (J/mol)
   const Real _R_gas_constant; // NEW: gas constant  (such as 8.314 J/mol/K)
-
-  // --- Parameters for Precipitate Strengthening (PDF 3.2) ---
- // g' (L12) parameters
-  const Real _C_g_prime;         // NEW: C_gamma' constant in strengthening eqn
-  const Real _Gamma_APB_g_prime; // NEW: APB energy for g' (L12)
-  const Real _f_vol_g_prime;     // NEW: Volume fraction of g' (L12)
-
-  // g'' (DO22) parameters
-  const Real _C_g_pp;            // NEW: C_gamma'' constant in strengthening eqn (pp = prime-prime)
-  const Real _Gamma_APB_g_pp;    // NEW: APB energy for g'' (DO22)
-  const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22)
-
-  // --- Initial values for new ISVs ---
-  const Real _init_r_eff_g_prime; // NEW: Initial effective radius of g' (L12)
-  const Real _init_r_eff_g_pp;    // NEW: Initial effective radius of g'' (DO22)
-  const Real _C_shear_g_prime; // Shearing efficiency coefficient for g'
-  const Real _C_shear_g_pp;    // Shearing efficiency coefficient for g''
 
   // Backstress parameters
   const Real _h;
@@ -240,13 +242,13 @@ protected:
   MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
   const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
 
-   // --- New ISVs for Precipitate Radius ---
+  // --- New ISVs for Precipitate Radius ---
   MaterialProperty<std::vector<Real>> & _r_eff_g_prime; // NEW: Effective radius of g' (ISV)
   const MaterialProperty<std::vector<Real>> & _r_eff_g_prime_old; // NEW
   MaterialProperty<std::vector<Real>> & _r_eff_g_pp;    // NEW: Effective radius of g'' (ISV)
   const MaterialProperty<std::vector<Real>> & _r_eff_g_pp_old;    // NEW
 
-// Backstress variables (SPLIT into Inter- and Intra-)
+  // Backstress variables (SPLIT into Inter- and Intra-)
   MaterialProperty<std::vector<Real>> & _backstress_inter; // RENAMED
   const MaterialProperty<std::vector<Real>> & _backstress_inter_old; // RENAMED
   MaterialProperty<std::vector<Real>> & _backstress_intra; // NEW
@@ -270,7 +272,7 @@ protected:
   std::vector<Real> _previous_substep_rho_ssd;
   std::vector<Real> _previous_substep_rho_gnd_edge;
   std::vector<Real> _previous_substep_rho_gnd_screw;
-   std::vector<Real> _previous_substep_backstress_inter; // RENAMED
+  std::vector<Real> _previous_substep_backstress_inter; // RENAMED
   std::vector<Real> _previous_substep_backstress_intra; // NEW
 
   std::vector<Real> _previous_substep_r_eff_g_prime; // NEW

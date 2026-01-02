@@ -294,7 +294,7 @@
   #l_tol = 1e-8
 
   start_time = 0.0
-  end_time = 0.0002 #0.01
+  end_time = 0.0001 #0.01
   dt = 0.0001
   dtmin = 0.00000001
 []
@@ -302,6 +302,5 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 2
   [../]
 []
