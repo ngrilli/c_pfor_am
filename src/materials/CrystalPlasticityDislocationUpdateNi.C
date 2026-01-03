@@ -140,20 +140,20 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
 	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
 	_shear_modulus(getParam<Real>("shear_modulus")),
-    _dshear_dT(getParam<Real>("dshear_dT")),         // NEW 
+  _dshear_dT(getParam<Real>("dshear_dT")),         // NEW 
 	_alpha_0(getParam<Real>("alpha_0")),
-    // _r(getParam<Real>("r")),
+   // _r(getParam<Real>("r")),
     _r_self(getParam<Real>("r_self")),       // NEW
     _r_oct_oct(getParam<Real>("r_oct_oct")), // NEW
     _r_cub_cub(getParam<Real>("r_cub_cub")), // NEW
     _r_oct_cub(getParam<Real>("r_oct_cub")), // NEW 
-    _tau_c_0_oct(getParam<Real>("tau_c_0_oct")), // NEW
+  _tau_c_0_oct(getParam<Real>("tau_c_0_oct")), // NEW
 	_tau_c_0_cub(getParam<Real>("tau_c_0_cub")), // NEW
 	_tau_c_0_function(this->isParamValid("tau_c_0_function")
                        ? &this->getFunction("tau_c_0_function")
                        : NULL),
-    _tau_ss(getParam<Real>("tau_ss")), // new 
-    _k_hp(getParam<Real>("k_hp")),       // new 
+  _tau_ss(getParam<Real>("tau_ss")), // new 
+  _k_hp(getParam<Real>("k_hp")),       // new 
     // --- Init Parameters for Precipitate Strengthening --- 
     _C_g_prime(getParam<Real>("C_g_prime")),               // NEW
     _Gamma_APB_g_prime(getParam<Real>("Gamma_APB_g_prime")), // NEW
@@ -164,18 +164,18 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _init_r_eff_g_prime(getParam<Real>("init_r_eff_g_prime")), // NEW
     _init_r_eff_g_pp(getParam<Real>("init_r_eff_g_pp")),      // NEW   
     _C_shear_g_prime(getParam<Real>("C_shear_g_prime")),      // NEW 
-    _C_shear_g_pp(getParam<Real>("C_shear_g_pp")),         // NEW 
+   _C_shear_g_pp(getParam<Real>("C_shear_g_pp")),         // NEW 
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
-    _Q_drv(getParam<Real>("Q_drv")), // new
-    _R_gas_constant(getParam<Real>("R_gas_constant")),	// new
+  _Q_drv(getParam<Real>("Q_drv")), // new
+  _R_gas_constant(getParam<Real>("R_gas_constant")),	// new
 	// Backstress parameters
 	_h(getParam<Real>("h")),
 	_h_D(getParam<Real>("h_D")),
-    // --- NEW: Initialize Intragranular Backstress Parameters 
-    _k_52(getParam<Real>("k_52")),
-    _k_32(getParam<Real>("k_32")),
-    _k_D(getParam<Real>("k_D")),	
+  // --- NEW: Initialize Intragranular Backstress Parameters 
+  _k_52(getParam<Real>("k_52")),
+  _k_32(getParam<Real>("k_32")),
+  _k_D(getParam<Real>("k_D")),	
 	// Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
