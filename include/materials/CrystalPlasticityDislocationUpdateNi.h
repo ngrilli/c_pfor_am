@@ -187,16 +187,8 @@ protected:
   
   // Hall-Petch strengthening parameters (new for IN718)
   const Real _k_hp; // <-- Hall-Petch
-  // const Real _d_grain; 
+  // const Real _d_grain;
   
-  // Coefficient K in SSD evolution, representing accumulation rate
-  const Real _k_0;
-  
-  // Critical annihilation diameter
-  const Real _y_c;
-  const Real _Q_drv;   // NEW: energy for DRV activation  (J/mol)
-  const Real _R_gas_constant; // NEW: gas constant  (such as 8.314 J/mol/K)
-
   // --- Parameters for Precipitate Strengthening (PDF 3.2) ---
  // g' (L12) parameters
   const Real _C_g_prime;         // NEW: C_gamma' constant in strengthening eqn
@@ -206,7 +198,15 @@ protected:
   // g'' (DO22) parameters
   const Real _C_g_pp;            // NEW: C_gamma'' constant in strengthening eqn (pp = prime-prime)
   const Real _Gamma_APB_g_pp;    // NEW: APB energy for g'' (DO22)
-  const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22)
+  const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22) 
+  
+  // Coefficient K in SSD evolution, representing accumulation rate
+  const Real _k_0;
+  
+  // Critical annihilation diameter
+  const Real _y_c;
+  const Real _Q_drv;   // NEW: energy for DRV activation  (J/mol)
+  const Real _R_gas_constant; // NEW: gas constant  (such as 8.314 J/mol/K)
 
   // --- Initial values for new ISVs ---
   const Real _init_r_eff_g_prime; // NEW: Initial effective radius of g' (L12)

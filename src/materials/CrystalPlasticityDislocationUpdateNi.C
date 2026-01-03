@@ -161,14 +161,17 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _C_g_pp(getParam<Real>("C_g_pp")),                      // NEW
     _Gamma_APB_g_pp(getParam<Real>("Gamma_APB_g_pp")),      // NEW
     _f_vol_g_pp(getParam<Real>("f_vol_g_pp")),              // NEW
-    _init_r_eff_g_prime(getParam<Real>("init_r_eff_g_prime")), // NEW
-    _init_r_eff_g_pp(getParam<Real>("init_r_eff_g_pp")),      // NEW   
-    _C_shear_g_prime(getParam<Real>("C_shear_g_prime")),      // NEW 
-   _C_shear_g_pp(getParam<Real>("C_shear_g_pp")),         // NEW 
+
 	_k_0(getParam<Real>("k_0")),
 	_y_c(getParam<Real>("y_c")),
   _Q_drv(getParam<Real>("Q_drv")), // new
   _R_gas_constant(getParam<Real>("R_gas_constant")),	// new
+  
+    _init_r_eff_g_prime(getParam<Real>("init_r_eff_g_prime")), // NEW
+    _init_r_eff_g_pp(getParam<Real>("init_r_eff_g_pp")),      // NEW   
+    _C_shear_g_prime(getParam<Real>("C_shear_g_prime")),      // NEW 
+    _C_shear_g_pp(getParam<Real>("C_shear_g_pp")),         // NEW   
+  
 	// Backstress parameters
 	_h(getParam<Real>("h")),
 	_h_D(getParam<Real>("h_D")),
