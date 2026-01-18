@@ -156,6 +156,10 @@ protected:
   
   // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
   const bool _cap_slip_increment;
+  
+  const bool _use_sinh_slip_law;
+  
+  const Real _activation_volume;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
@@ -167,16 +171,15 @@ protected:
   // Prefactor of Taylor hardening law, alpha
   const Real _alpha_0;
   
-  // Latent hardening coefficient
-//  const Real _r;
-  const Real _r_self; // NEW
-  const Real _r_oct_oct; // NEW
-  const Real _r_cub_cub; // NEW
-  const Real _r_oct_cub; // NEW
+  // Latent hardening coefficients
+  const Real _r_self; // Self-hardening coefficient
+  const Real _r_oct_oct; // Octahedral <-> Octahedral
+  const Real _r_cub_cub; // Cubic <-> Cubic
+  const Real _r_oct_cub; // Octahedral <-> Cubic
 
-// Peierls stress (split by slip type)
-  const Real _tau_c_0_oct; // NEW: Peierls stress for {111} slip
-  const Real _tau_c_0_cub; // NEW: Peierls stress for {100} slip
+  // Peierls stress (split by slip type)
+  const Real _tau_c_0_oct; // Peierls stress for {111} slip
+  const Real _tau_c_0_cub; // Peierls stress for {100} slip
   
   // Optional function for Peierls stress. If provided, the Peierls stress can be set as a function of time
   // This is useful for time dependent solid solution strenthening and precipitation hardening, e.g. during thermal ageing
@@ -217,10 +220,10 @@ protected:
   // Backstress parameters
   const Real _h;
   const Real _h_D;
-// --- NEW: Parameters for Intragranular Backstress 
-// Agaram, Sukumar, et al. "Dislocation density based crystal plasticity model incorporating the effect of 
-// precipitates in IN718 under monotonic and cyclic deformation." 
-// International Journal of Plasticity 141 (2021): 102990.
+  // --- NEW: Parameters for Intragranular Backstress 
+  // Agaram, Sukumar, et al. "Dislocation density based crystal plasticity model incorporating the effect of 
+  // precipitates in IN718 under monotonic and cyclic deformation." 
+  // International Journal of Plasticity 141 (2021): 102990.
   const Real _k_52; // Controls slope of intra-backstress
   const Real _k_32; // Controls saturation of intra-backstress
   const Real _k_D;  // Controls dislocation generation from precipitates    
@@ -240,13 +243,13 @@ protected:
   MaterialProperty<std::vector<Real>> & _rho_gnd_screw;
   const MaterialProperty<std::vector<Real>> & _rho_gnd_screw_old;
 
-   // --- New ISVs for Precipitate Radius ---
+  // --- New ISVs for Precipitate Radius ---
   MaterialProperty<std::vector<Real>> & _r_eff_g_prime; // NEW: Effective radius of g' (ISV)
   const MaterialProperty<std::vector<Real>> & _r_eff_g_prime_old; // NEW
   MaterialProperty<std::vector<Real>> & _r_eff_g_pp;    // NEW: Effective radius of g'' (ISV)
   const MaterialProperty<std::vector<Real>> & _r_eff_g_pp_old;    // NEW
 
-// Backstress variables (SPLIT into Inter- and Intra-)
+  // Backstress variables (SPLIT into Inter- and Intra-)
   MaterialProperty<std::vector<Real>> & _backstress_inter; // RENAMED
   const MaterialProperty<std::vector<Real>> & _backstress_inter_old; // RENAMED
   MaterialProperty<std::vector<Real>> & _backstress_intra; // NEW
@@ -270,7 +273,7 @@ protected:
   std::vector<Real> _previous_substep_rho_ssd;
   std::vector<Real> _previous_substep_rho_gnd_edge;
   std::vector<Real> _previous_substep_rho_gnd_screw;
-   std::vector<Real> _previous_substep_backstress_inter; // RENAMED
+  std::vector<Real> _previous_substep_backstress_inter; // RENAMED
   std::vector<Real> _previous_substep_backstress_intra; // NEW
 
   std::vector<Real> _previous_substep_r_eff_g_prime; // NEW
