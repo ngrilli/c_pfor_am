@@ -18,7 +18,13 @@ class CrystalPlasticityDislocationUpdateNi;
  * variables are updated using an interative predictor-corrector algorithm.
  * Backward Euler integration rule is used for the rate equations.
  * Dislocation based model for crystal plasticity.
- * Slip, creep and backstress are included 
+ * Slip, creep and backstress are included.
+ * This model is based on:
+ * Sukumar Agaram, Anand K Kanjarla, Baskaran Bhuvaraghan, Sivakumar M. Srinivasan
+ * Dislocation density based crystal plasticity model incorporating
+ * the effect of precipitates in IN718 under monotonic and cyclic deformation
+ * International Journal of Plasticity 141 (2021) 102990 
+ * https://www.sciencedirect.com/science/article/abs/pii/S0749641921000656
  */
 
 class CrystalPlasticityDislocationUpdateNi : public CrystalPlasticityDislocationUpdateBase
@@ -82,13 +88,7 @@ protected:
   virtual void cacheStateVariablesBeforeUpdate() override;
 
   /**
-   * Following the Constitutive model for slip system resistance as given in
-   * Dislocation based model:
-   * E. Demir, I Gutierrez-Urrutia
-   * Investigation of strain hardening near grain
-   * boundaries of an aluminium oligocrystal:
-   * Experiments and crystal based finite element method
-   * International Journal of Plasticity 136 (2021) 102898
+   * Calculates the evolution rate of the state variables
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
   
@@ -106,13 +106,6 @@ protected:
    * by comparing the change in the values over the iteration period.
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
-
-  // Variables used in
-  // Eralp Demir, Ivan Gutierrez-Urrutia
-  // Investigation of strain hardening near grain boundaries of an aluminum oligocrystal: 
-  // Experiments and crystal based finite element method
-  // International Journal of Plasticity
-  // Volume 136, January 2021, 102898
   
   // Slip rate constants
   const Real _ao;
@@ -157,9 +150,10 @@ protected:
   // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
   const bool _cap_slip_increment;
   
+  // sinh slip law for creep and related parameters
   const bool _use_sinh_slip_law;
-  
   const Real _activation_volume;
+  const Real _activation_energy;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
