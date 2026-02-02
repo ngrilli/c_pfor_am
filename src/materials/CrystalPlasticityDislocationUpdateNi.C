@@ -72,7 +72,7 @@ CrystalPlasticityDislocationUpdateNi::validParams()
   // Parameters for DRV at elevated temperatures  
   params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
-  params.addParam<Real>("Q_drv", 150.0e3, "Activation energy for dynamic recovery (e.g., J/mol)"); // NEW
+  params.addParam<Real>("Q_drv", 0.0, "Activation energy for dynamic recovery (e.g., 150.0e3 J/mol)");
   params.addParam<Real>("R_gas_constant", 8.314, "Gas constant (e.g., J/mol/K)");  // NEW
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
   params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
@@ -156,9 +156,10 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
 	  _tau_c_0_function(this->isParamValid("tau_c_0_function")
                        ? &this->getFunction("tau_c_0_function")
                        : NULL),
-    _tau_ss(getParam<Real>("tau_ss")), // new 
-    _k_hp(getParam<Real>("k_hp")),       // new 
-    // --- Init Parameters for Precipitate Strengthening --- 
+    _tau_ss(getParam<Real>("tau_ss")), 
+    _k_hp(getParam<Real>("k_hp")), 
+
+    // Initial Parameters for Precipitate Strengthening --- 
     _C_g_prime(getParam<Real>("C_g_prime")),               // NEW
     _Gamma_APB_g_prime(getParam<Real>("Gamma_APB_g_prime")), // NEW
     _f_vol_g_prime(getParam<Real>("f_vol_g_prime")),       // NEW
@@ -168,7 +169,7 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
 
 	  _k_0(getParam<Real>("k_0")),
 	  _y_c(getParam<Real>("y_c")),
-    _Q_drv(getParam<Real>("Q_drv")), // new
+    _Q_drv(getParam<Real>("Q_drv")),
     _R_gas_constant(getParam<Real>("R_gas_constant")),	// new
   
     _init_r_eff_g_prime(getParam<Real>("init_r_eff_g_prime")), // NEW
@@ -956,8 +957,10 @@ CrystalPlasticityDislocationUpdateNi::calculateStateVariableEvolutionRateCompone
   Real T = _temperature[_qp];  // NEW
   Real T_ref = _reference_temperature;  // NEW
   
-  // When T increases, the y_c increases for higher annihilation.
-  Real y_c_eff = _y_c * std::exp(-(_Q_drv / _R_gas_constant) * (1.0 / T - 1.0 / T_ref));  // Q_drv needs to be calibrated for different temperatures.
+  // When T increases, the y_c increases for higher annihilation
+  // Q_drv needs to be calibrated for different temperatures
+  // note that large Q_drv can lead to very high annihilation at high T
+  Real y_c_eff = _y_c * std::exp(-(_Q_drv / _R_gas_constant) * (1.0 / T - 1.0 / T_ref));
 
   // SSD dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
