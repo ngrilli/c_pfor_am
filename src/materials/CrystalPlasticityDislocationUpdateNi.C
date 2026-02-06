@@ -59,11 +59,11 @@ CrystalPlasticityDislocationUpdateNi::validParams()
   params.addParam<Real>("tau_ss", 0.0, "Solid solution strengthening contribution"); // <--NEW
   params.addParam<Real>("k_hp", 0.0, "Hall-Petch coefficient (e.g., in MPa*sqrt(um))"); // <--NEW
   // --- Parameters for Precipitate Strengthening (PDF 3.2) --- 
-  params.addParam<Real>("C_g_prime", 0.0, "C_gamma' constant in strengthening eqn"); // NEW
-  params.addParam<Real>("Gamma_APB_g_prime", 0.0, "APB energy for g' (L12) [J/m^2]"); // NEW
+  params.addParam<Real>("C_g_prime", 0.0, "C_gamma' constant in precipitation strengthening equation"); // NEW
+  params.addParam<Real>("Gamma_APB_g_prime", 0.0, "Anti-phase boundary (APB) energy for g' (L12) [J/m^2]");
   params.addParam<Real>("f_vol_g_prime", 0.0, "Volume fraction of g' (L12)"); // NEW
-  params.addParam<Real>("C_g_pp", 0.0, "C_gamma'' constant in strengthening eqn"); // NEW
-  params.addParam<Real>("Gamma_APB_g_pp", 0.0, "APB energy for g'' (DO22) [J/m^2]"); // NEW
+  params.addParam<Real>("C_g_pp", 0.0, "C_gamma'' constant in precipitation strengthening equation"); // NEW
+  params.addParam<Real>("Gamma_APB_g_pp", 0.0, "Anti-phase boundary (APB) energy for g'' (DO22) [J/m^2]");
   params.addParam<Real>("f_vol_g_pp", 0.0, "Volume fraction of g'' (DO22)"); // NEW
   params.addParam<Real>("init_r_eff_g_prime", 0.0, "Initial effective radius of g' (L12) [m]"); // NEW
   params.addParam<Real>("init_r_eff_g_pp", 0.0, "Initial effective radius of g'' (DO22) [m]"); // NEW
@@ -410,15 +410,16 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
     // A crystal plasticity model incorporating the effects of precipitates in superalloys: 
     // Application to tensile, compressive, and cyclic deformation of Inconel 718,
     // International Journal of Plasticity, 2017
+    // https://www.sciencedirect.com/science/article/abs/pii/S0749641917303182
 
     Real r_g_prime_i = _r_eff_g_prime[_qp][i]; // NEW
     Real r_g_pp_i = _r_eff_g_pp[_qp][i];       // NEW
-    Real tau_g_prime = 0.0; // NEW
-    if (_f_vol_g_prime > 0) // NEW
+    Real tau_g_prime = 0.0;
+    if (_f_vol_g_prime > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_prime = _C_g_prime * std::pow(_Gamma_APB_g_prime / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_prime * r_g_prime_i /_burgers_vector_mag, 0.5); // NEW
     
-    Real tau_g_pp = 0.0; // NEW
-    if (_f_vol_g_pp > 0) // NEW
+    Real tau_g_pp = 0.0;
+    if (_f_vol_g_pp > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_pp = _C_g_pp * std::pow(_Gamma_APB_g_pp / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_pp * r_g_pp_i / _burgers_vector_mag, 0.5); // NEW
 
     Real tau_precip_i = tau_g_prime + tau_g_pp; // NEW
@@ -758,12 +759,12 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipResistance()
 
     Real r_g_prime_i = _r_eff_g_prime[_qp][i]; // NEW
     Real r_g_pp_i = _r_eff_g_pp[_qp][i];       // NEW
-    Real tau_g_prime = 0.0; // NEW
-    if (_f_vol_g_prime > 0) // NEW
+    Real tau_g_prime = 0.0; 
+    if (_f_vol_g_prime > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_prime = _C_g_prime * std::pow(_Gamma_APB_g_prime / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_prime * r_g_prime_i / _burgers_vector_mag, 0.5); // NEW
     
-    Real tau_g_pp = 0.0; // NEW
-    if (_f_vol_g_pp > 0) // NEW
+    Real tau_g_pp = 0.0;
+    if (_f_vol_g_pp > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_pp = _C_g_pp * std::pow(_Gamma_APB_g_pp / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_pp * r_g_pp_i / _burgers_vector_mag, 0.5); // NEW
 
     Real tau_precip_i = tau_g_prime + tau_g_pp;
