@@ -57,7 +57,8 @@ CrystalPlasticityCyclicDislocationStructures::validParams()
   params.addParam<Real>("eta_PSB",20,"Channel aspect ratio of PSB");
   params.addParam<Real>("init_d_struct_PSB",1.0,"Initial characteristic PSB length");
   params.addParam<Real>("init_rho_PSB",0.01,"Initial PSB dislocation density");
-  
+  params.addParam<bool>("PSB_fraction_sqrt_law", false, "Use square root law for PSB volume fraction evolution");
+
   params.addParam<Real>("A_self",0.122,"Self interaction coefficient");
   params.addParam<Real>("A_copl",0.122,"Coplanar interaction coefficient");
   params.addParam<Real>("A_CS",0.625,"Collinear interaction coefficient");
@@ -122,6 +123,7 @@ CrystalPlasticityCyclicDislocationStructures::CrystalPlasticityCyclicDislocation
 	
 	_init_d_struct_PSB(getParam<Real>("init_d_struct_PSB")),
 	_init_rho_PSB(getParam<Real>("init_rho_PSB")),
+  _PSB_fraction_sqrt_law(getParam<bool>("PSB_fraction_sqrt_law")),
 	
 	// Interaction matrix coefficients between slip systems
 	
