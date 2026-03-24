@@ -979,10 +979,16 @@ void
 CrystalPlasticityCyclicDislocationStructures::calculatePSBFraction()
 {  
   if (_epsilon_p_eff_cum[_qp] > _epsilon_p_eff_cum_PSB) {
-  
-	// _f_PSB[_qp] = _f_PSB_inf + (_f_PSB_0 - _f_PSB_inf) * std::exp( - _k_PSB * (_epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB) );
-	
-	_f_PSB[_qp] = _f_PSB_0 + _k_PSB * std::sqrt( _epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB );
+
+    if (_PSB_fraction_sqrt_law) {
+
+      _f_PSB[_qp] = _f_PSB_0 + _k_PSB * std::sqrt( _epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB );
+
+    } else {
+    
+      _f_PSB[_qp] = _f_PSB_inf + (_f_PSB_0 - _f_PSB_inf) * std::exp( - _k_PSB * (_epsilon_p_eff_cum[_qp] - _epsilon_p_eff_cum_PSB) );
+
+    }
   
   } else {
 	  
