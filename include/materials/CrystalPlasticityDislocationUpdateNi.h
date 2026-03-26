@@ -196,6 +196,9 @@ protected:
   const Real _C_g_pp;            // NEW: C_gamma'' constant in strengthening eqn (pp = prime-prime)
   const Real _Gamma_APB_g_pp;    // NEW: APB energy for g'' (DO22)
   const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22) 
+
+  // Arbitrary time dependent precipitation-strengthening function
+  const Function * const _precipitation_strengthening_function;
   
   // Coefficient K in SSD evolution, representing accumulation rate
   const Real _k_0;

@@ -64,7 +64,10 @@ CrystalPlasticityDislocationUpdateNi::validParams()
   params.addParam<Real>("f_vol_g_prime", 0.0, "Volume fraction of g' (L12)"); // NEW
   params.addParam<Real>("C_g_pp", 0.0, "C_gamma'' constant in precipitation strengthening equation"); // NEW
   params.addParam<Real>("Gamma_APB_g_pp", 0.0, "Anti-phase boundary (APB) energy for g'' (DO22) [J/m^2]");
-  params.addParam<Real>("f_vol_g_pp", 0.0, "Volume fraction of g'' (DO22)"); // NEW
+  params.addParam<Real>("f_vol_g_pp", 0.0, "Volume fraction of g'' (DO22)");
+  params.addParam<FunctionName>("precipitation_strengthening_function",
+    "Optional function for precipitation strengthening. If provided, the precipitation strengthening contribution can be set as a function of time. "
+    "This is useful for time dependent precipitation hardening, e.g. during thermal ageing using Ashby-Orowan law. ");
   params.addParam<Real>("init_r_eff_g_prime", 0.0, "Initial effective radius of g' (L12) [m]"); // NEW
   params.addParam<Real>("init_r_eff_g_pp", 0.0, "Initial effective radius of g'' (DO22) [m]"); // NEW
   params.addParam<Real>("C_shear_g_prime", 0.0, "Shearing efficiency coefficient for g' softening"); // NEW
@@ -160,12 +163,15 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _k_hp(getParam<Real>("k_hp")), 
 
     // Initial Parameters for Precipitate Strengthening --- 
-    _C_g_prime(getParam<Real>("C_g_prime")),               // NEW
-    _Gamma_APB_g_prime(getParam<Real>("Gamma_APB_g_prime")), // NEW
-    _f_vol_g_prime(getParam<Real>("f_vol_g_prime")),       // NEW
-    _C_g_pp(getParam<Real>("C_g_pp")),                      // NEW
-    _Gamma_APB_g_pp(getParam<Real>("Gamma_APB_g_pp")),      // NEW
-    _f_vol_g_pp(getParam<Real>("f_vol_g_pp")),              // NEW
+    _C_g_prime(getParam<Real>("C_g_prime")),
+    _Gamma_APB_g_prime(getParam<Real>("Gamma_APB_g_prime")),
+    _f_vol_g_prime(getParam<Real>("f_vol_g_prime")),
+    _C_g_pp(getParam<Real>("C_g_pp")),
+    _Gamma_APB_g_pp(getParam<Real>("Gamma_APB_g_pp")),
+    _f_vol_g_pp(getParam<Real>("f_vol_g_pp")),
+    _precipitation_strengthening_function(this->isParamValid("precipitation_strengthening_function")
+                                    ? &this->getFunction("precipitation_strengthening_function")
+                                    : NULL),
 
 	  _k_0(getParam<Real>("k_0")),
 	  _y_c(getParam<Real>("y_c")),
