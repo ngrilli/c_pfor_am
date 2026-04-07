@@ -338,5 +338,5 @@
 
 [Outputs]
   exodus = true
-  interval = 1 #10
+  time_step_interval = 1 #10
 []
