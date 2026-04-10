@@ -40,11 +40,13 @@ CrystalPlasticityDislocationUpdateNi::validParams()
   params.addParam<Real>("creep_t_denominator", 1.0, "Denominator for the tertiary creep law");
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol. ");
+  params.addParam<bool>("use_sinh_slip_law", false, "Use sinh slip law for creep. ");
+  params.addParam<Real>("activation_volume", 0.0, "activation volume in exponential slip law");
+  params.addParam<Real>("activation_energy", 0.0, "activation energy in exponential law");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
   params.addParam<Real>("shear_modulus",86000.0,"Shear modulus in Taylor hardening law G");
   params.addParam<Real>("dshear_dT", 0.0,"Temperature dependence of shear modulus (C44)");  // NEW
   params.addParam<Real>("alpha_0",0.3,"Prefactor of Taylor hardening law, alpha");
-  //params.addParam<Real>("r", 1.4, "Latent hardening coefficient");
   params.addParam<Real>("r_self", 1.0, "Self-hardening coefficient (i=j)"); // NEW
   params.addParam<Real>("r_oct_oct", 1.4, "Latent hardening {111} <-> {111} (e.g., 1.4)"); // NEW
   params.addParam<Real>("r_cub_cub", 1.0, "Latent hardening {100} <-> {100} (e.g., 1.0)"); // NEW
@@ -57,24 +59,27 @@ CrystalPlasticityDislocationUpdateNi::validParams()
   params.addParam<Real>("tau_ss", 0.0, "Solid solution strengthening contribution"); // <--NEW
   params.addParam<Real>("k_hp", 0.0, "Hall-Petch coefficient (e.g., in MPa*sqrt(um))"); // <--NEW
   // --- Parameters for Precipitate Strengthening (PDF 3.2) --- 
-  params.addParam<Real>("C_g_prime", 0.0, "C_gamma' constant in strengthening eqn"); // NEW
-  params.addParam<Real>("Gamma_APB_g_prime", 0.0, "APB energy for g' (L12) [J/m^2]"); // NEW
+  params.addParam<Real>("C_g_prime", 0.0, "C_gamma' constant in precipitation strengthening equation"); // NEW
+  params.addParam<Real>("Gamma_APB_g_prime", 0.0, "Anti-phase boundary (APB) energy for g' (L12) [J/m^2]");
   params.addParam<Real>("f_vol_g_prime", 0.0, "Volume fraction of g' (L12)"); // NEW
-  params.addParam<Real>("C_g_pp", 0.0, "C_gamma'' constant in strengthening eqn"); // NEW
-  params.addParam<Real>("Gamma_APB_g_pp", 0.0, "APB energy for g'' (DO22) [J/m^2]"); // NEW
-  params.addParam<Real>("f_vol_g_pp", 0.0, "Volume fraction of g'' (DO22)"); // NEW
+  params.addParam<Real>("C_g_pp", 0.0, "C_gamma'' constant in precipitation strengthening equation"); // NEW
+  params.addParam<Real>("Gamma_APB_g_pp", 0.0, "Anti-phase boundary (APB) energy for g'' (DO22) [J/m^2]");
+  params.addParam<Real>("f_vol_g_pp", 0.0, "Volume fraction of g'' (DO22)");
+  params.addParam<FunctionName>("precipitation_strengthening_function",
+    "Optional function for precipitation strengthening. If provided, the precipitation strengthening contribution can be set as a function of time. "
+    "This is useful for time dependent precipitation hardening, e.g. during thermal ageing using Ashby-Orowan law. ");
   params.addParam<Real>("init_r_eff_g_prime", 0.0, "Initial effective radius of g' (L12) [m]"); // NEW
   params.addParam<Real>("init_r_eff_g_pp", 0.0, "Initial effective radius of g'' (DO22) [m]"); // NEW
   params.addParam<Real>("C_shear_g_prime", 0.0, "Shearing efficiency coefficient for g' softening"); // NEW
   params.addParam<Real>("C_shear_g_pp", 0.0, "Shearing efficiency coefficient for g'' softening");  // NEW
-  //Parameters for DRV at elevated temperatures  
+  // Parameters for DRV at elevated temperatures  
   params.addParam<Real>("k_0",100.0,"Coefficient K in SSD evolution, representing accumulation rate");
   params.addParam<Real>("y_c",0.0026,"Critical annihilation diameter");
-  params.addParam<Real>("Q_drv", 150.0e3, "Activation energy for dynamic recovery (e.g., J/mol)"); // NEW
+  params.addParam<Real>("Q_drv", 0.0, "Activation energy for dynamic recovery (e.g., 150.0e3 J/mol)");
   params.addParam<Real>("R_gas_constant", 8.314, "Gas constant (e.g., J/mol/K)");  // NEW
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
   params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
- // --- NEW: Parameters for Intragranular Backstress (Agaram et al.) ---
+  // --- Parameters for Intragranular Backstress (Agaram et al.) ---
   params.addParam<Real>("k_52", 0.0, "Slope parameter for intragranular backstress"); // NEW
   params.addParam<Real>("k_32", 0.0, "Saturation parameter for intragranular backstress"); // NEW
   params.addParam<Real>("k_D", 0.0, "Precipitate dislocation generation parameter (for Z_o)"); // NEW
@@ -138,54 +143,64 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _creep_t0(getParam<Real>("creep_t0")),
     _creep_t_denominator(getParam<Real>("creep_t_denominator")),
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
-	_burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
-	_shear_modulus(getParam<Real>("shear_modulus")),
-    _dshear_dT(getParam<Real>("dshear_dT")),         // NEW 
-	_alpha_0(getParam<Real>("alpha_0")),
-    // _r(getParam<Real>("r")),
-    _r_self(getParam<Real>("r_self")),       // NEW
-    _r_oct_oct(getParam<Real>("r_oct_oct")), // NEW
-    _r_cub_cub(getParam<Real>("r_cub_cub")), // NEW
-    _r_oct_cub(getParam<Real>("r_oct_cub")), // NEW 
-    _tau_c_0_oct(getParam<Real>("tau_c_0_oct")), // NEW
-	_tau_c_0_cub(getParam<Real>("tau_c_0_cub")), // NEW
-	_tau_c_0_function(this->isParamValid("tau_c_0_function")
+    _use_sinh_slip_law(getParam<bool>("use_sinh_slip_law")),
+    _activation_volume(getParam<Real>("activation_volume")),
+    _activation_energy(getParam<Real>("activation_energy")),
+	  _burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
+	  _shear_modulus(getParam<Real>("shear_modulus")),
+    _dshear_dT(getParam<Real>("dshear_dT")), 
+	  _alpha_0(getParam<Real>("alpha_0")),
+    _r_self(getParam<Real>("r_self")),
+    _r_oct_oct(getParam<Real>("r_oct_oct")),
+    _r_cub_cub(getParam<Real>("r_cub_cub")),
+    _r_oct_cub(getParam<Real>("r_oct_cub")), 
+    _tau_c_0_oct(getParam<Real>("tau_c_0_oct")),
+	  _tau_c_0_cub(getParam<Real>("tau_c_0_cub")),
+	  _tau_c_0_function(this->isParamValid("tau_c_0_function")
                        ? &this->getFunction("tau_c_0_function")
                        : NULL),
-    _tau_ss(getParam<Real>("tau_ss")), // new 
-    _k_hp(getParam<Real>("k_hp")),       // new 
-    // --- Init Parameters for Precipitate Strengthening --- 
-    _C_g_prime(getParam<Real>("C_g_prime")),               // NEW
-    _Gamma_APB_g_prime(getParam<Real>("Gamma_APB_g_prime")), // NEW
-    _f_vol_g_prime(getParam<Real>("f_vol_g_prime")),       // NEW
-    _C_g_pp(getParam<Real>("C_g_pp")),                      // NEW
-    _Gamma_APB_g_pp(getParam<Real>("Gamma_APB_g_pp")),      // NEW
-    _f_vol_g_pp(getParam<Real>("f_vol_g_pp")),              // NEW
+    _tau_ss(getParam<Real>("tau_ss")), 
+    _k_hp(getParam<Real>("k_hp")), 
+
+    // Initial Parameters for Precipitate Strengthening --- 
+    _C_g_prime(getParam<Real>("C_g_prime")),
+    _Gamma_APB_g_prime(getParam<Real>("Gamma_APB_g_prime")),
+    _f_vol_g_prime(getParam<Real>("f_vol_g_prime")),
+    _C_g_pp(getParam<Real>("C_g_pp")),
+    _Gamma_APB_g_pp(getParam<Real>("Gamma_APB_g_pp")),
+    _f_vol_g_pp(getParam<Real>("f_vol_g_pp")),
+    _precipitation_strengthening_function(this->isParamValid("precipitation_strengthening_function")
+                                    ? &this->getFunction("precipitation_strengthening_function")
+                                    : NULL),
+
+	  _k_0(getParam<Real>("k_0")),
+	  _y_c(getParam<Real>("y_c")),
+    _Q_drv(getParam<Real>("Q_drv")),
+    _R_gas_constant(getParam<Real>("R_gas_constant")),	// new
+  
     _init_r_eff_g_prime(getParam<Real>("init_r_eff_g_prime")), // NEW
     _init_r_eff_g_pp(getParam<Real>("init_r_eff_g_pp")),      // NEW   
     _C_shear_g_prime(getParam<Real>("C_shear_g_prime")),      // NEW 
-    _C_shear_g_pp(getParam<Real>("C_shear_g_pp")),         // NEW 
-	_k_0(getParam<Real>("k_0")),
-	_y_c(getParam<Real>("y_c")),
-    _Q_drv(getParam<Real>("Q_drv")), // new
-    _R_gas_constant(getParam<Real>("R_gas_constant")),	// new
-	// Backstress parameters
-	_h(getParam<Real>("h")),
-	_h_D(getParam<Real>("h_D")),
-    // --- NEW: Initialize Intragranular Backstress Parameters 
+    _C_shear_g_pp(getParam<Real>("C_shear_g_pp")),         // NEW   
+  
+	  // Backstress parameters: intergranular
+	  _h(getParam<Real>("h")),
+	  _h_D(getParam<Real>("h_D")),
+	
+    // Intragranular Backstress Parameters 
     _k_52(getParam<Real>("k_52")),
     _k_32(getParam<Real>("k_32")),
     _k_D(getParam<Real>("k_D")),	
-	// Initial values of the state variables
+    
+	  // Initial values of the state variables
     _init_rho_ssd(getParam<Real>("init_rho_ssd")),
     _init_rho_gnd_edge(getParam<Real>("init_rho_gnd_edge")),
     _init_rho_gnd_screw(getParam<Real>("init_rho_gnd_screw")),
 	
-	// Tolerance on dislocation density update
-	_rho_tol(getParam<Real>("rho_tol")),
+	  // Tolerance on dislocation density update
+	  _rho_tol(getParam<Real>("rho_tol")),
 	
-	// State variables of the dislocation model
-	
+	  // State variables of the dislocation model
     _rho_ssd(declareProperty<std::vector<Real>>("rho_ssd")),
     _rho_ssd_old(getMaterialPropertyOld<std::vector<Real>>("rho_ssd")),
     _rho_gnd_edge(declareProperty<std::vector<Real>>("rho_gnd_edge")),
@@ -198,6 +213,7 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _r_eff_g_prime_old(getMaterialPropertyOld<std::vector<Real>>("r_eff_g_prime")), // NEW
     _r_eff_g_pp(declareProperty<std::vector<Real>>("r_eff_g_pp")),    // NEW
     _r_eff_g_pp_old(getMaterialPropertyOld<std::vector<Real>>("r_eff_g_pp")),    // NEW  
+    
     // Backstress variable
     _backstress_inter(declareProperty<std::vector<Real>>("backstress_inter")), // RENAMED
     _backstress_inter_old(getMaterialPropertyOld<std::vector<Real>>("backstress_inter")), // RENAMED
@@ -217,19 +233,18 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
 
 	// resize local caching vectors used for substepping
     _previous_substep_rho_ssd(_number_slip_systems, 0.0),
-	 _previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
-	 _previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
-   _previous_substep_backstress_inter(_number_slip_systems, 0.0), // RENAMED
-	 _previous_substep_backstress_intra(_number_slip_systems, 0.0), // NEW
+	  _previous_substep_rho_gnd_edge(_number_slip_systems, 0.0),
+	  _previous_substep_rho_gnd_screw(_number_slip_systems, 0.0),
+    _previous_substep_backstress_inter(_number_slip_systems, 0.0),
+	  _previous_substep_backstress_intra(_number_slip_systems, 0.0), // NEW
     _previous_substep_r_eff_g_prime(_number_slip_systems, 0.0), // NEW
     _previous_substep_r_eff_g_pp(_number_slip_systems, 0.0),    // NEW
 
     _rho_ssd_before_update(_number_slip_systems, 0.0),
     _rho_gnd_edge_before_update(_number_slip_systems, 0.0),
     _rho_gnd_screw_before_update(_number_slip_systems, 0.0),  	
-    _backstress_inter_before_update(_number_slip_systems, 0.0), // RENAMED
+    _backstress_inter_before_update(_number_slip_systems, 0.0),
     _backstress_intra_before_update(_number_slip_systems, 0.0), // NEW
-
     _r_eff_g_prime_before_update(_number_slip_systems, 0.0), // NEW
     _r_eff_g_pp_before_update(_number_slip_systems, 0.0),    // NEW
 
@@ -258,20 +273,21 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
                             ? coupledArrayValue("dslip_increment_dscrew")
                             : _default_array_value_zero),
 	
-	// Temperature dependent properties
-	_temperature(coupledValue("temperature")),
+	  // Temperature dependent properties
+	  _temperature(coupledValue("temperature")),
     _reference_temperature(getParam<Real>("reference_temperature")),
     _dCRSS_dT_A(getParam<Real>("dCRSS_dT_A")),
-	_dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
-	_dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
+	  _dCRSS_dT_B(getParam<Real>("dCRSS_dT_B")),
+	  _dCRSS_dT_C(getParam<Real>("dCRSS_dT_C")),
     _dCRSS_dT_A_cub(getParam<Real>("dCRSS_dT_A_cub")), // NEW
     _dCRSS_dT_B_cub(getParam<Real>("dCRSS_dT_B_cub")), // NEW
     _dCRSS_dT_C_cub(getParam<Real>("dCRSS_dT_C_cub")),  // NEW
     _r_prep_tol(getParam<Real>("r_prep_tol")),  // NEW
+
     // store edge and screw slip directions to calculate directional derivatives
     // of the plastic slip rate	
     _edge_slip_direction(declareProperty<std::vector<Real>>("edge_slip_direction")),
-	 _screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
+	  _screw_slip_direction(declareProperty<std::vector<Real>>("screw_slip_direction"))
 {
 }
 
@@ -294,6 +310,8 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
   // Initialize the backstress size
   _backstress_inter[_qp].resize(_number_slip_systems); // RENAMED
   _backstress_intra[_qp].resize(_number_slip_systems); // NEW
+
+  // Initialize the precipitate radii size
   _r_eff_g_prime[_qp].resize(_number_slip_systems); // NEW
   _r_eff_g_pp[_qp].resize(_number_slip_systems);    // NEW
 
@@ -305,7 +323,7 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
 	if (_read_initial_gnd_density) { // Read initial GND density from file
 	
     _rho_gnd_edge[_qp][i] = _read_initial_gnd_density->getData(_current_elem, i);
-	_rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
+	  _rho_gnd_screw[_qp][i] = _read_initial_gnd_density->getData(_current_elem, _number_slip_systems+i);
 	
 	} else { // Initialize uniform GND density
 		
@@ -314,8 +332,8 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
 	
 	}
 	
-	_backstress_inter[_qp][i] = 0.0; // RENAMED
-	_backstress_intra[_qp][i] = 0.0; // NEW
+	  _backstress_inter[_qp][i] = 0.0; // RENAMED
+	  _backstress_intra[_qp][i] = 0.0; // NEW
 
      // Init precipitate radii ISVs 
     _r_eff_g_prime[_qp][i] = _init_r_eff_g_prime; // NEW
@@ -353,9 +371,8 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
     if (temperature_dependence <= 0) // NEW
         temperature_dependence = 1.0e-12; // NEW 
  
-
-  // Initialize value of the slip resistance
-  // as a function of the dislocation density
+    // Initialize value of the slip resistance
+    // as a function of the dislocation density
 
     // Add Peierls stress AND solid solution strengthening
     _slip_resistance[_qp][i] = tau_c_0_i + _tau_ss;
@@ -396,22 +413,24 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
 
     // Calculate Precipitate Strengthening
     // Saeede Ghorbanpour, M Irene J. Beyerlein, Marko Knezevic, et al.
-    //A crystal plasticity model incorporating the effects of precipitates in superalloys: Application to tensile, compressive, and cyclic deformation of Inconel 718,
+    // A crystal plasticity model incorporating the effects of precipitates in superalloys: 
+    // Application to tensile, compressive, and cyclic deformation of Inconel 718,
     // International Journal of Plasticity, 2017
+    // https://www.sciencedirect.com/science/article/abs/pii/S0749641917303182
 
     Real r_g_prime_i = _r_eff_g_prime[_qp][i]; // NEW
     Real r_g_pp_i = _r_eff_g_pp[_qp][i];       // NEW
-    Real tau_g_prime = 0.0; // NEW
-    if (_f_vol_g_prime > 0) // NEW
+    Real tau_g_prime = 0.0;
+    if (_f_vol_g_prime > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_prime = _C_g_prime * std::pow(_Gamma_APB_g_prime / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_prime * r_g_prime_i /_burgers_vector_mag, 0.5); // NEW
     
-    Real tau_g_pp = 0.0; // NEW
-    if (_f_vol_g_pp > 0) // NEW
+    Real tau_g_pp = 0.0;
+    if (_f_vol_g_pp > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_pp = _C_g_pp * std::pow(_Gamma_APB_g_pp / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_pp * r_g_pp_i / _burgers_vector_mag, 0.5); // NEW
 
     Real tau_precip_i = tau_g_prime + tau_g_pp; // NEW
+
     // Add thermally-dependent strengthening components
-	//_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag * std::sqrt(taylor_hardening) * temperature_dependence);
 	  _slip_resistance[_qp][i] += tau_precip_i + (tau_hp + tau_dislo) * temperature_dependence ;	 // NEW
   }
 
@@ -600,9 +619,37 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipRate()
 	  
   }
   
+  if (_use_sinh_slip_law) { // sinh slip law for creep
+
   for (const auto i : make_range(_number_slip_systems))
   {
-     effective_stress = _tau[_qp][i] - (_backstress_inter[_qp][i] + _backstress_intra[_qp][i]);
+    effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i];
+    
+    if (effective_stress > 0.0) {
+	    _slip_increment[_qp][i] = ao * std::exp(-_activation_energy / (_R_gas_constant * _temperature[_qp])) 
+                              * std::sinh((effective_stress * _activation_volume) / (_R_gas_constant * _temperature[_qp]));
+	  } else {
+	    _slip_increment[_qp][i] = 0.0;
+	  }
+    
+    if (_tau[_qp][i] < 0.0)
+      _slip_increment[_qp][i] *= -1.0;
+      
+    if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
+    {
+      if (_print_convergence_message)
+        mooseWarning("Maximum allowable slip increment exceeded ",
+                     std::abs(_slip_increment[_qp][i]) * _substep_dt);
+
+      return false;
+    }
+  }
+  
+  } else { // power law slip
+  
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    effective_stress = _tau[_qp][i] - (_backstress_inter[_qp][i] + _backstress_intra[_qp][i]);
     
     stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
     
@@ -635,6 +682,7 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipRate()
         return false;
 	  }
     }
+  }
   }
   return true;
 }
@@ -717,21 +765,19 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipResistance()
 
     Real r_g_prime_i = _r_eff_g_prime[_qp][i]; // NEW
     Real r_g_pp_i = _r_eff_g_pp[_qp][i];       // NEW
-    Real tau_g_prime = 0.0; // NEW
-    if (_f_vol_g_prime > 0) // NEW
+    Real tau_g_prime = 0.0; 
+    if (_f_vol_g_prime > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_prime = _C_g_prime * std::pow(_Gamma_APB_g_prime / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_prime * r_g_prime_i / _burgers_vector_mag, 0.5); // NEW
     
-    Real tau_g_pp = 0.0; // NEW
-    if (_f_vol_g_pp > 0) // NEW
+    Real tau_g_pp = 0.0;
+    if (_f_vol_g_pp > 0) // Equation (21) in Ghorbanpour et al. 2017
       tau_g_pp = _C_g_pp * std::pow(_Gamma_APB_g_pp / _burgers_vector_mag, 1.5) * std::pow(_f_vol_g_pp * r_g_pp_i / _burgers_vector_mag, 0.5); // NEW
 
     Real tau_precip_i = tau_g_prime + tau_g_pp;
     // Add thermally-dependent strengthening components
-	//_slip_resistance[_qp][i] += (_alpha_0 * _shear_modulus * _burgers_vector_mag * std::sqrt(taylor_hardening) * temperature_dependence);
 	  _slip_resistance[_qp][i] += tau_precip_i + (tau_hp + tau_dislo) * temperature_dependence;	 // NEW
 	
   }
-
 }
 
 void
@@ -751,7 +797,7 @@ CrystalPlasticityDislocationUpdateNi::calculateEquivalentSlipIncrement(
 // Note that this is always called after calculateSlipRate
 // because calculateSlipRate is called in calculateResidual
 // while this is called in calculateJacobian
-// therefore it is ok to calculate calculateSlipRate
+// therefore it is ok to calculate calculateSlipResistance
 // only inside calculateSlipRate
 void
 CrystalPlasticityDislocationUpdateNi::calculateConstitutiveSlipDerivative(
@@ -816,6 +862,23 @@ CrystalPlasticityDislocationUpdateNi::calculateConstitutiveSlipDerivative(
     xm = _xm;
 	  
   }
+
+  if (_use_sinh_slip_law) { // sinh slip law for creep
+
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i];
+
+    if (effective_stress > 0.0) {
+      dslip_dtau[i] = ao * std::exp(-_activation_energy / (_R_gas_constant * _temperature[_qp]))
+                    * std::cosh((effective_stress * _activation_volume) / (_R_gas_constant * _temperature[_qp]))
+                    * (_activation_volume) / (_R_gas_constant * _temperature[_qp]);
+    } else {
+      dslip_dtau[i] = 0.0;
+    }
+  }
+
+  } else { // power law slip
 	
   for (const auto i : make_range(_number_slip_systems))
   {
@@ -825,7 +888,7 @@ CrystalPlasticityDislocationUpdateNi::calculateConstitutiveSlipDerivative(
 		
       dslip_dtau[i] = 0.0;
       		
-	} else {
+	  } else {
 		
 	  stress_ratio = std::abs(effective_stress / _slip_resistance[_qp][i]);
 
@@ -846,6 +909,7 @@ CrystalPlasticityDislocationUpdateNi::calculateConstitutiveSlipDerivative(
                          creep_resistance * tertiary_creep;
       }
     }
+  }
   }
 }
 
@@ -900,8 +964,10 @@ CrystalPlasticityDislocationUpdateNi::calculateStateVariableEvolutionRateCompone
   Real T = _temperature[_qp];  // NEW
   Real T_ref = _reference_temperature;  // NEW
   
-  // When T increases, the y_c increases for higher annihilation.
-  Real y_c_eff = _y_c * std::exp(-(_Q_drv / _R_gas_constant) * (1.0 / T - 1.0 / T_ref));  // Q_drv needs to be calibrated for different temperatures.
+  // When T increases, the y_c increases for higher annihilation
+  // Q_drv needs to be calibrated for different temperatures
+  // note that large Q_drv can lead to very high annihilation at high T
+  Real y_c_eff = _y_c * std::exp(-(_Q_drv / _R_gas_constant) * (1.0 / T - 1.0 / T_ref));
 
   // SSD dislocation density increment
   for (const auto i : make_range(_number_slip_systems))
@@ -964,7 +1030,7 @@ CrystalPlasticityDislocationUpdateNi::ArmstrongFrederickBackstressUpdate()
     _backstress_inter_increment[i] = _h * _slip_increment[_qp][i];
     _backstress_inter_increment[i] -= _h_D * _backstress_inter[_qp][i] * std::abs(_slip_increment[_qp][i]);
 
-// --- Part 2: Intragranular Backstress (Agaram et al. Eq 9, 10, 30) --- 
+    // --- Part 2: Intragranular Backstress (Agaram et al. Eq 9, 10, 30) --- 
     
     // Calculate L_ppt (mean free path) from Agaram Eq. (30) 
     Real r_eff_gpp = _r_eff_g_pp[_qp][i]; // Current (evolving) radius ISV

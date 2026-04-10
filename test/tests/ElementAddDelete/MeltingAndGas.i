@@ -305,6 +305,6 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 1 #2
+    time_step_interval = 1 #2
   [../]
 []

@@ -198,6 +198,9 @@ protected:
   
   // Initial PSB dislocation density
   const Real _init_rho_PSB;
+
+  // Use square root law for PSB volume fraction evolution
+  const bool _PSB_fraction_sqrt_law;
   
   // Interaction matrix coefficients between slip systems
   

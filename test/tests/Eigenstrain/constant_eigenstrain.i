@@ -962,5 +962,5 @@
 [Outputs]
   exodus = true
   csv = false
-  interval = 5
+  time_step_interval = 5
 []

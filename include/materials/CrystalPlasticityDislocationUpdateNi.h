@@ -18,7 +18,13 @@ class CrystalPlasticityDislocationUpdateNi;
  * variables are updated using an interative predictor-corrector algorithm.
  * Backward Euler integration rule is used for the rate equations.
  * Dislocation based model for crystal plasticity.
- * Slip, creep and backstress are included 
+ * Slip, creep and backstress are included.
+ * This model is based on:
+ * Sukumar Agaram, Anand K Kanjarla, Baskaran Bhuvaraghan, Sivakumar M. Srinivasan
+ * Dislocation density based crystal plasticity model incorporating
+ * the effect of precipitates in IN718 under monotonic and cyclic deformation
+ * International Journal of Plasticity 141 (2021) 102990 
+ * https://www.sciencedirect.com/science/article/abs/pii/S0749641921000656
  */
 
 class CrystalPlasticityDislocationUpdateNi : public CrystalPlasticityDislocationUpdateBase
@@ -82,13 +88,7 @@ protected:
   virtual void cacheStateVariablesBeforeUpdate() override;
 
   /**
-   * Following the Constitutive model for slip system resistance as given in
-   * Dislocation based model:
-   * E. Demir, I Gutierrez-Urrutia
-   * Investigation of strain hardening near grain
-   * boundaries of an aluminium oligocrystal:
-   * Experiments and crystal based finite element method
-   * International Journal of Plasticity 136 (2021) 102898
+   * Calculates the evolution rate of the state variables
    */
   virtual void calculateStateVariableEvolutionRateComponent() override;
   
@@ -106,13 +106,6 @@ protected:
    * by comparing the change in the values over the iteration period.
    */
   virtual bool areConstitutiveStateVariablesConverged() override;
-
-  // Variables used in
-  // Eralp Demir, Ivan Gutierrez-Urrutia
-  // Investigation of strain hardening near grain boundaries of an aluminum oligocrystal: 
-  // Experiments and crystal based finite element method
-  // International Journal of Plasticity
-  // Volume 136, January 2021, 102898
   
   // Slip rate constants
   const Real _ao;
@@ -156,6 +149,11 @@ protected:
   
   // Cap the absolute value of the slip increment in one time step to _slip_incr_tol
   const bool _cap_slip_increment;
+  
+  // sinh slip law for creep and related parameters
+  const bool _use_sinh_slip_law;
+  const Real _activation_volume;
+  const Real _activation_energy;
 
   // Magnitude of the Burgers vector
   const Real _burgers_vector_mag;
@@ -167,16 +165,15 @@ protected:
   // Prefactor of Taylor hardening law, alpha
   const Real _alpha_0;
   
-  // Latent hardening coefficient
-//  const Real _r;
-  const Real _r_self; // NEW
-  const Real _r_oct_oct; // NEW
-  const Real _r_cub_cub; // NEW
-  const Real _r_oct_cub; // NEW
+  // Latent hardening coefficients
+  const Real _r_self; // Self-hardening coefficient
+  const Real _r_oct_oct; // Octahedral <-> Octahedral
+  const Real _r_cub_cub; // Cubic <-> Cubic
+  const Real _r_oct_cub; // Octahedral <-> Cubic
 
-// Peierls stress (split by slip type)
-  const Real _tau_c_0_oct; // NEW: Peierls stress for {111} slip
-  const Real _tau_c_0_cub; // NEW: Peierls stress for {100} slip
+  // Peierls stress (split by slip type)
+  const Real _tau_c_0_oct; // Peierls stress for {111} slip
+  const Real _tau_c_0_cub; // Peierls stress for {100} slip
   
   // Optional function for Peierls stress. If provided, the Peierls stress can be set as a function of time
   // This is useful for time dependent solid solution strenthening and precipitation hardening, e.g. during thermal ageing
@@ -187,28 +184,23 @@ protected:
   
   // Hall-Petch strengthening parameters (new for IN718)
   const Real _k_hp; // <-- Hall-Petch
-  // const Real _d_grain; 
+  // const Real _d_grain;
   
   // --- Parameters for Precipitate Strengthening (PDF 3.2) ---
  // g' (L12) parameters
   const Real _C_g_prime;         // NEW: C_gamma' constant in strengthening eqn
   const Real _Gamma_APB_g_prime; // NEW: APB energy for g' (L12)
   const Real _f_vol_g_prime;     // NEW: Volume fraction of g' (L12)
-  
+
   // g'' (DO22) parameters
-  const Real _C_g_pp;            // NEW: C_gamma'' constant in strengthening eqn (pp = prime-prime)  
-  
-  const Real _Gamma_APB_g_pp;    // NEW: APB energy for g'' (DO22)  
-  
-  const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22)
-  
-  // --- Initial values for new ISVs ---
-  const Real _init_r_eff_g_prime; // NEW: Initial effective radius of g' (L12)
-  const Real _init_r_eff_g_pp;    // NEW: Initial effective radius of g'' (DO22)  
+  const Real _C_g_pp;            // NEW: C_gamma'' constant in strengthening eqn (pp = prime-prime)
+  const Real _Gamma_APB_g_pp;    // NEW: APB energy for g'' (DO22)
+  const Real _f_vol_g_pp;        // NEW: Volume fraction of g'' (DO22) 
+
+  // Arbitrary time dependent precipitation-strengthening function
+  const Function * const _precipitation_strengthening_function;
   
   // Coefficient K in SSD evolution, representing accumulation rate
-  const Real _C_shear_g_prime; // Shearing efficiency coefficient for g'
-  const Real _C_shear_g_pp;    // Shearing efficiency coefficient for g''
   const Real _k_0;
   
   // Critical annihilation diameter
@@ -216,13 +208,19 @@ protected:
   const Real _Q_drv;   // NEW: energy for DRV activation  (J/mol)
   const Real _R_gas_constant; // NEW: gas constant  (such as 8.314 J/mol/K)
 
+  // --- Initial values for new ISVs ---
+  const Real _init_r_eff_g_prime; // NEW: Initial effective radius of g' (L12)
+  const Real _init_r_eff_g_pp;    // NEW: Initial effective radius of g'' (DO22)
+  const Real _C_shear_g_prime; // Shearing efficiency coefficient for g'
+  const Real _C_shear_g_pp;    // Shearing efficiency coefficient for g''
+
   // Backstress parameters
   const Real _h;
   const Real _h_D;
-// --- NEW: Parameters for Intragranular Backstress 
-// Agaram, Sukumar, et al. "Dislocation density based crystal plasticity model incorporating the effect of 
-// precipitates in IN718 under monotonic and cyclic deformation." 
-// International Journal of Plasticity 141 (2021): 102990.
+  // --- NEW: Parameters for Intragranular Backstress 
+  // Agaram, Sukumar, et al. "Dislocation density based crystal plasticity model incorporating the effect of 
+  // precipitates in IN718 under monotonic and cyclic deformation." 
+  // International Journal of Plasticity 141 (2021): 102990.
   const Real _k_52; // Controls slope of intra-backstress
   const Real _k_32; // Controls saturation of intra-backstress
   const Real _k_D;  // Controls dislocation generation from precipitates    
