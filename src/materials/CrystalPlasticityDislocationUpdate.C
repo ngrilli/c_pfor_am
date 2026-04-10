@@ -54,6 +54,10 @@ CrystalPlasticityDislocationUpdate::validParams()
   params.addParam<Real>("h",0.0,"Direct hardening coefficient for backstress");
   params.addParam<Real>("h_D",0.0,"Dynamic recovery coefficient for backstress");
   params.addParam<Real>("rho_tol",1.0,"Tolerance on dislocation density update");
+  params.addParam<Real>("gnd_increment_threshold", 2.0e-10,
+    "Threshold on GND density increment (um^-2). "
+    "Increments below this are set to zero to filter numerical noise. "
+    "See Demir et al., IJP 178 (2024) 104013.");
   params.addParam<Real>("init_rho_ssd",1.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_edge",0.0,"Initial dislocation density");
   params.addParam<Real>("init_rho_gnd_screw",0.0,"Initial dislocation density");
@@ -127,6 +131,9 @@ CrystalPlasticityDislocationUpdate::CrystalPlasticityDislocationUpdate(
 	
 	// Tolerance on dislocation density update
 	_rho_tol(getParam<Real>("rho_tol")),
+
+	// GND increment threshold to filter numerical noise
+	_gnd_increment_threshold(getParam<Real>("gnd_increment_threshold")),
 	
 	// State variables of the dislocation model
 	
@@ -750,17 +757,26 @@ CrystalPlasticityDislocationUpdate::updateStateVariables()
   }
   
   // GND edge: can be both positive or negative
+  // Apply threshold to filter numerical noise (Demir et al., IJP 2024)
   for (const auto i : make_range(_number_slip_systems))
-  { 
+  {
     _rho_gnd_edge_increment[i] *= _substep_dt;
-    _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i] + _rho_gnd_edge_increment[i];
+
+    if (std::abs(_rho_gnd_edge_increment[i]) > _gnd_increment_threshold)
+      _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i] + _rho_gnd_edge_increment[i];
+    else
+      _rho_gnd_edge[_qp][i] = _previous_substep_rho_gnd_edge[i];
   }
-  
+
   // GND screw: can be both positive or negative
   for (const auto i : make_range(_number_slip_systems))
-  { 
+  {
     _rho_gnd_screw_increment[i] *= _substep_dt;
-    _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i] + _rho_gnd_screw_increment[i];
+
+    if (std::abs(_rho_gnd_screw_increment[i]) > _gnd_increment_threshold)
+      _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i] + _rho_gnd_screw_increment[i];
+    else
+      _rho_gnd_screw[_qp][i] = _previous_substep_rho_gnd_screw[i];
   }
   
   // Backstress: can be both positive or negative

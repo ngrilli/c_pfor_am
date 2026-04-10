@@ -194,6 +194,10 @@ protected:
   
   // Tolerance on dislocation density update
   const Real _rho_tol;
+
+  // GND increment threshold to filter numerical noise
+  // Demir et al., IJP 178 (2024) 104013
+  const Real _gnd_increment_threshold;
   
   // Dislocation densities
   MaterialProperty<std::vector<Real>> & _rho_ssd;
