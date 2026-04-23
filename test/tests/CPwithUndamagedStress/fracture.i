@@ -115,7 +115,7 @@
   [./elastic_energy]
     type = DerivativeParsedMaterial
     f_name = elastic_energy
-    args = 'elastic_energy'
+    coupled_variables = 'elastic_energy'
     function = 'elastic_energy'
     derivative_order = 2
   [../]
@@ -123,7 +123,7 @@
   [./delastic_energy_dc]
     type = DerivativeParsedMaterial
     f_name = delastic_energy/dc
-    args = 'delastic_energy_dc'
+    coupled_variables = 'delastic_energy_dc'
     function = 'delastic_energy_dc'
     derivative_order = 1
   [../]
@@ -131,7 +131,7 @@
   [./d2elastic_energy_dc2]
     type = DerivativeParsedMaterial
     f_name = d^2elastic_energy/dc^2
-    args = 'd2elastic_energy_dc2'
+    coupled_variables = 'd2elastic_energy_dc2'
     function = 'd2elastic_energy_dc2'
     derivative_order = 0
   [../]
@@ -191,13 +191,13 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 1 #100
+    time_step_interval = 1 #100
   [../]
   # uncomment for restart option
   #[./restart]
   #  type = Checkpoint
   #  num_files = 5
-  #  interval = 10
+  #  time_step_interval = 10
   #[../]
 []
 
