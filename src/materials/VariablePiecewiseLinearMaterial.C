@@ -32,6 +32,12 @@ VariablePiecewiseLinearMaterial::VariablePiecewiseLinearMaterial(const InputPara
 }
 
 void
+VariablePiecewiseLinearMaterial::initQpStatefulProperties()
+{
+  computeQpProperties();
+}
+
+void
 VariablePiecewiseLinearMaterial::computeQpProperties()
 {
   const Real v = _var[_qp];  // value of the variable

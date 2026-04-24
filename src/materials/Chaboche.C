@@ -44,15 +44,15 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _backstress2_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress2")),
     _isotropic_hardening(declareProperty<Real>(_base_name + "isotropic_hardening")),
     _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening")),
-    _sigma_0(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("sigma_0_name"))),
-    _Q(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("Q_name"))),
-    _b(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("b_name"))),
-    _E(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("E_name"))),
-    _nu(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("nu_name"))),
-    _C1(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("C1_name"))),
-    _gamma1(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("gamma1_name"))),
-    _C2(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("C2_name"))),
-    _gamma2(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
+    _sigma_0(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("sigma_0_name"))),
+    _Q(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("Q_name"))),
+    _b(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("b_name"))),
+    _E(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("E_name"))),
+    _nu(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("nu_name"))),
+    _C1(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("C1_name"))),
+    _gamma1(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("gamma1_name"))),
+    _C2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("C2_name"))),
+    _gamma2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
     _tolerance(getParam<Real>("tolerance")),
     _max_iterations(getParam<int>("max_iterations"))
 {
@@ -89,7 +89,7 @@ Chaboche::computeQpStress()
   _plastic_strain[_qp] = _plastic_strain_old[_qp];
   _backstress1[_qp] = _backstress1_old[_qp];
   _backstress2[_qp] = _backstress2_old[_qp];
-  _isotropic_hardening[_qp] = _isotropic_hardening_old[_qp];  
+  _isotropic_hardening[_qp] = _isotropic_hardening_old[_qp];
   
   // Compute effective stress
   _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp]; 

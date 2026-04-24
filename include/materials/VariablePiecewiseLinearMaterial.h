@@ -17,6 +17,7 @@ public:
   VariablePiecewiseLinearMaterial(const InputParameters & parameters);
 
 protected:
+  virtual void initQpStatefulProperties() override;
   virtual void computeQpProperties() override;
 
   /// Coupled variable
