@@ -13,15 +13,15 @@ Chaboche::validParams()
   InputParameters params = ComputeStressBase::validParams();
 
   params.addClassDescription("A Chaboche model with return mapping");
-  params.addRequiredParam<FunctionName>("sigma_0","Constant stress of the isotropic hardening");
-  params.addRequiredParam<FunctionName>("Q","Maximum isotropic hardening");
-  params.addRequiredParam<FunctionName>("b","Hardening rate");
-  params.addRequiredParam<FunctionName>("E","Young's modulus");
-  params.addRequiredParam<FunctionName>("nu","Poisson's ratio");
-  params.addRequiredParam<FunctionName>("C1","C constant for the first backstress");
-  params.addRequiredParam<FunctionName>("gamma1","gamma constant for the first backstress");
-  params.addRequiredParam<FunctionName>("C2","C constant for the second backstress");
-  params.addRequiredParam<FunctionName>("gamma2","gamma constant for the second backstress");
+  params.addParam<MaterialPropertyName>("sigma_0_name","sigma_0","Constant stress of the isotropic hardening");
+  params.addParam<MaterialPropertyName>("Q_name","Q","Maximum isotropic hardening");
+  params.addParam<MaterialPropertyName>("b_name","b","Hardening rate");
+  params.addParam<MaterialPropertyName>("E_name","E","Young's modulus");
+  params.addParam<MaterialPropertyName>("nu_name","nu","Poisson's ratio");
+  params.addParam<MaterialPropertyName>("C1_name","C1","C constant for the first backstress");
+  params.addParam<MaterialPropertyName>("gamma1_name","gamma1","gamma constant for the first backstress");
+  params.addParam<MaterialPropertyName>("C2_name","C2","C constant for the second backstress");
+  params.addParam<MaterialPropertyName>("gamma2_name","gamma2","gamma constant for the second backstress");
   params.addParam<Real>("tolerance",1e-6,"Yield function tolerance");
   params.addParam<int>("max_iterations",1000,"Number of return mapping iterations before unconverged");
   return params;
@@ -44,15 +44,15 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _backstress2_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "backstress2")),
     _isotropic_hardening(declareProperty<Real>(_base_name + "isotropic_hardening")),
     _isotropic_hardening_old(getMaterialPropertyOld<Real>(_base_name + "isotropic_hardening")),
-    _sigma_0(&this->getFunction("sigma_0")),
-    _Q(&this->getFunction("Q")),
-    _b(&this->getFunction("b")),
-    _E(&this->getFunction("E")),
-    _nu(&this->getFunction("nu")),
-    _C1(&this->getFunction("C1")),
-    _gamma1(&this->getFunction("gamma1")),
-    _C2(&this->getFunction("C2")),
-    _gamma2(&this->getFunction("gamma2")),
+    _sigma_0(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("sigma_0_name"))),
+    _Q(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("Q_name"))),
+    _b(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("b_name"))),
+    _E(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("E_name"))),
+    _nu(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("nu_name"))),
+    _C1(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("C1_name"))),
+    _gamma1(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("gamma1_name"))),
+    _C2(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("C2_name"))),
+    _gamma2(getMaterialPropertyByName<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
     _tolerance(getParam<Real>("tolerance")),
     _max_iterations(getParam<int>("max_iterations"))
 {
@@ -66,7 +66,7 @@ Chaboche::initQpStatefulProperties()
   _eqv_plastic_strain[_qp] = 0.0;
   _backstress1[_qp].zero();
   _backstress2[_qp].zero();
-  _isotropic_hardening[_qp] = _sigma_0->value(_t, _q_point[_qp]);
+  _isotropic_hardening[_qp] = _sigma_0[_qp];
 }
 
 void
@@ -125,8 +125,8 @@ Chaboche::computeQpStress()
 void
 Chaboche::computeElasticConstants()
 {
-  _G = _E->value(_t, _q_point[_qp]) / 2.0 / (1.0 + _nu->value(_t, _q_point[_qp]));
-  _K = _E->value(_t, _q_point[_qp]) / 3.0 / (1.0 - 2.0 * _nu->value(_t, _q_point[_qp]));
+  _G = _E[_qp] / 2.0 / (1.0 + _nu[_qp]);
+  _K = _E[_qp] / 3.0 / (1.0 - 2.0 * _nu[_qp]);
   _lambda = _K - (2.0 / 3.0) * _G;
 }
 
@@ -193,8 +193,8 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   Real eqv_effective_deviatoric_stress;
   
   // Isotropic hardening parameters
-  Real Q = _Q->value(_t, _q_point[_qp]);
-  Real b = _b->value(_t, _q_point[_qp]);
+  Real Q = _Q[_qp];
+  Real b = _b[_qp];
   
   // Iteration counter
   unsigned int i = 0;
@@ -246,9 +246,9 @@ void
 Chaboche::updateIsotropicHardening(const Real eqvpstrain)
 {
   // Isotropic hardening parameters
-  Real Q = _Q->value(_t, _q_point[_qp]);
-  Real b = _b->value(_t, _q_point[_qp]);
-  Real sigma_0 = _sigma_0->value(_t, _q_point[_qp]);
+  Real Q = _Q[_qp];
+  Real b = _b[_qp];
+  Real sigma_0 = _sigma_0[_qp];
 	
   _isotropic_hardening[_qp] = sigma_0 + Q * (1.0 - std::exp(-b * eqvpstrain));
 }
@@ -257,9 +257,9 @@ void
 Chaboche::updateBackstress(const Real delta_gamma,
                            const RankTwoTensor n)
 {
-  _backstress1[_qp] += (2.0/3.0) * _C1->value(_t, _q_point[_qp]) * delta_gamma * n;
-  _backstress1[_qp] -= _gamma1->value(_t, _q_point[_qp]) * delta_gamma * _backstress1[_qp];
+  _backstress1[_qp] += (2.0/3.0) * _C1[_qp] * delta_gamma * n;
+  _backstress1[_qp] -= _gamma1[_qp] * delta_gamma * _backstress1[_qp];
   
-  _backstress2[_qp] += (2.0/3.0) * _C2->value(_t, _q_point[_qp]) * delta_gamma * n;
-  _backstress2[_qp] -= _gamma2->value(_t, _q_point[_qp]) * delta_gamma * _backstress2[_qp];
+  _backstress2[_qp] += (2.0/3.0) * _C2[_qp] * delta_gamma * n;
+  _backstress2[_qp] -= _gamma2[_qp] * delta_gamma * _backstress2[_qp];
 }

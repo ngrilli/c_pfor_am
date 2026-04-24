@@ -83,19 +83,19 @@ protected:
   const MaterialProperty<Real> & _isotropic_hardening_old;
   
   // Isotropic hardening parameters
-  const Function * const _sigma_0;
-  const Function * const _Q;
-  const Function * const _b;
+  const MaterialProperty<Real> & _sigma_0;
+  const MaterialProperty<Real> & _Q;
+  const MaterialProperty<Real> & _b;
   
   // Young's modulus and Poisson's ratio as a function of temperature 
-  const Function * const _E;
-  const Function * const _nu;
+  const MaterialProperty<Real> & _E;
+  const MaterialProperty<Real> & _nu;
   
   // Backstress parameters
-  const Function * const _C1;
-  const Function * const _gamma1;
-  const Function * const _C2;
-  const Function * const _gamma2;
+  const MaterialProperty<Real> & _C1;
+  const MaterialProperty<Real> & _gamma1;
+  const MaterialProperty<Real> & _C2;
+  const MaterialProperty<Real> & _gamma2;
   
   // Yield function tolerance
   const Real _tolerance;
