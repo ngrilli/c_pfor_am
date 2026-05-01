@@ -589,8 +589,8 @@
   [./degradation]
     type = DerivativeParsedMaterial
     f_name = degradation
-    args = 'c'
-    function = '(1.0-c)^2*(1.0 - eta) + eta'
+    coupled_variables = 'c'
+    expression = '(1.0-c)^2*(1.0 - eta) + eta'
     constant_names       = 'eta'
     constant_expressions = '0.001'
     derivative_order = 2
@@ -634,12 +634,12 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 1 #100
+    time_step_interval = 1 #100
   [../]
   # uncomment for restart option
   #[./restart]
   #  type = Checkpoint
   #  num_files = 5
-  #  interval = 10
+  #  time_step_interval = 10
   #[../]
 []
