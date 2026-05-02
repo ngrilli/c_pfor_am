@@ -513,7 +513,7 @@
   dtmax = 10.0
   dtmin = 0.0000001
 
-  num_steps = 1 #1000 to see full crack propagation
+  num_steps = 1 # 1000 to see full crack propagation
 []
 
 [Outputs]

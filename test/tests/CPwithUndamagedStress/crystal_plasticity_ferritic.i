@@ -556,31 +556,31 @@
     number_slip_systems = 24
     slip_sys_file_name = 'input_slip_sys_bcc24.txt'
 
-	burgers_vector_mag = 0.000256
-	shear_modulus = 86000.0
-	a_self = 0.1
-	a_col = 0.7
+	  burgers_vector_mag = 0.000256
+	  shear_modulus = 86000.0
+	  a_self = 0.1
+	  a_col = 0.7
 	
-	ao = 0.042747355498052086
-	xm = 0.14511893043165458
+	  ao = 0.042747355498052086
+	  xm = 0.14511893043165458
 	
-	# The ratio between Peierls' stress in different slip systems is kept as in:
-	# Ghiath Monnet, Ludovic Vincent, Lionel Gelebart
+	  # The ratio between Peierls stress in different slip systems is kept as in:
+	  # Ghiath Monnet, Ludovic Vincent, Lionel Gelebart
     # Multiscale modeling of crystal plasticity in Reactor Pressure Vessel steels: Prediction of irradiation hardening
     # Journal of Nuclear Materials 514 (2019) 128-138
-	const_slip_resistance_110 = 144.0
-	const_slip_resistance_112_TW = 164.0
-	const_slip_resistance_112_AT = 192.0
+	  const_slip_resistance_110 = 144.0
+	  const_slip_resistance_112_TW = 164.0
+	  const_slip_resistance_112_AT = 192.0
 	
     k_0 = 0.5351213486387714
     y_c = 0.0016733349642994713
-	init_rho_ssd = 2.6184166093059353
+	  init_rho_ssd = 2.6184166093059353
 	
-	init_rho_gnd_edge = 0.0
-	init_rho_gnd_screw = 0.0
-	rho_tol = 1.0
-	dslip_increment_dedge = dslip_increment_dedge
-	dslip_increment_dscrew = dslip_increment_dscrew
+	  init_rho_gnd_edge = 0.0
+	  init_rho_gnd_screw = 0.0
+	  rho_tol = 1.0
+	  dslip_increment_dedge = dslip_increment_dedge
+	  dslip_increment_dscrew = dslip_increment_dscrew
   [../]
   
   # degradation function for the positive part of the strain energy
@@ -589,8 +589,8 @@
   [./degradation]
     type = DerivativeParsedMaterial
     f_name = degradation
-    args = 'c'
-    function = '(1.0-c)^2*(1.0 - eta) + eta'
+    coupled_variables = 'c'
+    expression = '(1.0-c)^2*(1.0 - eta) + eta'
     constant_names       = 'eta'
     constant_expressions = '0.001'
     derivative_order = 2
@@ -634,7 +634,7 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 1 #100
+    time_step_interval = 1 # 100
   [../]
   # uncomment for restart option
   #[./restart]
