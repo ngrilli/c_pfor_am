@@ -106,7 +106,7 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   
   [./init_rho_t]
