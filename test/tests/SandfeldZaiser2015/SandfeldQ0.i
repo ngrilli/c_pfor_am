@@ -73,19 +73,19 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   [./init_rho_gnd_edge]
     type = ParsedFunction
-	value = 'if(0.999*x,0.0,1.0)+if(0.999*(2.0-x),0.0,-1.0)+if(x-1.0,0.0,2.0*(1.0-x))'
+    expression = 'if(0.999*x,0.0,1.0)+if(0.999*(2.0-x),0.0,-1.0)+if(x-1.0,0.0,2.0*(1.0-x))'
   [../]
   [./init_rho_t]
     type = ParsedFunction
-	value = 'if(0.999*x,0.0,1.0)+if(0.999*(2.0-x),0.0,1.0)+if(x-1.0,0.0,2.0*abs(x-1.0))'
+    expression = 'if(0.999*x,0.0,1.0)+if(0.999*(2.0-x),0.0,1.0)+if(x-1.0,0.0,2.0*abs(x-1.0))'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = 'max(0.05*t,0.05*0.002)'
+    expression = 'max(0.05*t,0.05*0.002)'
   [../]
 []
 

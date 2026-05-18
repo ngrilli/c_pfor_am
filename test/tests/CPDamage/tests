@@ -34,6 +34,6 @@
   [./test_cleavage_on_slip_plane]
     type = 'Exodiff'
     input = 'BicrystalLeftRightCleavageInit45.i'
-	  exodiff = 'BicrystalLeftRightCleavageInit45_out.e'
+    exodiff = 'BicrystalLeftRightCleavageInit45_out.e'
   [../]
 []

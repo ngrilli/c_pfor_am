@@ -73,7 +73,7 @@
   [./ic_c]
     type = FunctionIC
     variable = c
-	function = 'if((x-0.1)/10.0,0.0,1.0)*if(y-5.0,0.0,1.0)'
+    function = 'if((x-0.1)/10.0,0.0,1.0)*if(y-5.0,0.0,1.0)'
   [../]
 []
 

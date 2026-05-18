@@ -25,7 +25,7 @@
 [Functions]
   [top_pull]
     type = ParsedFunction
-    value = 't/1000'
+    expression = 't/1000'
   []
 []
 

@@ -160,11 +160,11 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = 'min(0.00005*t,0.0005)'
+    expression = 'min(0.00005*t,0.0005)'
   [../]
   [./dts]
     type = PiecewiseConstant
@@ -173,11 +173,11 @@
   [../]
   [./rho_t_init]
     type = ParsedFunction
-    value = '1.0+0.05*(cos(25*x)+cos(25*y))'
+    expression = '1.0+0.05*(cos(25*x)+cos(25*y))'
   [../]
   [./q_t_init]
     type = ParsedFunction
-    value = '0.001+0.00005*(cos(25*x)+cos(25*y))'
+    expression = '0.001+0.00005*(cos(25*x)+cos(25*y))'
   [../]
 []
 

@@ -111,22 +111,22 @@
   
   [./init_rho_t]
     type = ParsedFunction
-  	value = 'if(3.0*(x-1.0),0.0,1.0)'
+    expression = 'if(3.0*(x-1.0),0.0,1.0)'
   [../]
 
   [./init_rho_gnd_edge]
     type = ParsedFunction
-    value = 'if(5.0*(x-1.1),0.0,1.0)+if(5.0*(x-0.9),0.0,-1.0)'
+    expression = 'if(5.0*(x-1.1),0.0,1.0)+if(5.0*(x-0.9),0.0,-1.0)'
   [../]
   
   [./init_rho_gnd_screw]
     type = ParsedFunction
-    value = '0.0'
+    expression = '0.0'
   [../]
 
   [./disp_load]
     type = ParsedFunction
-    value = 'min(0.01*t,0.0002)'
+    expression = 'min(0.01*t,0.0002)'
   [../]
 []
 

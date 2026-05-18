@@ -54,12 +54,12 @@
   
   [./init_rho_gnd_edge]
     type = ParsedFunction
-	value = 'if(3.0*(x-1.0),0.0,1.0)'
+    expression = 'if(3.0*(x-1.0),0.0,1.0)'
   [../]
   
   [./init_rho_t]
     type = ParsedFunction
-	value = 'if(3.0*(x-1.0),0.0,1.0)'
+    expression = 'if(3.0*(x-1.0),0.0,1.0)'
   [../]
   
 []

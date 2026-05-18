@@ -83,23 +83,23 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   [./init_q_t]
     type = ParsedFunction
-	value = '0.1'
+    expression = '0.1'
   [../]
   [./init_rho_t]
     type = ParsedFunction
-	value = '1.0'
+    expression = '1.0'
   [../]
   [./init_rho_gnd]
     type = ParsedFunction
-	value = '1.0-y'
+    expression = '1.0-y'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = 'if(t/2.0,0.001-0.0005*t,0.0005*t)'
+    expression = 'if(t/2.0,0.001-0.0005*t,0.0005*t)'
   [../]
 []
 
