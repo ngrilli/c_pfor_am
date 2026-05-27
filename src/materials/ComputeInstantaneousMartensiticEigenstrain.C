@@ -59,7 +59,7 @@ ComputeInstantaneousMartensiticEigenstrainTempl<is_ad>::computeThermalStrain()
   
   auto martensitic_strain = _martensitic_strain_old[_qp] + 0.0 * delta_T; // Initialize as ADReal type
 
-  if (delta_T < 0.0) { // cooling stage: martensitic strain is expansive
+  if (delta_T < 0.0 && this->_temperature[_qp] < _Ms && this->_temperature[_qp] > _Mf) { // cooling stage: martensitic strain is expansive
     martensitic_strain = _martensitic_strain_old[_qp] - _martensitic_strain_magnitude * delta_T / (_Ms - _Mf);
   }
 
