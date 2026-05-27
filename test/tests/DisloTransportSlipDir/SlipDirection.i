@@ -34,7 +34,7 @@
   [./rho] # Dislocation density
     order = FIRST
     family = LAGRANGE
-	[./InitialCondition]
+	   [./InitialCondition]
       type = FunctionIC
       function = initrho
     [../]
@@ -101,11 +101,11 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '293.0'
+    expression = '293.0'
   [../]
   [./initrho]
     type = ParsedFunction
-	value = 'if(3.0*(x-0.5),0.0,1.0)*if(3.0*(y-0.5),0.0,1.0)'
+    expression = 'if(3.0*(x-0.5),0.0,1.0)*if(3.0*(y-0.5),0.0,1.0)'
   [../]
 []
 

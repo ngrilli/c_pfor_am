@@ -104,17 +104,17 @@
 
   [./funzione_x]
     type = ParsedFunction
-    value = 'x'
+    expression = 'x'
   [../]
   
   [./funzione_y]
     type = ParsedFunction
-    value = 'y'
+    expression = 'y'
   [../]
   
   [./funzione_z]
     type = ParsedFunction
-    value = 'z'
+    expression = 'z'
   [../]
 
 []

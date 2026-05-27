@@ -63,11 +63,11 @@
 [Functions]
   [top_pull]
     type = ParsedFunction
-    value = 't/1000'
+    expression = 't/1000'
   []
   [lateral_pressure]
     type = ParsedFunction
-	value = '2.0'
+	  expression = '2.0'
   []
 []
 

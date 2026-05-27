@@ -389,7 +389,7 @@
 
   [./disp_load]
     type = ParsedFunction
-    value = '19.0*0.01*t/60.0'
+    expression = '19.0*0.01*t/60.0'
   [../]
   
   [./dts]
