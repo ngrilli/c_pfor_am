@@ -6,6 +6,9 @@
 
 #include "ComputeStressBase.h"
 
+#include "RankTwoTensor.h"
+#include "RankFourTensor.h"
+
 /**
  * A Chaboche model with return mapping
  */
@@ -48,6 +51,9 @@ protected:
   /// update backstress after return mapping converged
   virtual void updateBackstress(const Real delta_gamma,
                                 const RankTwoTensor n);
+                                
+  virtual void elastoPlasticTangentModuli(const Real eqvpstrain,
+                                          const RankTwoTensor n);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
@@ -102,6 +108,9 @@ protected:
   
   // Number of return mapping iterations before unconverged
   const int _max_iterations;
+
+  /// Type of tangent moduli calculation
+  const enum class TangentModuliType { ELASTIC, ELASTO_PLASTIC } _tan_mod_type;
   
   // Shear, bulk modulus and first Lamé parameter
   Real _G;

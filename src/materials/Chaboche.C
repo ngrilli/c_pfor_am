@@ -3,7 +3,6 @@
 // 7 Gennaio 2025
 
 #include "Chaboche.h"
-#include "Function.h"
 
 registerMooseObject("c_pfor_amApp", Chaboche);
 
@@ -24,6 +23,9 @@ Chaboche::validParams()
   params.addParam<MaterialPropertyName>("gamma2_name","gamma2","gamma constant for the second backstress");
   params.addParam<Real>("tolerance",1e-6,"Yield function tolerance");
   params.addParam<int>("max_iterations",1000,"Number of return mapping iterations before unconverged");
+  params.addParam<MooseEnum>("tangent_moduli_type",
+                             MooseEnum("elastic elasto_plastic", "elastic"),
+                             "Type of tangent moduli for preconditioner: default elastic");
   return params;
 }
 
@@ -54,7 +56,8 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _C2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("C2_name"))),
     _gamma2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
     _tolerance(getParam<Real>("tolerance")),
-    _max_iterations(getParam<int>("max_iterations"))
+    _max_iterations(getParam<int>("max_iterations")),
+    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>())
 {
 }
 
@@ -106,6 +109,7 @@ Chaboche::computeQpStress()
     _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
     _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
     _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment;
+    _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
   }
 
   // Rotate the stress tensor to the current configuration
@@ -117,8 +121,6 @@ Chaboche::computeQpStress()
 
   // Calculate the elastic strain
   _elastic_strain[_qp] = _mechanical_strain[_qp] - _plastic_strain[_qp];
-
-  _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
 }
 
 // Compute shear and bulk modulus
@@ -240,6 +242,15 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
   _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
   _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment - 2.0 * _G * delta_gamma * n;
+
+  switch (_tan_mod_type)
+  {
+    case TangentModuliType::ELASTO_PLASTIC:
+      elastoPlasticTangentModuli(eqvpstrain, n);
+      break;
+    default:
+      _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
+  }
 }
 
 void
@@ -262,4 +273,24 @@ Chaboche::updateBackstress(const Real delta_gamma,
   
   _backstress2[_qp] += (2.0/3.0) * _C2[_qp] * delta_gamma * n;
   _backstress2[_qp] -= _gamma2[_qp] * delta_gamma * _backstress2[_qp];
+}
+
+void
+Chaboche::elastoPlasticTangentModuli(const Real eqvpstrain,
+                                     const RankTwoTensor n)
+{
+  RankFourTensor tan_mod;
+  RankFourTensor I4(RankFourTensor::initIdentityFour); // I tensor product I
+  //RankFourTensor I4dev(RankFourTensor::initIdentityDeviatoric); // deviatoric 4th order identity
+  RankFourTensor I4dev(RankFourTensor::initIdentitySymmetricFour);
+  RankFourTensor n_outer_n; // tensor product of n with itself
+
+  // Hardening rate
+  Real H_iso = _Q[_qp] * _b[_qp] * std::exp(-_b[_qp] * eqvpstrain);
+  Real H_kin = (2.0 / 3.0) * (_C1[_qp] + _C2[_qp]);
+  Real H = H_iso + H_kin;
+
+  n_outer_n = n.outerProduct(n);
+  
+  _Jacobian_mult[_qp] = _K * I4 + 2.0 * _G * (1.0 - (2.0 * _G) / (2.0 * _G + H)) * (I4dev - (3.0/2.0) * n_outer_n);
 }
