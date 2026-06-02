@@ -30,6 +30,8 @@ protected:
   virtual void decomposeStress(const RankTwoTensor & stress_old);
   
   virtual void decomposeStrainIncrement(const RankTwoTensor & strain_increment);
+
+  virtual void decomposeStrain(const RankTwoTensor & mechanical_strain);
   
   virtual RankTwoTensor computeTrialStress();
   /**
@@ -111,6 +113,13 @@ protected:
 
   /// Type of tangent moduli calculation
   const enum class TangentModuliType { ELASTIC, ELASTO_PLASTIC } _tan_mod_type;
+
+  ///Temperature variable value
+  const VariableValue & _temperature;
+
+  // Annealing model for the recovery of backstress and isotropic hardening
+  const bool _annealing;
+  const Real _annealing_temperature;
   
   // Shear, bulk modulus and first Lamé parameter
   Real _G;
@@ -124,6 +133,10 @@ protected:
   // Volumetric and deviatoric strain increment
   RankTwoTensor _deviatoric_strain_increment;
   RankTwoTensor _volumetric_strain_increment;
+
+  // Volumetric and deviatoric mechanical strain
+  RankTwoTensor _deviatoric_strain;
+  RankTwoTensor _volumetric_strain;
   
   // Deviatoric trial stress
   RankTwoTensor _trial_stress;

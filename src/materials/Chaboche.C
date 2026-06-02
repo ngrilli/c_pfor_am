@@ -26,6 +26,9 @@ Chaboche::validParams()
   params.addParam<MooseEnum>("tangent_moduli_type",
                              MooseEnum("elastic elasto_plastic", "elastic"),
                              "Type of tangent moduli for preconditioner: default elastic");
+  params.addCoupledVar("temperature", "Coupled temperature variable");
+  params.addParam<bool>("annealing",false,"Use annealing model");
+  params.addParam<Real>("annealing_temperature",1573.0,"Annealing temperature for the recovery of backstress and isotropic hardening");
   return params;
 }
 
@@ -57,7 +60,10 @@ Chaboche::Chaboche(const InputParameters & parameters)
     _gamma2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
     _tolerance(getParam<Real>("tolerance")),
     _max_iterations(getParam<int>("max_iterations")),
-    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>())
+    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>()),
+    _temperature(coupledValue("temperature")),
+    _annealing(getParam<bool>("annealing")),
+    _annealing_temperature(getParam<Real>("annealing_temperature"))
 {
 }
 
@@ -97,19 +103,36 @@ Chaboche::computeQpStress()
   // Compute effective stress
   _effective_deviatoric_stress = _trial_stress - _backstress1[_qp] - _backstress2[_qp]; 
   
-  if (yieldFunction(_effective_deviatoric_stress,_isotropic_hardening[_qp]) >= 0.0) {
-    
-    returnMap(_eqv_plastic_strain_old[_qp],
-              _plastic_strain_old[_qp],
-              _eqv_plastic_strain[_qp],
-              _plastic_strain[_qp]);
-    
-  } else { // purely elastic stress update
+  if (_annealing && _temperature[_qp] >= _annealing_temperature) { // purely elastic non-incremental stress calculation
 
-    _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
-    _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
-    _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment;
+    decomposeStrain(_mechanical_strain[_qp]);
+    _stress[_qp] = 2.0 * _G * _volumetric_strain;
+    _stress[_qp].addIa(_lambda * _volumetric_strain.trace());
+    _stress[_qp] += 2.0 * _G * _deviatoric_strain;
     _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
+
+    _plastic_strain[_qp].zero();
+    _eqv_plastic_strain[_qp] = 0.0;
+    _backstress1[_qp].zero();
+    _backstress2[_qp].zero();
+    _isotropic_hardening[_qp] = _sigma_0[_qp];
+
+  } else {
+
+    if (yieldFunction(_effective_deviatoric_stress,_isotropic_hardening[_qp]) >= 0.0) { // plastic correction needed
+    
+      returnMap(_eqv_plastic_strain_old[_qp],
+                _plastic_strain_old[_qp],
+                _eqv_plastic_strain[_qp],
+                _plastic_strain[_qp]);
+    
+    } else { // purely elastic stress update
+
+      _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;
+      _stress[_qp].addIa(_lambda * _volumetric_strain_increment.trace());
+      _stress[_qp] += 2.0 * _G * _deviatoric_strain_increment;
+      _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
+    }
   }
 
   // Rotate the stress tensor to the current configuration
@@ -146,6 +169,14 @@ Chaboche::decomposeStrainIncrement(const RankTwoTensor & strain_increment)
   _deviatoric_strain_increment = strain_increment.deviatoric();
   _volumetric_strain_increment.zero();
   _volumetric_strain_increment.addIa(strain_increment.trace() / 3.0);
+}
+
+void
+Chaboche::decomposeStrain(const RankTwoTensor & mechanical_strain)
+{
+  _deviatoric_strain = mechanical_strain.deviatoric();
+  _volumetric_strain.zero();
+  _volumetric_strain.addIa(mechanical_strain.trace() / 3.0);
 }
 
 // Trial stress assuming the entire strain increment is elastic
