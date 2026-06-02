@@ -204,10 +204,10 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   do {
     // update direction of plastic flow 
     eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
-    n = _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
+    n = (3.0 / 2.0) * _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
     
     // Update plastic strain increment
-    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);    
+    delta_eps_p = std::abs(delta_gamma);    
     
     // Update isotropic hardening
     eqvpstrain = eqvpstrain_old + delta_eps_p;
@@ -232,7 +232,7 @@ Chaboche::returnMap(const Real eqvpstrain_old,
   while (residual > _tolerance);
   
   // Update plastic strain, isotropic hardening and back stress
-  delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);
+  delta_eps_p = std::abs(delta_gamma);
   eqvpstrain = eqvpstrain_old + delta_eps_p;
   updateIsotropicHardening(eqvpstrain);
   plastic_strain = plastic_strain_old + delta_gamma * n;

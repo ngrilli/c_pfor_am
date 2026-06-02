@@ -205,14 +205,14 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
 
   // Initialize direction of plastic flow
   eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
-  n = _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
+  n = (3.0 / 2.0) * _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
 
   // Iteration counter
   unsigned int i = 0;
   
   do {
     // Update plastic strain increment
-    delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);    
+    delta_eps_p = std::abs(delta_gamma);    
     
     // Update isotropic hardening
     eqvpstrain = eqvpstrain_old + delta_eps_p;
@@ -225,7 +225,7 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     // Update effective deviatoric stress
     _effective_deviatoric_stress = _trial_stress - _backstress1_iter - _backstress2_iter - 2.0 * _G * delta_gamma * n;
     eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
-    n = _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
+    n = (3.0 / 2.0) * _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
     
     // Calculate residual
     residual = eqv_effective_deviatoric_stress - _isotropic_hardening[_qp];
@@ -245,7 +245,7 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
   while (residual > _tolerance);
   
   // Update plastic strain, isotropic hardening and back stress
-  delta_eps_p = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma);
+  delta_eps_p = std::abs(delta_gamma);
   eqvpstrain = eqvpstrain_old + delta_eps_p;
   _isotropic_hardening[_qp] = updateIsotropicHardening(eqvpstrain);
   plastic_strain = plastic_strain_old + delta_gamma * n;
@@ -304,7 +304,7 @@ ChabocheImplicit::numericalJacobian(const Real delta_gamma,
   Real h = 1e-8;
   Real delta_gamma_perturbed = delta_gamma + h;
 
-  Real delta_eps_p_perturbed = std::sqrt(2.0 / 3.0) * std::abs(delta_gamma_perturbed);
+  Real delta_eps_p_perturbed = std::abs(delta_gamma_perturbed);
   Real eqvpstrain_perturbed = eqvpstrain_old + delta_eps_p_perturbed;
 
   // Update isotropic hardening with perturbed delta_gamma
