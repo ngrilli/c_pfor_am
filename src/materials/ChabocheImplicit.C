@@ -181,13 +181,20 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
   // scalar plastic multiplier that is solved for
   Real delta_gamma = 0.0;
   
-  // Residual and Jacobian as a function of delta_gamma
-  // Jacobian is numerical
-  Real residual;
-  Real jacobian;
+  // Residual and Jacobian of the delta_gamma variable
+  Real residual_delta_gamma;
+  Real jacobian_delta_gamma;
+
+  // Residual and Jacobian of the backstresses
+  RankTwoTensor residual_backstress1;
+  RankFourTensor jacobian_backstress1;
+  RankTwoTensor residual_backstress2;
+  RankFourTensor jacobian_backstress2;
   
-  // Direction of plastic flow, in tensor form
+  // Direction of plastic flow, in tensor form, and its derivative with respect to backstresses
   RankTwoTensor n;
+  RankFourTensor dn_dbackstress1;
+  RankFourTensor dn_dbackstress2;
   
   // Scalar plastic strain increment
   Real delta_eps_p;
@@ -198,6 +205,9 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
   // Isotropic hardening parameters
   Real Q = _Q[_qp];
   Real b = _b[_qp];
+
+  // I tensor product I = delta_{ik} delta_{jl}
+  RankFourTensor I4(RankFourTensor::initIdentityFour);
 
   // Initialize temporary backstress variables for the return mapping iterations
   _backstress1_iter = _backstress1[_qp];
@@ -210,6 +220,7 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
   // Iteration counter
   unsigned int i = 0;
   
+  // Staggered approach: first update delta_gamma at fixed backstresses, then update backstresses with the updated delta_gamma, repeat until convergence
   do {
     // Update plastic strain increment
     delta_eps_p = std::abs(delta_gamma);    
@@ -218,39 +229,60 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     eqvpstrain = eqvpstrain_old + delta_eps_p;
     _isotropic_hardening[_qp] = updateIsotropicHardening(eqvpstrain);
 
-    // Implicit backstress update
-    _backstress1_iter = updateBackstress(delta_gamma, n, 0);
-    _backstress2_iter = updateBackstress(delta_gamma, n, 1);
-
-    // Update effective deviatoric stress
-    _effective_deviatoric_stress = _trial_stress - _backstress1_iter - _backstress2_iter - 2.0 * _G * delta_gamma * n;
+    // Update effective deviatoric stress, note that 
+    // _trial_stress - _backstress1_iter - _backstress2_iter - 2.0 * _G * delta_gamma * n
+    // is the same direction as
+    // _trial_stress - _backstress1_iter - _backstress2_iter
+    // because of Drucker principle of normality
+    _effective_deviatoric_stress = _trial_stress - _backstress1_iter - _backstress2_iter;
     eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
     n = (3.0 / 2.0) * _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
     
-    // Calculate residual
-    residual = eqv_effective_deviatoric_stress - _isotropic_hardening[_qp];
+    // Calculate delta_gamma residual
+    residual_delta_gamma = eqv_effective_deviatoric_stress - _isotropic_hardening[_qp];
 
-    // Calculate numerical Jacobian
-    jacobian = numericalJacobian(delta_gamma, eqvpstrain_old, n, residual);
+    // Calculate delta_gamma Jacobian
+    jacobian_delta_gamma = -3 * _G - Q * b * std::exp(-b * eqvpstrain);
 
     // Update plastic multiplier
-    delta_gamma -= residual / jacobian;
+    delta_gamma -= residual_delta_gamma / jacobian_delta_gamma;
+
+    // Calculate backstress residuals
+    residual_backstress1 = _backstress1_iter - _backstress1_old[_qp] + _gamma1[_qp] * delta_gamma * _backstress1_iter - (2.0 / 3.0) * _C1[_qp] * delta_gamma * n;
+    residual_backstress2 = _backstress2_iter - _backstress2_old[_qp] + _gamma2[_qp] * delta_gamma * _backstress2_iter - (2.0 / 3.0) * _C2[_qp] * delta_gamma * n;
     
+    // Derivatives of the direction of plastic flow with respect to backstresses
+    dn_dbackstress1 = ((-3.0 / 2.0) * I4 + n.outerProduct(n)) / eqv_effective_deviatoric_stress;
+    dn_dbackstress2 = ((-3.0 / 2.0) * I4 + n.outerProduct(n)) / eqv_effective_deviatoric_stress;
+
+    // Calculate backstress Jacobians
+    jacobian_backstress1 = (1.0 + _gamma1[_qp] * delta_gamma) * I4 - (2.0 / 3.0) * _C1[_qp] * delta_gamma * dn_dbackstress1;
+    jacobian_backstress2 = (1.0 + _gamma2[_qp] * delta_gamma) * I4 - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress2;
+
+    // Update backstresses with a Newton step
+    _backstress1_iter -= jacobian_backstress1.inverse() * residual_backstress1;
+    _backstress2_iter -= jacobian_backstress2.inverse() * residual_backstress2;
+
     if (i > _max_iterations) // unconverged
       mooseError("Constitutive failure");
     
     // update iteration counter
     i++;
   }
-  while (residual > _tolerance);
+  while (residual_delta_gamma > _tolerance || residual_backstress1.L2norm() > _tolerance || residual_backstress2.L2norm() > _tolerance);
   
   // Update plastic strain, isotropic hardening and back stress
   delta_eps_p = std::abs(delta_gamma);
   eqvpstrain = eqvpstrain_old + delta_eps_p;
   _isotropic_hardening[_qp] = updateIsotropicHardening(eqvpstrain);
+
+  _effective_deviatoric_stress = _trial_stress - _backstress1_iter - _backstress2_iter;
+  eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
+  n = (3.0 / 2.0) * _effective_deviatoric_stress / eqv_effective_deviatoric_stress;  
   plastic_strain = plastic_strain_old + delta_gamma * n;
-  _backstress1[_qp] = updateBackstress(delta_gamma, n, 0);
-  _backstress2[_qp] = updateBackstress(delta_gamma, n, 1);
+
+  _backstress1[_qp] = _backstress1_iter;
+  _backstress2[_qp] = _backstress2_iter;
 
   // Update total stress: recombine deviatoric and hydrostatic parts
   _stress[_qp] = _stress_old[_qp] + 2.0 * _G * _volumetric_strain_increment;

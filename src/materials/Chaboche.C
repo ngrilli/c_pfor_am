@@ -246,7 +246,7 @@ Chaboche::returnMap(const Real eqvpstrain_old,
     
     // Calculate residual and Jacobian
     residual = eqv_effective_deviatoric_stress - 3 * _G * delta_gamma - _isotropic_hardening[_qp];
-    jacobian = -3 * _G - Q * b * std::exp(-b * eqvpstrain) * std::sqrt(2.0 / 3.0);
+    jacobian = -3 * _G - Q * b * std::exp(-b * eqvpstrain);
     
     // Update plastic multiplier
     delta_gamma -= residual / jacobian;
