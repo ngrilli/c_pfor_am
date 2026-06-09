@@ -190,7 +190,10 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
   RankFourTensor jacobian_backstress1;
   RankTwoTensor residual_backstress2;
   RankFourTensor jacobian_backstress2;
-  
+
+  // off diagonal Jacobian terms
+  RankTwoTensor dresidual_delta_gamma_dX; // derivative of the delta_gamma residual with respect to the backstresses
+
   // Direction of plastic flow, in tensor form, and its derivative with respect to backstresses
   RankTwoTensor n;
   RankFourTensor dn_dbackstress1;
@@ -242,6 +245,7 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     _effective_deviatoric_stress = _trial_stress - _backstress1_iter - _backstress2_iter;
     eqv_effective_deviatoric_stress = getMisesEquivalent(_effective_deviatoric_stress);
     n = (3.0 / 2.0) * _effective_deviatoric_stress / eqv_effective_deviatoric_stress;
+    dresidual_delta_gamma_dX = -n; // same for both backstresses
     
     // Calculate delta_gamma residual
     residual_delta_gamma = eqv_effective_deviatoric_stress - _isotropic_hardening[_qp];
