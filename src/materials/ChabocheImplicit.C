@@ -209,6 +209,11 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
   // I tensor product I = delta_{ik} delta_{jl}
   RankFourTensor I4(RankFourTensor::initIdentityFour);
 
+  // full Jacobian for return mapping
+  // 1 (delta_gamma) + 6 (symmetric backstress1) + 6 (symmetric backstress2) = 13
+  std::vector<std::vector<Real>> m(13);
+  // access components as m[row][col]
+
   // Initialize temporary backstress variables for the return mapping iterations
   _backstress1_iter = _backstress1[_qp];
   _backstress2_iter = _backstress2[_qp];
