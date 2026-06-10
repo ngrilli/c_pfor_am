@@ -193,8 +193,10 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
 
   // off diagonal Jacobian terms
   RankTwoTensor dresidual_delta_gamma_dX; // derivative of the delta_gamma residual with respect to the backstresses
-  RankTwoTensor dresidual_backstress1_ddelta_gamma;
-  RankTwoTensor dresidual_backstress2_ddelta_gamma;
+  RankTwoTensor dresidual_backstress1_ddelta_gamma; // derivative of the backstress1 residual with respect to delta_gamma
+  RankTwoTensor dresidual_backstress2_ddelta_gamma; // derivative of the backstress2 residual with respect to delta_gamma
+  RankFourTensor dresidual_backstress1_dbackstress2; // derivative of the backstress1 residual with respect to backstress2
+  RankFourTensor dresidual_backstress2_dbackstress1; // derivative of the backstress2 residual with respect to backstress1
 
   // Direction of plastic flow, in tensor form, and its derivative with respect to backstresses
   RankTwoTensor n;
@@ -213,6 +215,9 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
 
   // I tensor product I = delta_{ik} delta_{jl}
   RankFourTensor I4(RankFourTensor::initIdentityFour);
+
+  // symmetric part of I4 = 0.5*(delta_{ik} delta_{jl} + delta_{il} delta_{jk})
+  RankFourTensor I4sym(RankFourTensor::initIdentitySymmetricFour);
 
   // full Jacobian for return mapping
   // 1 (delta_gamma) + 6 (symmetric backstress1) + 6 (symmetric backstress2) = 13
@@ -273,6 +278,10 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     // off diagonal Jacobian of the backstress residuals with respect to delta_gamma
     dresidual_backstress1_ddelta_gamma = _gamma1[_qp] * _backstress1_iter - (2.0 / 3.0) * _C1[_qp] * n;
     dresidual_backstress2_ddelta_gamma = _gamma2[_qp] * _backstress2_iter - (2.0 / 3.0) * _C2[_qp] * n;
+
+    // off diagonal Jacobians of the backstress residuals with respect to backstresses
+    dresidual_backstress1_dbackstress2 = - (2.0 / 3.0) * _C1[_qp] * delta_gamma * dn_dbackstress2;
+    dresidual_backstress2_dbackstress1 = - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress1;
 
     // Update backstresses with a Newton step
     _backstress1_iter -= jacobian_backstress1.inverse() * residual_backstress1;
