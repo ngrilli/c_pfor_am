@@ -9,6 +9,11 @@
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
 
+#include "libmesh/utility.h"
+#include "libmesh/int_range.h"
+#include "Conversion.h"
+#include <cmath>
+
 /**
  * A Chaboche model with return mapping
  */
@@ -60,6 +65,10 @@ protected:
                                 
   virtual void elastoPlasticTangentModuli(const Real eqvpstrain,
                                           const RankTwoTensor n);
+
+  virtual std::vector<std::vector<Real>> convertSym3333ToMandel66(const RankFourTensor tensor);
+
+  virtual void initMapVoigt();
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
@@ -139,4 +148,7 @@ protected:
   RankTwoTensor _effective_deviatoric_stress;
   RankTwoTensor _backstress1_iter;
   RankTwoTensor _backstress2_iter;
+
+  // Mandel-Voigt notation index map
+  DenseMatrix<Real> _map_Voigt;
 };

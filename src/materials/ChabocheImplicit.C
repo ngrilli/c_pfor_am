@@ -57,7 +57,8 @@ ChabocheImplicit::ChabocheImplicit(const InputParameters & parameters)
     _gamma2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
     _tolerance(getParam<Real>("tolerance")),
     _max_iterations(getParam<int>("max_iterations")),
-    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>())
+    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>()),
+    _map_Voigt(2,6)
 {
 }
 
@@ -70,6 +71,7 @@ ChabocheImplicit::initQpStatefulProperties()
   _backstress1[_qp].zero();
   _backstress2[_qp].zero();
   _isotropic_hardening[_qp] = _sigma_0[_qp];
+  initMapVoigt();
 }
 
 void
@@ -383,7 +385,7 @@ ChabocheImplicit::numericalJacobian(const Real delta_gamma,
 
 void
 ChabocheImplicit::elastoPlasticTangentModuli(const Real eqvpstrain,
-                                     const RankTwoTensor n)
+                                             const RankTwoTensor n)
 {
   RankFourTensor tan_mod;
   RankFourTensor I4(RankFourTensor::initIdentityFour); // I tensor product I
@@ -399,4 +401,40 @@ ChabocheImplicit::elastoPlasticTangentModuli(const Real eqvpstrain,
   n_outer_n = n.outerProduct(n);
   
   _Jacobian_mult[_qp] = _K * I4 + 2.0 * _G * (1.0 - (2.0 * _G) / (2.0 * _G + H)) * (I4dev - (3.0/2.0) * n_outer_n);
+}
+
+// Convert symmetric 3x3x3x3 matrix into 6x6 matrix using Mandel notation
+std::vector<std::vector<Real>>
+ChabocheImplicit::convertSym3333ToMandel66(const RankFourTensor tensor)
+{  
+  std::vector<std::vector<Real>> matrix(6);
+  for (auto & row : matrix)
+    row.resize(6);
+
+    // TO DO
+
+  return matrix;
+}
+
+// Map from symmetric 3x3 tensor indices to Mandel-Voigt 6x1 vector indices
+void
+ChabocheImplicit::initMapVoigt()
+{
+  _map_Voigt(0,0) = 0; // xx
+  _map_Voigt(1,0) = 0;
+
+  _map_Voigt(0,1) = 1; // yy
+  _map_Voigt(1,1) = 1;
+
+  _map_Voigt(0,2) = 2; // zz
+  _map_Voigt(1,2) = 2;
+
+  _map_Voigt(0,3) = 1; // yz
+  _map_Voigt(1,3) = 2;
+
+  _map_Voigt(0,4) = 0; // xz
+  _map_Voigt(1,4) = 2;
+
+  _map_Voigt(0,5) = 0; // xy
+  _map_Voigt(1,5) = 1;
 }
