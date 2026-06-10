@@ -193,6 +193,8 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
 
   // off diagonal Jacobian terms
   RankTwoTensor dresidual_delta_gamma_dX; // derivative of the delta_gamma residual with respect to the backstresses
+  RankTwoTensor dresidual_backstress1_ddelta_gamma;
+  RankTwoTensor dresidual_backstress2_ddelta_gamma;
 
   // Direction of plastic flow, in tensor form, and its derivative with respect to backstresses
   RankTwoTensor n;
@@ -267,6 +269,10 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     // Calculate backstress Jacobians
     jacobian_backstress1 = (1.0 + _gamma1[_qp] * delta_gamma) * I4 - (2.0 / 3.0) * _C1[_qp] * delta_gamma * dn_dbackstress1;
     jacobian_backstress2 = (1.0 + _gamma2[_qp] * delta_gamma) * I4 - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress2;
+
+    // off diagonal Jacobian of the backstress residuals with respect to delta_gamma
+    dresidual_backstress1_ddelta_gamma = _gamma1[_qp] * _backstress1_iter - (2.0 / 3.0) * _C1[_qp] * n;
+    dresidual_backstress2_ddelta_gamma = _gamma2[_qp] * _backstress2_iter - (2.0 / 3.0) * _C2[_qp] * n;
 
     // Update backstresses with a Newton step
     _backstress1_iter -= jacobian_backstress1.inverse() * residual_backstress1;
