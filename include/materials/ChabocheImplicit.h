@@ -149,6 +149,7 @@ protected:
   RankTwoTensor _backstress1_iter;
   RankTwoTensor _backstress2_iter;
 
-  // Mandel-Voigt notation index map
+  // Mandel-Voigt notation index map and weighting factors
   std::vector<std::vector<unsigned int>> _map_Voigt;
+  std::vector<Real> _weight_Mandel;
 };

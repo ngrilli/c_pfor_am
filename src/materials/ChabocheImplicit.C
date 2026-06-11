@@ -442,4 +442,12 @@ ChabocheImplicit::initMapVoigt()
 
   _map_Voigt[0][5] = 0; // xy
   _map_Voigt[1][5] = 1;
+
+  _weight_Mandel.resize(6);
+  _weight_Mandel[0] = 1.0; // xx
+  _weight_Mandel[1] = 1.0; // yy
+  _weight_Mandel[2] = 1.0; // zz
+  _weight_Mandel[3] = std::sqrt(2.0); // yz
+  _weight_Mandel[4] = std::sqrt(2.0); // xz
+  _weight_Mandel[5] = std::sqrt(2.0); // xy
 }
