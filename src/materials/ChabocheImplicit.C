@@ -57,8 +57,7 @@ ChabocheImplicit::ChabocheImplicit(const InputParameters & parameters)
     _gamma2(getMaterialPropertyOld<Real>(getParam<MaterialPropertyName>("gamma2_name"))),
     _tolerance(getParam<Real>("tolerance")),
     _max_iterations(getParam<int>("max_iterations")),
-    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>()),
-    _map_Voigt(2,6)
+    _tan_mod_type(getParam<MooseEnum>("tangent_moduli_type").getEnum<TangentModuliType>())
 {
 }
 
@@ -223,8 +222,10 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
 
   // full Jacobian for return mapping
   // 1 (delta_gamma) + 6 (symmetric backstress1) + 6 (symmetric backstress2) = 13
-  std::vector<std::vector<Real>> m(13);
-  // access components as m[row][col]
+  std::vector<std::vector<Real>> J(13);
+  for (auto & row : J)
+    row.resize(13);
+  // access components as J[row][col]
 
   // Initialize temporary backstress variables for the return mapping iterations
   _backstress1_iter = _backstress1[_qp];
@@ -420,21 +421,25 @@ ChabocheImplicit::convertSym3333ToMandel66(const RankFourTensor tensor)
 void
 ChabocheImplicit::initMapVoigt()
 {
-  _map_Voigt(0,0) = 0; // xx
-  _map_Voigt(1,0) = 0;
+  _map_Voigt.resize(2);
+  for (auto & row : _map_Voigt)
+    row.resize(6);
 
-  _map_Voigt(0,1) = 1; // yy
-  _map_Voigt(1,1) = 1;
+  _map_Voigt[0][0] = 0; // xx
+  _map_Voigt[1][0] = 0;
 
-  _map_Voigt(0,2) = 2; // zz
-  _map_Voigt(1,2) = 2;
+  _map_Voigt[0][1] = 1; // yy
+  _map_Voigt[1][1] = 1;
 
-  _map_Voigt(0,3) = 1; // yz
-  _map_Voigt(1,3) = 2;
+  _map_Voigt[0][2] = 2; // zz
+  _map_Voigt[1][2] = 2;
 
-  _map_Voigt(0,4) = 0; // xz
-  _map_Voigt(1,4) = 2;
+  _map_Voigt[0][3] = 1; // yz
+  _map_Voigt[1][3] = 2;
 
-  _map_Voigt(0,5) = 0; // xy
-  _map_Voigt(1,5) = 1;
+  _map_Voigt[0][4] = 0; // xz
+  _map_Voigt[1][4] = 2;
+
+  _map_Voigt[0][5] = 0; // xy
+  _map_Voigt[1][5] = 1;
 }

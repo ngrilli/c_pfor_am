@@ -9,10 +9,10 @@
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
 
-#include "libmesh/utility.h"
-#include "libmesh/int_range.h"
-#include "Conversion.h"
-#include <cmath>
+//#include "libmesh/utility.h"
+//#include "libmesh/int_range.h"
+//#include "Conversion.h"
+//#include <cmath>
 
 /**
  * A Chaboche model with return mapping
@@ -150,5 +150,5 @@ protected:
   RankTwoTensor _backstress2_iter;
 
   // Mandel-Voigt notation index map
-  DenseMatrix<Real> _map_Voigt;
+  std::vector<std::vector<unsigned int>> _map_Voigt;
 };
