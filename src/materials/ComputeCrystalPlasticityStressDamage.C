@@ -120,7 +120,7 @@ ComputeCrystalPlasticityStressDamage::initQpStatefulProperties()
     // each row will contain the components
     // Fp_{11} Fp_{12} Fp_{13} Fp_{21} Fp_{22} Fp_{23} Fp_{31} Fp_{32} Fp_{33} 
 	
-    for (unsigned int i = 0; i < 3; ++i) {
+  for (unsigned int i = 0; i < 3; ++i) {
 	  for (unsigned int j = 0; j < 3; ++j) {
         initial_Fp(i,j) = _read_initial_Fp->getData(_current_elem, 3*i+j);
 	  }

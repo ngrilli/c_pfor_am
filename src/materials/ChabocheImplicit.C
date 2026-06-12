@@ -411,8 +411,12 @@ ChabocheImplicit::convertSym3333ToMandel66(const RankFourTensor tensor)
   std::vector<std::vector<Real>> matrix(6);
   for (auto & row : matrix)
     row.resize(6);
-
-    // TO DO
+    
+  for (unsigned int i = 0; i < 6; ++i) {
+    for (unsigned int j = 0; j < 6; ++j) {
+      matrix[i][j] = _weight_Mandel[i] * _weight_Mandel[j] * tensor(_map_Voigt[0][i], _map_Voigt[1][i], _map_Voigt[0][j], _map_Voigt[1][j]);
+    }
+  }
 
   return matrix;
 }

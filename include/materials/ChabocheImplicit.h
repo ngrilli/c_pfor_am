@@ -9,11 +9,6 @@
 #include "RankTwoTensor.h"
 #include "RankFourTensor.h"
 
-//#include "libmesh/utility.h"
-//#include "libmesh/int_range.h"
-//#include "Conversion.h"
-//#include <cmath>
-
 /**
  * A Chaboche model with return mapping
  */
