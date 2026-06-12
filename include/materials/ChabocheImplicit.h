@@ -61,7 +61,9 @@ protected:
   virtual void elastoPlasticTangentModuli(const Real eqvpstrain,
                                           const RankTwoTensor n);
 
+  // Conversion between symmetric 3x3x3x3 matrix and 6x6 matrix
   virtual std::vector<std::vector<Real>> convertSym3333ToMandel66(const RankFourTensor tensor);
+  virtual RankFourTensor convertMandel66ToSym3333(const std::vector<std::vector<Real>> matrix);
 
   virtual void initMapVoigt();
 

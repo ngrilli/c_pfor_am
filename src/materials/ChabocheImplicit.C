@@ -404,21 +404,36 @@ ChabocheImplicit::elastoPlasticTangentModuli(const Real eqvpstrain,
   _Jacobian_mult[_qp] = _K * I4 + 2.0 * _G * (1.0 - (2.0 * _G) / (2.0 * _G + H)) * (I4dev - (3.0/2.0) * n_outer_n);
 }
 
-// Convert symmetric 3x3x3x3 matrix into 6x6 matrix using Mandel notation
+// Convert symmetric 3x3x3x3 tensor into 6x6 matrix using Mandel notation
 std::vector<std::vector<Real>>
 ChabocheImplicit::convertSym3333ToMandel66(const RankFourTensor tensor)
 {  
   std::vector<std::vector<Real>> matrix(6);
   for (auto & row : matrix)
     row.resize(6);
-    
+
   for (unsigned int i = 0; i < 6; ++i) {
     for (unsigned int j = 0; j < 6; ++j) {
       matrix[i][j] = _weight_Mandel[i] * _weight_Mandel[j] * tensor(_map_Voigt[0][i], _map_Voigt[1][i], _map_Voigt[0][j], _map_Voigt[1][j]);
     }
   }
-
   return matrix;
+}
+
+// Convert 6x6 matrix in Mandel notation into symmetric 3x3x3x3 tensor
+RankFourTensor 
+ChabocheImplicit::convertMandel66ToSym3333(const std::vector<std::vector<Real>> matrix)
+{
+  RankFourTensor tensor;
+  for (unsigned int i = 0; i < 6; ++i) {
+    for (unsigned int j = 0; j < 6; ++j) {
+      tensor(_map_Voigt[0][i], _map_Voigt[1][i], _map_Voigt[0][j], _map_Voigt[1][j]) = matrix[i][j] / (_weight_Mandel[i] * _weight_Mandel[j]);
+      tensor(_map_Voigt[1][i], _map_Voigt[0][i], _map_Voigt[0][j], _map_Voigt[1][j]) = matrix[i][j] / (_weight_Mandel[i] * _weight_Mandel[j]);
+      tensor(_map_Voigt[0][i], _map_Voigt[1][i], _map_Voigt[1][j], _map_Voigt[0][j]) = matrix[i][j] / (_weight_Mandel[i] * _weight_Mandel[j]);
+      tensor(_map_Voigt[1][i], _map_Voigt[0][i], _map_Voigt[1][j], _map_Voigt[0][j]) = matrix[i][j] / (_weight_Mandel[i] * _weight_Mandel[j]);
+    }
+  }
+  return tensor;
 }
 
 // Map from symmetric 3x3 tensor indices to Mandel-Voigt 6x1 vector indices
