@@ -1,6 +1,7 @@
 // Daijun Hu
 // National University of Singapore
 // Nicolò Grilli
+// Arnav Peehal
 // University of Bristol
 // 04 November 2025
 
@@ -41,6 +42,7 @@ CrystalPlasticityDislocationUpdateNi::validParams()
   params.addParam<bool>("cap_slip_increment", false, "Cap the absolute value of the slip increment "
                                                      "in one time step to _slip_incr_tol. ");
   params.addParam<bool>("use_sinh_slip_law", false, "Use sinh slip law for creep. ");
+  params.addParam<bool>("use_exp_slip_law", false, "Use exponential slip law for creep. ");
   params.addParam<Real>("activation_volume", 0.0, "activation volume in exponential slip law");
   params.addParam<Real>("activation_energy", 0.0, "activation energy in exponential law");
   params.addParam<Real>("burgers_vector_mag",0.000256,"Magnitude of the Burgers vector");
@@ -144,6 +146,7 @@ CrystalPlasticityDislocationUpdateNi::CrystalPlasticityDislocationUpdateNi(
     _creep_t_denominator(getParam<Real>("creep_t_denominator")),
     _cap_slip_increment(getParam<bool>("cap_slip_increment")),
     _use_sinh_slip_law(getParam<bool>("use_sinh_slip_law")),
+    _use_exp_slip_law(getParam<bool>("use_exp_slip_law")),
     _activation_volume(getParam<Real>("activation_volume")),
     _activation_energy(getParam<Real>("activation_energy")),
 	  _burgers_vector_mag(getParam<Real>("burgers_vector_mag")),
@@ -368,8 +371,8 @@ CrystalPlasticityDislocationUpdateNi::initQpStatefulProperties()
     } // NEW
 
     // Ensure non-zero/negative values to prevent numerical failure
-    if (temperature_dependence <= 0) // NEW
-        temperature_dependence = 1.0e-12; // NEW 
+    if (temperature_dependence <= 0)
+        temperature_dependence = 1.0e-12;
  
     // Initialize value of the slip resistance
     // as a function of the dislocation density
@@ -645,6 +648,28 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipRate()
     }
   }
   
+  } else if (_use_exp_slip_law) { // exponential slip law for creep
+  
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i];
+    
+    _slip_increment[_qp][i] = ao * std::exp(-_activation_energy / (_R_gas_constant * _temperature[_qp])) 
+                            * std::exp((effective_stress * _activation_volume) / (_R_gas_constant * _temperature[_qp]));
+    
+    if (_tau[_qp][i] < 0.0)
+      _slip_increment[_qp][i] *= -1.0;
+      
+    if (std::abs(_slip_increment[_qp][i]) * _substep_dt > _slip_incr_tol)
+    {
+      if (_print_convergence_message)
+        mooseWarning("Maximum allowable slip increment exceeded ",
+                     std::abs(_slip_increment[_qp][i]) * _substep_dt);
+
+      return false;
+    }
+  }
+
   } else { // power law slip
   
   for (const auto i : make_range(_number_slip_systems))
@@ -736,23 +761,23 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipResistance()
       // Use new anisotropic latent hardening logic
       // This replaces the simple `iplane == jplane` logic
 
-      Real r_ij = 0.0; // NEW: Interaction coefficient
+      Real r_ij = 0.0; // Interaction coefficient
       
       if (i == j) // 1. Self-hardening
       { // NEW
-          r_ij = _r_self; // NEW
+          r_ij = _r_self;
       } // NEW
       else if (i < 12 && j < 12) // 2. Octahedral <-> Octahedral
       { // NEW
-          r_ij = _r_oct_oct; // NEW
+          r_ij = _r_oct_oct;
       } // NEW
       else if (i >= 12 && j >= 12) // 3. Cubic <-> Cubic
       { // NEW
-          r_ij = _r_cub_cub; // NEW
+          r_ij = _r_cub_cub;
       } // NEW
       else // 4. Octahedral <-> Cubic
       { // NEW
-          r_ij = _r_oct_cub; // NEW
+          r_ij = _r_oct_cub;
       } // NEW
 
       taylor_hardening += r_ij * (_rho_ssd[_qp][j]  // NEW
@@ -776,7 +801,6 @@ CrystalPlasticityDislocationUpdateNi::calculateSlipResistance()
     Real tau_precip_i = tau_g_prime + tau_g_pp;
     // Add thermally-dependent strengthening components
 	  _slip_resistance[_qp][i] += tau_precip_i + (tau_hp + tau_dislo) * temperature_dependence;	 // NEW
-	
   }
 }
 
@@ -876,6 +900,17 @@ CrystalPlasticityDislocationUpdateNi::calculateConstitutiveSlipDerivative(
     } else {
       dslip_dtau[i] = 0.0;
     }
+  }
+
+  } else if (_use_exp_slip_law) { // exponential slip law for creep
+
+  for (const auto i : make_range(_number_slip_systems))
+  {
+    effective_stress = std::abs(_tau[_qp][i]) - _slip_resistance[_qp][i];
+
+    dslip_dtau[i] = ao * std::exp(-_activation_energy / (_R_gas_constant * _temperature[_qp]))
+                  * std::exp((effective_stress * _activation_volume) / (_R_gas_constant * _temperature[_qp]))
+                  * (_activation_volume) / (_R_gas_constant * _temperature[_qp]);
   }
 
   } else { // power law slip

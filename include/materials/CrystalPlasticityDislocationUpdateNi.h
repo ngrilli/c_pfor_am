@@ -1,6 +1,7 @@
 // Daijun Hu
 // National University of Singapore
 // Nicolò Grilli
+// Arnav Peehal
 // University of Bristol
 // 04 November 2025
 
@@ -152,6 +153,7 @@ protected:
   
   // sinh slip law for creep and related parameters
   const bool _use_sinh_slip_law;
+  const bool _use_exp_slip_law;
   const Real _activation_volume;
   const Real _activation_energy;
 
