@@ -240,3 +240,6 @@ conf_vars.mk
 
 # GPerf performance
 *.prof
+
+# MOOSE restart files
+*.gz
