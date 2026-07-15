@@ -67,10 +67,12 @@ protected:
 
   virtual void initMapVoigt();
 
-  virtual void insert66(const std::vector<std::vector<Real>> & A,
-                        std::vector<std::vector<Real>> & J,
-                        const unsigned int row0,
-                        const unsigned int col0);
+  virtual void insert66matrix(const std::vector<std::vector<Real>> & A,
+                              std::vector<std::vector<Real>> & J,
+                              const unsigned int row0,
+                              const unsigned int col0);
+
+  virtual std::vector<Real> convertSym33ToMandel6(const RankTwoTensor matrix);
 
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;

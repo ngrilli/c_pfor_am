@@ -285,12 +285,12 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     residual_backstress2 = _backstress2_iter - _backstress2_old[_qp] + _gamma2[_qp] * delta_gamma * _backstress2_iter - (2.0 / 3.0) * _C2[_qp] * delta_gamma * n;
     
     // Derivatives of the direction of plastic flow with respect to backstresses
-    dn_dbackstress1 = ((-3.0 / 2.0) * I4 + n.outerProduct(n)) / eqv_effective_deviatoric_stress;
-    dn_dbackstress2 = ((-3.0 / 2.0) * I4 + n.outerProduct(n)) / eqv_effective_deviatoric_stress;
+    dn_dbackstress1 = ((-3.0 / 2.0) * I4sym + n.outerProduct(n)) / eqv_effective_deviatoric_stress;
+    dn_dbackstress2 = ((-3.0 / 2.0) * I4sym + n.outerProduct(n)) / eqv_effective_deviatoric_stress;
 
     // Calculate backstress Jacobians
-    jacobian_backstress1 = (1.0 + _gamma1[_qp] * delta_gamma) * I4 - (2.0 / 3.0) * _C1[_qp] * delta_gamma * dn_dbackstress1;
-    jacobian_backstress2 = (1.0 + _gamma2[_qp] * delta_gamma) * I4 - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress2;
+    jacobian_backstress1 = (1.0 + _gamma1[_qp] * delta_gamma) * I4sym - (2.0 / 3.0) * _C1[_qp] * delta_gamma * dn_dbackstress1;
+    jacobian_backstress2 = (1.0 + _gamma2[_qp] * delta_gamma) * I4sym - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress2;
 
     // off diagonal Jacobian of the backstress residuals with respect to delta_gamma
     dresidual_backstress1_ddelta_gamma = _gamma1[_qp] * _backstress1_iter - (2.0 / 3.0) * _C1[_qp] * n;
@@ -301,10 +301,11 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     dresidual_backstress2_dbackstress1 = - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress1;
 
     // build full Jacobian for return mapping
-    insert66(mat66_jacobian_backstress1,J,1,1);
-    insert66(mat66_dresidual_backstress1_dbackstress2,J,1,7);
-    insert66(mat66_dresidual_backstress2_dbackstress1,J,7,1);
-    insert66(mat66_jacobian_backstress2,J,7,7);
+    J[0][0] = jacobian_delta_gamma;
+    insert66matrix(mat66_jacobian_backstress1,J,1,1);
+    insert66matrix(mat66_dresidual_backstress1_dbackstress2,J,1,7);
+    insert66matrix(mat66_dresidual_backstress2_dbackstress1,J,7,1);
+    insert66matrix(mat66_jacobian_backstress2,J,7,7);
 
     // Update backstresses with a Newton step
     _backstress1_iter -= jacobian_backstress1.inverse() * residual_backstress1;
@@ -495,7 +496,7 @@ ChabocheImplicit::initMapVoigt()
 // Insert a 6x6 matrix into a larger matrix at specified row and column indices
 // used to build the full 13x13 Jacobian for the return mapping
 void
-ChabocheImplicit::insert66(const std::vector<std::vector<Real>> & A,
+ChabocheImplicit::insert66matrix(const std::vector<std::vector<Real>> & A,
                            std::vector<std::vector<Real>> & J,
                            unsigned int row0,
                            unsigned int col0)
@@ -503,4 +504,21 @@ ChabocheImplicit::insert66(const std::vector<std::vector<Real>> & A,
   for (unsigned int i = 0; i < 6; ++i)
     for (unsigned int j = 0; j < 6; ++j)
       J[row0+i][col0+j] = A[i][j];
+}
+
+// Convert symmetric 3x3 stress tensor into 6x1 vector using Mandel notation
+std::vector<Real>
+ChabocheImplicit::convertSym33ToMandel6(const RankTwoTensor matrix)
+{
+  std::vector<Real> v(6);
+
+  v[0] = matrix(0,0);
+  v[1] = matrix(1,1);
+  v[2] = matrix(2,2);
+
+  v[3] = matrix(1,2);
+  v[4] = matrix(0,2);
+  v[5] = matrix(0,1);
+
+  return v;
 }
