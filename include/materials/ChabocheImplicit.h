@@ -67,6 +67,11 @@ protected:
 
   virtual void initMapVoigt();
 
+  virtual void insert66(const std::vector<std::vector<Real>> & A,
+                        std::vector<std::vector<Real>> & J,
+                        const unsigned int row0,
+                        const unsigned int col0);
+
   // epsilon^p
   MaterialProperty<RankTwoTensor> & _plastic_strain;
   const MaterialProperty<RankTwoTensor> & _plastic_strain_old;

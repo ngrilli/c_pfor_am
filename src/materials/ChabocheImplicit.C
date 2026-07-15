@@ -222,10 +222,24 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
 
   // full Jacobian for return mapping
   // 1 (delta_gamma) + 6 (symmetric backstress1) + 6 (symmetric backstress2) = 13
+  // access components as J[row][col]
   std::vector<std::vector<Real>> J(13);
   for (auto & row : J)
     row.resize(13);
-  // access components as J[row][col]
+
+  // Symmetric 6x6 matrices to fill the Jacobian
+  std::vector<std::vector<Real>> mat66_jacobian_backstress1(6);
+  for (auto & row : mat66_jacobian_backstress1)
+    row.resize(6);
+  std::vector<std::vector<Real>> mat66_jacobian_backstress2(6);
+  for (auto & row : mat66_jacobian_backstress2)
+    row.resize(6);
+  std::vector<std::vector<Real>> mat66_dresidual_backstress1_dbackstress2(6);
+  for (auto & row : mat66_dresidual_backstress1_dbackstress2)
+    row.resize(6);
+  std::vector<std::vector<Real>> mat66_dresidual_backstress2_dbackstress1(6);
+  for (auto & row : mat66_dresidual_backstress2_dbackstress1)
+    row.resize(6);
 
   // Initialize temporary backstress variables for the return mapping iterations
   _backstress1_iter = _backstress1[_qp];
@@ -285,6 +299,12 @@ ChabocheImplicit::returnMap(const Real eqvpstrain_old,
     // off diagonal Jacobians of the backstress residuals with respect to backstresses
     dresidual_backstress1_dbackstress2 = - (2.0 / 3.0) * _C1[_qp] * delta_gamma * dn_dbackstress2;
     dresidual_backstress2_dbackstress1 = - (2.0 / 3.0) * _C2[_qp] * delta_gamma * dn_dbackstress1;
+
+    // build full Jacobian for return mapping
+    insert66(mat66_jacobian_backstress1,J,1,1);
+    insert66(mat66_dresidual_backstress1_dbackstress2,J,1,7);
+    insert66(mat66_dresidual_backstress2_dbackstress1,J,7,1);
+    insert66(mat66_jacobian_backstress2,J,7,7);
 
     // Update backstresses with a Newton step
     _backstress1_iter -= jacobian_backstress1.inverse() * residual_backstress1;
@@ -353,6 +373,7 @@ ChabocheImplicit::updateBackstress(const Real delta_gamma,
   }
 }
 
+// Previous attempt to compute the Jacobian numerically, not used in the current implementation
 Real
 ChabocheImplicit::numericalJacobian(const Real delta_gamma,
                                     const Real eqvpstrain_old,
@@ -469,4 +490,17 @@ ChabocheImplicit::initMapVoigt()
   _weight_Mandel[3] = std::sqrt(2.0); // yz
   _weight_Mandel[4] = std::sqrt(2.0); // xz
   _weight_Mandel[5] = std::sqrt(2.0); // xy
+}
+
+// Insert a 6x6 matrix into a larger matrix at specified row and column indices
+// used to build the full 13x13 Jacobian for the return mapping
+void
+ChabocheImplicit::insert66(const std::vector<std::vector<Real>> & A,
+                           std::vector<std::vector<Real>> & J,
+                           unsigned int row0,
+                           unsigned int col0)
+{
+  for (unsigned int i = 0; i < 6; ++i)
+    for (unsigned int j = 0; j < 6; ++j)
+      J[row0+i][col0+j] = A[i][j];
 }
