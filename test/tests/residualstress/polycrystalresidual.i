@@ -150,7 +150,7 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = 1300-t*200
+    expression = '1300-t*200'
   [../]
 []
 

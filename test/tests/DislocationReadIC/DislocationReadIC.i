@@ -112,7 +112,7 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   [./dts]
     type = PiecewiseConstant
@@ -121,7 +121,7 @@
   [../]
   [./velocity_x]
     type = ParsedFunction
-    value = '0.0000004'
+    expression = '0.0000004'
   [../]
 []
 
@@ -212,12 +212,12 @@
   [../]
   [./curvature_advection_edge]
     type = CurvatureAdvection
-	variable = q_t
-	use_displaced_mesh = false
-	rho_gnd = rho_gnd_edge
-	rho_tot = rho_t
-	slip_sys_index = 7
-	dislo_character = edge
+	  variable = q_t
+	  use_displaced_mesh = false
+	  rho_gnd = rho_gnd_edge
+	  rho_tot = rho_t
+	  slip_sys_index = 7
+	  dislo_character = edge
     rho_tot_tol = 0.2
   [../]
   [./curvature_advection_screw]
@@ -251,7 +251,7 @@
   [./rho_gnd_screw_diffusion]
     type = CoefDiffusion
     variable = rho_gnd_screw
-	use_displaced_mesh = false
+	  use_displaced_mesh = false
     coef = 0.001
   [../]
 
@@ -344,7 +344,7 @@
     variable = disp_x
     boundary = front
     function = velocity_x
-	use_displaced_mesh = false
+	  use_displaced_mesh = false
   [../]
   
   [./Periodic]

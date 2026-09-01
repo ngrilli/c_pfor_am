@@ -65,19 +65,19 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '293.0'
+    expression = '293.0'
   [../]
   [./init_rho_edge]
     type = ParsedFunction
-	value = 'if(3.0*(x-1.0),0.0,1.0)'
+	  expression = 'if(3.0*(x-1.0),0.0,1.0)'
   [../]
   [./init_rho_screw]
     type = ParsedFunction
-	value = 'if(3.0*(y-1.0),0.0,1.0)'
+	  expression = 'if(3.0*(y-1.0),0.0,1.0)'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = '0.1*t'
+    expression = '0.1*t'
   [../]
 []
 
@@ -274,6 +274,6 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 2
+    time_step_interval = 2
   [../]
 []

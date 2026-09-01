@@ -83,27 +83,27 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   [./init_rho_edge_pos]
     type = ParsedFunction
-	value = '10.0'
+    expression = '10.0'
   [../]
   [./init_rho_edge_neg]
     type = ParsedFunction
-	value = '10.0'
+    expression = '10.0'
   [../]
   [./init_rho_screw_pos]
     type = ParsedFunction
-	value = '10.0'
+    expression = '10.0'
   [../]
   [./init_rho_screw_neg]
     type = ParsedFunction
-	value = '10.0'
+    expression = '10.0'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = '0.1*t'
+    expression = '0.1*t'
   [../]
 []
 

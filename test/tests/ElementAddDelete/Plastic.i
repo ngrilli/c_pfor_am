@@ -129,11 +129,11 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = 'if((t-100.0)/200.0,0.0,303.0+100.0*z)+if((t-250.0)/100.1,0.0,303.0+(t-100.0)*z)+if((t-350.0)/99.9,0.0,303.0+(500.0-t)*z)+if((t-450.0)/100.1,0.0,303.0+100.0*z)'
+    expression = 'if((t-100.0)/200.0,0.0,303.0+100.0*z)+if((t-250.0)/100.1,0.0,303.0+(t-100.0)*z)+if((t-350.0)/99.9,0.0,303.0+(500.0-t)*z)+if((t-450.0)/100.1,0.0,303.0+100.0*z)'
   [../]
   [./temperature_load_init]
     type = ParsedFunction
-    value = '303.0+(100.0*z)'
+    expression = '303.0+(100.0*z)'
   [../]
   [./disp_load]
     type = PiecewiseLinear

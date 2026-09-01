@@ -489,11 +489,11 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '293.0'
+    expression = '293.0'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = '0.1*t'
+    expression = '0.1*t'
   [../]
 []
 
@@ -962,6 +962,6 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 1
+    time_step_interval = 1
   [../]
 []

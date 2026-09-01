@@ -163,7 +163,7 @@
     type = TempActDeactElemsAux
     variable = temp
     temperature_read_user_object = temperature_read
-	temperature_time_step = 1.0
+	  temperature_time_step = 1.0
   [../]
 []
 

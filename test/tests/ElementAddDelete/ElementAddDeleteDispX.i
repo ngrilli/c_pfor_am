@@ -123,15 +123,15 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = 'if(t/200.0,303.0+(t*z),303.0+((200.0-t)*z))'
+    expression = 'if(t/200.0,303.0+(t*z),303.0+((200.0-t)*z))'
   [../]
   [./temperature_load_init]
     type = ParsedFunction
-    value = '303.0+(200.0*z)'
+    expression = '303.0+(200.0*z)'
   [../]
   [./disp_load]
     type = ParsedFunction
-    value = 'max(0.001*t,0.001)'
+    expression = 'max(0.001*t,0.001)'
   [../]
 []
 

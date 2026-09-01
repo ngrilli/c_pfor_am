@@ -45,7 +45,7 @@
 
   [./pull]
     type = ParsedFunction
-    value = '0.1*t'
+    expression = '0.1*t'
   [../]
 
   [./dts]
@@ -1043,9 +1043,9 @@
     crystal_plasticity_models = 'trial_xtalpl'
     tan_mod_type = exact
     maximum_substep_iteration = 2
-	maxiter = 500
-	maxiter_state_variable = 500
-	c = c
+	  maxiter = 500
+	  maxiter_state_variable = 500
+	  c = c
     E_name = 'elastic_energy'
     D_name = 'degradation'
     use_current_history_variable = true
@@ -1056,34 +1056,34 @@
     type = CrystalPlasticityDislocationUpdate
     number_slip_systems = 12
     slip_sys_file_name = input_slip_sys.txt
-	ao = 0.001
-	xm = 0.1
-	burgers_vector_mag = 0.000256
-	shear_modulus = 86000.0 # MPa
-	alpha_0 = 0.3
-	r = 1.4
-	tau_c_0 = 0.112
-	k_0 = 0.04347
-	y_c = 0.0039046875
-	init_rho_ssd = 35.925613042119906
-	init_rho_gnd_edge = 0.0
-	init_rho_gnd_screw = 0.0
+	  ao = 0.001
+	  xm = 0.1
+	  burgers_vector_mag = 0.000256
+	  shear_modulus = 86000.0 # MPa
+	  alpha_0 = 0.3
+	  r = 1.4
+	  tau_c_0 = 0.112
+	  k_0 = 0.04347
+	  y_c = 0.0039046875
+	  init_rho_ssd = 35.925613042119906
+	  init_rho_gnd_edge = 0.0
+	  init_rho_gnd_screw = 0.0
 	# These activate slip gradients
 	# they are compulsory
 	# codes currently has problems if not introduced
 	# to remove the effect of slip gradients, zero arrays can be passed
-	dslip_increment_dedge = dslip_increment_dedge
-	dslip_increment_dscrew = dslip_increment_dscrew
-	slip_increment_tolerance = 2.0
-	stol = 0.1
-	resistance_tol = 1.0
-	print_state_variable_convergence_error_messages = true
+	  dslip_increment_dedge = dslip_increment_dedge
+	  dslip_increment_dscrew = dslip_increment_dscrew
+	  slip_increment_tolerance = 2.0
+	  stol = 0.1
+	  resistance_tol = 1.0
+	  print_state_variable_convergence_error_messages = true
   [../]
   [./degradation]
     type = DerivativeParsedMaterial
     f_name = degradation
     coupled_variables = 'c'
-    function = '(1.0-c)^2*(1.0 - eta) + eta'
+    expression = '(1.0-c)^2*(1.0 - eta) + eta'
     constant_names       = 'eta'
     constant_expressions = '1.0e-3'
     derivative_order = 2
@@ -1104,20 +1104,20 @@
     type = ParsedMaterial
     material_property_names = 'gc_prop visco'
     f_name = L
-    function = '1.0/(gc_prop * visco)'
+    expression = '1.0/(gc_prop * visco)'
   [../]
   [./define_kappa]
     type = ParsedMaterial
     material_property_names = 'gc_prop l'
     f_name = kappa_op
-    function = 'gc_prop * l'
+    expression = 'gc_prop * l'
   [../]
   [./local_fracture_energy]
     type = DerivativeParsedMaterial
     f_name = local_fracture_energy
     coupled_variables = 'c'
     material_property_names = 'gc_prop l'
-    function = 'c^2 * gc_prop / 2 / l'
+    expression = 'c^2 * gc_prop / 2 / l'
     derivative_order = 2
   [../]
   [./fracture_driving_energy]

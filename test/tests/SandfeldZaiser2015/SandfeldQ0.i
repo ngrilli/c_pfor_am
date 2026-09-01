@@ -126,11 +126,11 @@
   [./rho_t_advection]
     type = ConservativeAdvectionCoupled
     variable = rho_t
-	rho_coupled = rho_gnd_edge
+	  rho_coupled = rho_gnd_edge
     upwinding_type = none
-	slip_sys_index = 0
-	dislo_sign = positive
-	dislo_character = edge
+	  slip_sys_index = 0
+	  dislo_sign = positive
+	  dislo_character = edge
   [../]
 []
 
@@ -228,7 +228,7 @@
     nss = 12 # Number of slip systems
     num_slip_sys_flowrate_props = 2 #Number of flow rate properties in a slip system
     flowprops = '1 4 0.001 0.1 5 8 0.001 0.1 9 12 0.001 0.1' # slip rate equations parameters
-	hprops = '1.0 3629.0 216.0 300.5 2.5' # hardening properties
+	  hprops = '1.0 3629.0 216.0 300.5 2.5' # hardening properties
     gprops = '1 12 216.0' # initial values of slip system resistances (start_slip_sys, end_slip_sys, value)
     tan_mod_type = exact
     thermal_expansion = '17e-6'
@@ -291,7 +291,6 @@
   nl_max_its = 50
   nl_rel_tol = 1e-6
   nl_abs_tol = 1e-6
-  #l_tol = 1e-8
 
   start_time = 0.0
   end_time = 0.0001 #0.01

@@ -12,7 +12,6 @@
 []
 
 [GlobalParams]
-  displacements = 'disp_x disp_y disp_z'
 []
 
 [Variables]
@@ -108,8 +107,8 @@
   [../]
   [./temperature_read]
     type = LaserTempReadFile
-	temperature_file_name = 'temperature.txt'
-	temperature_num_step = 3
+	  temperature_file_name = 'temperature.txt'
+	  temperature_num_step = 3
   [../]
 []
 
@@ -326,6 +325,6 @@
   csv = false
   [./out]
     type = Exodus
-    interval = 1
+    time_step_interval = 1
   [../]
 []

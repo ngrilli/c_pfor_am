@@ -64,11 +64,11 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '303.0'
+    expression = '303.0'
   [../]
   [./init_var_for_grad]
     type = ParsedFunction
-    value = 'min(0.0001*t,0.0002)'
+    expression = 'min(0.0001*t,0.0002)'
   [../]
   [./dts]
     type = PiecewiseConstant
@@ -249,6 +249,6 @@
 [Outputs]
   [./out]
     type = Exodus
-    interval = 1
+    time_step_interval = 1
   [../]
 []

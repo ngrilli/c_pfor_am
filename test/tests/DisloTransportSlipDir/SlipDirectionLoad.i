@@ -130,7 +130,7 @@
     type = ConservativeAdvectionSchmid
     variable = rho
     upwinding_type = full
-	slip_sys_index = 7
+	  slip_sys_index = 7
   [../]
 []
 

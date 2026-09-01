@@ -101,11 +101,11 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '293.0'
+    expression = '293.0'
   [../]
   [./initrho]
     type = ParsedFunction
-	value = 'if(0.5*(x-1.5),0.0,1.0)*if(0.5*(y-1.5),0.0,1.0)'
+	  expression = 'if(0.5*(x-1.5),0.0,1.0)*if(0.5*(y-1.5),0.0,1.0)'
   [../]
 []
 

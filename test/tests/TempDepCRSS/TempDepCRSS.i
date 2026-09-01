@@ -9,7 +9,6 @@
 []
 
 [GlobalParams]
-  displacements = 'disp_x disp_y disp_z'
 []
 
 [Variables]
@@ -117,12 +116,12 @@
 [Functions]
   [./temperature_load]
     type = ParsedFunction
-    value = '298.0'
+    expression = '298.0'
   [../]
 
   [./disp_load]
     type = ParsedFunction
-    value = '0.1*t'
+    expression = '0.1*t'
   [../]
 []
 

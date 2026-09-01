@@ -1,4 +1,4 @@
-# Miner's rule one element test
+# Miner`s rule one element test
 # 10 load cycles representing 10000 cycles
 
 [Mesh]
@@ -45,7 +45,7 @@
   # strain amplitude corresponding to a 100 MPa stress
   [./pull]
     type = ParsedFunction
-    value = '0.001638 * sin(6.28*t)'
+    expression = '0.001638 * sin(6.28*t)'
   [../]
 []
 

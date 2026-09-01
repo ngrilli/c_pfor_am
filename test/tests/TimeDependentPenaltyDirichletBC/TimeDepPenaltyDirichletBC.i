@@ -32,15 +32,15 @@
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    value = 'if(0.5*t,0.01,0.01*t)'
+    expression = 'if(0.5*t,0.01,0.01*t)'
   [../]
   [./penalty_function]
     type = ParsedFunction
-    value = '1e9*if(0.5*t,2-t,1)'
+    expression = '1e9*if(0.5*t,2-t,1)'
   [../]
   [./zero]
     type = ParsedFunction
-    value = '0.0'
+    expression = '0.0'
   [../]
 []
 
