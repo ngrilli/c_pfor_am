@@ -88,7 +88,7 @@ PowerLawCurlComponent::computeQpJacobian()
 
   // Derivative of f with respect to variable _u
   const Real dJmag_du = (_u[_qp] * _phi[_j][_qp]) / Jmag;
-  const Real df_du = df_dJmag * dJmag_du * _phi[_j][_qp];
+  const Real df_du = df_dJmag * dJmag_du;
 
   // Spatial derivatives of |J| = Jmag
   const Real dJmag_numerator_dx = _J1[_qp] * _grad_J1[_qp](0) + _J2[_qp] * _grad_J2[_qp](0) + _u[_qp] * _grad_u[_qp](0);
@@ -104,7 +104,7 @@ PowerLawCurlComponent::computeQpJacobian()
   const Real df_dz = df_dJmag * dJmag_dz;
 
   // Derivative of df_dJmag, df_dx, df_dy, df_dz with respect to u
-  const Real d2f_dJmag_du = (_n - 1.0) * (df_du / Jmag - (f * dJmag_du) / (Jmag * Jmag)) * _phi[_j][_qp];
+  const Real d2f_dJmag_du = (_n - 1.0) * (df_du / Jmag - (f * dJmag_du) / (Jmag * Jmag));
   const Real d2f_dx_du = d2f_dJmag_du * dJmag_dx + df_dJmag * ((_grad_u[_qp](0) * _phi[_j][_qp] + _u[_qp] * _grad_phi[_j][_qp](0)) / Jmag - (dJmag_numerator_dx * dJmag_du) / (Jmag * Jmag));
   const Real d2f_dy_du = d2f_dJmag_du * dJmag_dy + df_dJmag * ((_grad_u[_qp](1) * _phi[_j][_qp] + _u[_qp] * _grad_phi[_j][_qp](1)) / Jmag - (dJmag_numerator_dy * dJmag_du) / (Jmag * Jmag));
   const Real d2f_dz_du = d2f_dJmag_du * dJmag_dz + df_dJmag * ((_grad_u[_qp](2) * _phi[_j][_qp] + _u[_qp] * _grad_phi[_j][_qp](2)) / Jmag - (dJmag_numerator_dz * dJmag_du) / (Jmag * Jmag));
