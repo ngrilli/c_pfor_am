@@ -120,23 +120,70 @@ PowerLawCurlComponent::computeQpJacobian()
 }
 
 Real
-PowerLawCurlComponent::computeQpOffDiagJacobian(unsigned int jvar) // TO MODIFY
+PowerLawCurlComponent::computeQpOffDiagJacobian(unsigned int jvar)
 {
+  const Real Jmag = std::sqrt(_J1[_qp] * _J1[_qp] + _J2[_qp] * _J2[_qp] + _u[_qp] * _u[_qp]);
+
+  // Avoid division by zero in the power-law expression
+  if (Jmag == 0.0)
+    return 0.0;
+
+  // Power law prefactor and its derivative with respect to Jmag
+  const Real f = (_E0 / _J0) * std::pow(Jmag / _J0, _n - 1.0);
+  const Real df_dJmag = f * (_n - 1.0) / Jmag;
+
+  // Spatial derivatives of |J| = Jmag
+  const Real dJmag_numerator_dx = _J1[_qp] * _grad_J1[_qp](0) + _J2[_qp] * _grad_J2[_qp](0) + _u[_qp] * _grad_u[_qp](0);
+  const Real dJmag_numerator_dy = _J1[_qp] * _grad_J1[_qp](1) + _J2[_qp] * _grad_J2[_qp](1) + _u[_qp] * _grad_u[_qp](1);
+  const Real dJmag_numerator_dz = _J1[_qp] * _grad_J1[_qp](2) + _J2[_qp] * _grad_J2[_qp](2) + _u[_qp] * _grad_u[_qp](2);
+  const Real dJmag_dx = dJmag_numerator_dx / Jmag;
+  const Real dJmag_dy = dJmag_numerator_dy / Jmag;
+  const Real dJmag_dz = dJmag_numerator_dz / Jmag;
+
+  // Spatial derivatives of f
+  const Real df_dx = df_dJmag * dJmag_dx;
+  const Real df_dy = df_dJmag * dJmag_dy;
+  const Real df_dz = df_dJmag * dJmag_dz;
+
+  // Derivatives with respect to J1 and J2
+  const Real dJmag_dJ1 = (_J1[_qp] * _phi[_j][_qp]) / Jmag;
+  const Real dJmag_dJ2 = (_J2[_qp] * _phi[_j][_qp]) / Jmag;
+
+  const Real df_dJ1 = df_dJmag * dJmag_dJ1;
+  const Real df_dJ2 = df_dJmag * dJmag_dJ2;
+
+  const Real d2f_dJmag_dJ1 = (_n - 1.0) * (df_dJ1 / Jmag - (f * dJmag_dJ1) / (Jmag * Jmag));
+  const Real d2f_dJmag_dJ2 = (_n - 1.0) * (df_dJ2 / Jmag - (f * dJmag_dJ2) / (Jmag * Jmag));
+
+  const Real d2Jmag_dx_dJ1 = (_phi[_j][_qp] * _grad_J1[_qp](0) + _J1[_qp] * _grad_phi[_j][_qp](0)) / Jmag - (dJmag_numerator_dx * dJmag_dJ1) / (Jmag * Jmag);
+  const Real d2Jmag_dy_dJ1 = (_phi[_j][_qp] * _grad_J1[_qp](1) + _J1[_qp] * _grad_phi[_j][_qp](1)) / Jmag - (dJmag_numerator_dy * dJmag_dJ1) / (Jmag * Jmag);
+  const Real d2Jmag_dz_dJ1 = (_phi[_j][_qp] * _grad_J1[_qp](2) + _J1[_qp] * _grad_phi[_j][_qp](2)) / Jmag - (dJmag_numerator_dz * dJmag_dJ1) / (Jmag * Jmag);
+  const Real d2Jmag_dx_dJ2 = (_phi[_j][_qp] * _grad_J2[_qp](0) + _J2[_qp] * _grad_phi[_j][_qp](0)) / Jmag - (dJmag_numerator_dx * dJmag_dJ2) / (Jmag * Jmag);
+  const Real d2Jmag_dy_dJ2 = (_phi[_j][_qp] * _grad_J2[_qp](1) + _J2[_qp] * _grad_phi[_j][_qp](1)) / Jmag - (dJmag_numerator_dy * dJmag_dJ2) / (Jmag * Jmag);
+  const Real d2Jmag_dz_dJ2 = (_phi[_j][_qp] * _grad_J2[_qp](2) + _J2[_qp] * _grad_phi[_j][_qp](2)) / Jmag - (dJmag_numerator_dz * dJmag_dJ2) / (Jmag * Jmag);
+
+  const Real d2f_dx_dJ1 = d2f_dJmag_dJ1 * dJmag_dx + df_dJmag * d2Jmag_dx_dJ1;
+  const Real d2f_dy_dJ1 = d2f_dJmag_dJ1 * dJmag_dy + df_dJmag * d2Jmag_dy_dJ1;
+  const Real d2f_dz_dJ1 = d2f_dJmag_dJ1 * dJmag_dz + df_dJmag * d2Jmag_dz_dJ1;
+  const Real d2f_dx_dJ2 = d2f_dJmag_dJ2 * dJmag_dx + df_dJmag * d2Jmag_dx_dJ2;
+  const Real d2f_dy_dJ2 = d2f_dJmag_dJ2 * dJmag_dy + df_dJmag * d2Jmag_dy_dJ2;
+  const Real d2f_dz_dJ2 = d2f_dJmag_dJ2 * dJmag_dz + df_dJmag * d2Jmag_dz_dJ2;
+
   if (jvar == _J1_var) {
-    if (_component == 0) // H1 = Hz, H2 = Hy
-      return _grad_phi[_j][_qp](1) * _test[_i][_qp];
-    else if (_component == 1) // H1 = Hx, H2 = Hz
-      return _grad_phi[_j][_qp](2) * _test[_i][_qp];
-    else if (_component == 2) // H1 = Hy, H2 = Hx
-      return _grad_phi[_j][_qp](0) * _test[_i][_qp];
+    if (_component == 0) // J1 = Jz, J2 = Jy, u = Jx
+      return (df_dJ1 * (_grad_J1[_qp](1) - _grad_J2[_qp](2)) + f * _grad_phi[_j][_qp](1) + _phi[_j][_qp] * df_dy + _J1[_qp] * d2f_dy_dJ1 - _J2[_qp] * d2f_dz_dJ1) * _test[_i][_qp];
+    else if (_component == 1) // J1 = Jx, J2 = Jz, u = Jy
+      return (df_dJ1 * (_grad_J1[_qp](2) - _grad_J2[_qp](0)) + f * _grad_phi[_j][_qp](2) + _phi[_j][_qp] * df_dz + _J1[_qp] * d2f_dz_dJ1 - _J2[_qp] * d2f_dx_dJ1) * _test[_i][_qp];
+    else if (_component == 2) // J1 = Jy, J2 = Jx, u = Jz
+      return (df_dJ1 * (_grad_J1[_qp](0) - _grad_J2[_qp](1)) + f * _grad_phi[_j][_qp](0) + _phi[_j][_qp] * df_dx + _J1[_qp] * d2f_dx_dJ1 - _J2[_qp] * d2f_dy_dJ1) * _test[_i][_qp];
   }
   else if (jvar == _J2_var) {
-    if (_component == 0) // H1 = Hz, H2 = Hy
-      return -_grad_phi[_j][_qp](2) * _test[_i][_qp];
-    else if (_component == 1) // H1 = Hx, H2 = Hz
-      return -_grad_phi[_j][_qp](0) * _test[_i][_qp];
-    else if (_component == 2) // H1 = Hy, H2 = Hx
-      return -_grad_phi[_j][_qp](1) * _test[_i][_qp];
+    if (_component == 0) // J1 = Jz, J2 = Jy, u = Jx
+      return (df_dJ2 * (_grad_J1[_qp](1) - _grad_J2[_qp](2)) - f * _grad_phi[_j][_qp](2) + _J1[_qp] * d2f_dy_dJ2 - _phi[_j][_qp] * df_dz - _J2[_qp] * d2f_dz_dJ2) * _test[_i][_qp];
+    else if (_component == 1) // J1 = Jx, J2 = Jz, u = Jy
+      return (df_dJ2 * (_grad_J1[_qp](2) - _grad_J2[_qp](0)) - f * _grad_phi[_j][_qp](0) + _J1[_qp] * d2f_dz_dJ2 - _phi[_j][_qp] * df_dx - _J2[_qp] * d2f_dx_dJ2) * _test[_i][_qp];
+    else if (_component == 2) // // J1 = Jy, J2 = Jx, u = Jz
+      return (df_dJ2 * (_grad_J1[_qp](0) - _grad_J2[_qp](1)) - f * _grad_phi[_j][_qp](1) + _J1[_qp] * d2f_dx_dJ2 - _phi[_j][_qp] * df_dy - _J2[_qp] * d2f_dy_dJ2) * _test[_i][_qp];
   } 
   return 0.0;
 }
