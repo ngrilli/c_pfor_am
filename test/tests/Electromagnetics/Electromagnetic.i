@@ -1,25 +1,30 @@
 [Mesh]
-  [circle]
-    type = ConcentricCircleMeshGenerator
-    has_outer_square = false
-    radii = 1
-    num_sectors = 10
-    rings = 1
-    preserve_volumes = false
-  []
-  [side]
-    type = SideSetsAroundSubdomainGenerator
-    input = circle
-    new_boundary = side
-    block = 1
-  []
-  [./extrude]
-    input = side
-    type = MeshExtruderGenerator
-    num_layers = 20
-    extrusion_vector = '0 0 2'
-    bottom_sideset = 'bottom'
-    top_sideset = 'top'
+  [./generated_mesh]
+    type = GeneratedMeshGenerator
+    dim = 3
+    nx = 20
+    ny = 20
+    nz = 20
+    xmin = 0.0
+    xmax = 1.0
+    ymin = 0.0
+    ymax = 1.0
+    zmin = 0.0
+    zmax = 1.0
+  [../]
+  [./add_wire]
+    type = ParsedSubdomainMeshGenerator
+    input = generated_mesh
+    combinatorial_geometry = '(x-0.5)^2 < 0.1*0.1 & (y-0.5)^2 < 0.1*0.1'
+    block_id = 1
+    block_name = 'wire'
+  [../]
+  [./current_density_inlet]
+    type = BoundingBoxNodeSetGenerator
+    input = add_wire
+    bottom_left = '0.4 0.4 0.0'
+    top_right = '0.6 0.6 0.0'
+    new_boundary = 'current_density_inlet'
   [../]
 []
 
@@ -92,8 +97,43 @@
     v = Jz
   [../]
 
-  # Faraday law
-  [./CurlEComponent1]
+  # Faraday law air
+  [./CurlEComponent1_air]
+    type = PowerLawCurlComponent
+    variable = Jx
+    J1 = Jz
+    J2 = Jy
+    E0 = 1.0
+    J0 = 1.0
+    n = 1.0
+    component = 0
+    block = 0
+  [../]
+  [./CurlEComponent2_air]
+    type = PowerLawCurlComponent
+    variable = Jy
+    J1 = Jx
+    J2 = Jz
+    E0 = 1.0
+    J0 = 1.0
+    n = 1.0
+    component = 1
+    block = 0
+  [../]
+  [./CurlEComponent3_air]
+    type = PowerLawCurlComponent
+    variable = Jz
+    J1 = Jy
+    J2 = Jx
+    E0 = 1.0
+    J0 = 1.0
+    n = 1.0
+    component = 2
+    block = 0
+  [../]
+
+  # Faraday law superconductor
+  [./CurlEComponent1_superconductor]
     type = PowerLawCurlComponent
     variable = Jx
     J1 = Jz
@@ -102,8 +142,9 @@
     J0 = 1.0
     n = 21.0
     component = 0
+    block = 1
   [../]
-  [./CurlEComponent2]
+  [./CurlEComponent2_superconductor]
     type = PowerLawCurlComponent
     variable = Jy
     J1 = Jx
@@ -112,8 +153,9 @@
     J0 = 1.0
     n = 21.0
     component = 1
+    block = 1
   [../]
-  [./CurlEComponent3]
+  [./CurlEComponent3_superconductor]
     type = PowerLawCurlComponent
     variable = Jz
     J1 = Jy
@@ -122,6 +164,7 @@
     J0 = 1.0
     n = 21.0
     component = 2
+    block = 1
   [../]
 
   [./TimeDerivative1]
@@ -145,32 +188,34 @@
   [./sideHx]
     type = DirichletBC
     variable = Hx
-    boundary = side
+    boundary = 'left right top bottom'
     value = 0.0
   [../]
   [./sideHy]
     type = DirichletBC
     variable = Hy
-    boundary = side
+    boundary = 'left right top bottom'
     value = 0.0
   [../]
   [./sideHz]
     type = DirichletBC
     variable = Hz
-    boundary = side
+    boundary = 'left right top bottom'
     value = 0.0
   [../]
-  [./topJz]
-    type = DirichletBC
+  [./current_density_inlet_BC]
+    type = FunctionDirichletBC
     variable = Jz
-    boundary = top
-    value = 1.0
+    boundary = current_density_inlet
+    function = ramp_up_current_density
   [../]
-  [./bottomJz]
-    type = DirichletBC
-    variable = Jz
-    boundary = bottom
-    value = 1.0
+[]
+
+[Functions]
+  [./ramp_up_current_density]
+    type = PiecewiseLinear
+    x = '0.0 0.1 1.0' # time
+    y = '0.0 0.1 0.1' # current density
   [../]
 []
 
@@ -191,8 +236,8 @@
   petsc_options_value = 'hypre    boomeramg          51'
   #line_search = 'none'
   
-  nl_rel_tol = 1e-5
-  nl_abs_tol = 1e-5
+  nl_rel_tol = 1e-6
+  nl_abs_tol = 1e-6
   
   start_time = 0.0
   end_time = 0.1
