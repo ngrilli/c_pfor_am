@@ -46,7 +46,7 @@ PowerLawCurlComponent::computeQpResidual()
   const Real Jmag = std::sqrt(_J1[_qp] * _J1[_qp] + _J2[_qp] * _J2[_qp] + _u[_qp] * _u[_qp]);
 
   // Avoid division by zero in the power-law expression
-  if (Jmag == 0.0)
+  if (Jmag < 1.0e-8)
     return 0.0;
 
   // Power law prefactor 
@@ -79,7 +79,7 @@ PowerLawCurlComponent::computeQpJacobian()
   const Real Jmag = std::sqrt(_J1[_qp] * _J1[_qp] + _J2[_qp] * _J2[_qp] + _u[_qp] * _u[_qp]);
 
   // Avoid division by zero in the power-law expression
-  if (Jmag == 0.0)
+  if (Jmag < 1.0e-8)
     return 0.0;
 
   // Power law prefactor and its derivative with respect to Jmag
@@ -125,7 +125,7 @@ PowerLawCurlComponent::computeQpOffDiagJacobian(unsigned int jvar)
   const Real Jmag = std::sqrt(_J1[_qp] * _J1[_qp] + _J2[_qp] * _J2[_qp] + _u[_qp] * _u[_qp]);
 
   // Avoid division by zero in the power-law expression
-  if (Jmag == 0.0)
+  if (Jmag < 1.0e-8)
     return 0.0;
 
   // Power law prefactor and its derivative with respect to Jmag
