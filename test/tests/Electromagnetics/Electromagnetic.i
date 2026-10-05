@@ -26,6 +26,14 @@
     top_right = '0.6 0.6 0.0'
     new_boundary = 'current_density_inlet'
   [../]
+  [./outside_of_inlet]
+    type = BoundingBoxNodeSetGenerator
+    input = current_density_inlet
+    bottom_left = '0.4 0.4 0.0'
+    top_right = '0.6 0.6 0.0'
+    new_boundary = 'outside_of_inlet'
+    location = 'OUTSIDE'
+  [../]
 []
 
 [Variables]
