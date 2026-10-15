@@ -16,7 +16,7 @@ public:
 protected:
   virtual void computeCurlH(Real & CurlHx, Real & CurlHy, Real & CurlHz);
   virtual Real computeQpResidual();
-  //virtual Real computeQpJacobian();
+  virtual Real computeQpJacobian();
   //virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// Identity of the coupled variable
