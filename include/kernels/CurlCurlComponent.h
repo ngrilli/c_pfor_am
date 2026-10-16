@@ -17,7 +17,7 @@ protected:
   virtual void computeCurlH(Real & CurlHx, Real & CurlHy, Real & CurlHz);
   virtual Real computeQpResidual();
   virtual Real computeQpJacobian();
-  //virtual Real computeQpOffDiagJacobian(unsigned int jvar);
+  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// Identity of the coupled variable
   /// whose derivatives have positive and negative sign in the curl component

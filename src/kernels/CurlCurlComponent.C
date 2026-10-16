@@ -94,24 +94,29 @@ CurlCurlComponent::computeQpJacobian()
     return 0.0;
 }
 
-// Real
-// CurlCurlComponent::computeQpOffDiagJacobian(unsigned int jvar)
-// {
-//   if (jvar == _H1_var) {
-//     if (_component == 0) // H1 = Hz, H2 = Hy
-//       return _grad_phi[_j][_qp](1) * _test[_i][_qp];
-//     else if (_component == 1) // H1 = Hx, H2 = Hz
-//       return _grad_phi[_j][_qp](2) * _test[_i][_qp];
-//     else if (_component == 2) // H1 = Hy, H2 = Hx
-//       return _grad_phi[_j][_qp](0) * _test[_i][_qp];
-//   }
-//   else if (jvar == _H2_var) {
-//     if (_component == 0) // H1 = Hz, H2 = Hy
-//       return -_grad_phi[_j][_qp](2) * _test[_i][_qp];
-//     else if (_component == 1) // H1 = Hx, H2 = Hz
-//       return -_grad_phi[_j][_qp](0) * _test[_i][_qp];
-//     else if (_component == 2) // H1 = Hy, H2 = Hx
-//       return -_grad_phi[_j][_qp](1) * _test[_i][_qp];
-//   } 
-//   return 0.0;
-// }
+Real
+CurlCurlComponent::computeQpOffDiagJacobian(unsigned int jvar)
+{
+  if (_component == 0) // component 0: u=Hx, H1=Hz, H2=Hy
+  {
+    if (jvar == _H1_var) // Take derivative of CurlHy
+      return -_resistivity[_qp] * _grad_phi[_j][_qp](0) * _grad_test[_i][_qp](2);
+    else if (jvar == _H2_var) // Take derivative of CurlHz
+      return -_resistivity[_qp] * _grad_phi[_j][_qp](0) * _grad_test[_i][_qp](1);
+  }
+  else if (_component == 1) // component 1: u=Hy, H1=Hx, H2=Hz
+  {
+    if (jvar == _H1_var) // Take derivative of CurlHz
+      return -_resistivity[_qp] * _grad_phi[_j][_qp](1) * _grad_test[_i][_qp](0);
+    else if (jvar == _H2_var) // Take derivative of CurlHx
+      return -_resistivity[_qp] * _grad_phi[_j][_qp](1) * _grad_test[_i][_qp](2);
+  }
+  else if (_component == 2) // component 2: u=Hz, H1=Hy, H2=Hx
+  {
+    if (jvar == _H1_var) // Take derivative of CurlHx
+      return -_resistivity[_qp] * _grad_phi[_j][_qp](2) * _grad_test[_i][_qp](1);
+    else if (jvar == _H2_var) // Take derivative of CurlHy
+      return -_resistivity[_qp] * _grad_phi[_j][_qp](2) * _grad_test[_i][_qp](0);
+  }
+  return 0.0;
+}
