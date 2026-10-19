@@ -25,6 +25,21 @@ r_outer = 2.0
   [../]
 []
 
+[AuxVariables]
+  [./Jx]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./Jy]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./Jz]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+[]
+
 [Kernels]
   [./curlcurl_x]
     type = CurlCurlComponent
@@ -62,6 +77,33 @@ r_outer = 2.0
   [./TimeDerivative_z]
     type = TimeDerivative
     variable = Hz
+  [../]
+[]
+
+[AuxKernels]
+  [./Jx]
+    type = CurrentDensityComponent
+    variable = Jx
+    Hx = Hx
+    Hy = Hy
+    Hz = Hz
+    component = 0
+  [../]
+  [./Jy]
+    type = CurrentDensityComponent
+    variable = Jy
+    Hx = Hx
+    Hy = Hy
+    Hz = Hz
+    component = 1
+  [../]
+  [./Jz]
+    type = CurrentDensityComponent
+    variable = Jz
+    Hx = Hx
+    Hy = Hy
+    Hz = Hz
+    component = 2
   [../]
 []
 
