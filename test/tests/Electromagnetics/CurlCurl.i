@@ -23,18 +23,30 @@ r_outer = 2.0
     order = FIRST
     family = LAGRANGE
   [../]
+  [./Jx]
+    order = FIRST
+    family = LAGRANGE
+  [../]
+  [./Jy]
+    order = FIRST
+    family = LAGRANGE
+  [../]
+  [./Jz]
+    order = FIRST
+    family = LAGRANGE
+  [../]
 []
 
 [AuxVariables]
-  [./Jx]
+  [./aux_Jx]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./Jy]
+  [./aux_Jy]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./Jz]
+  [./aux_Jz]
     order = CONSTANT
     family = MONOMIAL
   [../]
@@ -78,28 +90,60 @@ r_outer = 2.0
     type = TimeDerivative
     variable = Hz
   [../]
+
+  // TO DO: need a kernel similar to CurlComponent but with all three components of H as coupled variables
+  [./CurlEComponent1_air]
+    type = PowerLawCurlComponent
+    variable = Jx
+    J1 = Jz
+    J2 = Jy
+    E0 = 1.0
+    J0 = 1.0
+    n = 1.0
+    component = 0
+  [../]
+  [./CurlEComponent2_air]
+    type = PowerLawCurlComponent
+    variable = Jy
+    J1 = Jx
+    J2 = Jz
+    E0 = 1.0
+    J0 = 1.0
+    n = 1.0
+    component = 1
+  [../]
+  [./CurlEComponent3_air]
+    type = PowerLawCurlComponent
+    variable = Jz
+    J1 = Jy
+    J2 = Jx
+    E0 = 1.0
+    J0 = 1.0
+    n = 1.0
+    component = 2
+  [../]
 []
 
 [AuxKernels]
-  [./Jx]
+  [./aux_Jx]
     type = CurrentDensityComponent
-    variable = Jx
+    variable = aux_Jx
     Hx = Hx
     Hy = Hy
     Hz = Hz
     component = 0
   [../]
-  [./Jy]
+  [./aux_Jy]
     type = CurrentDensityComponent
-    variable = Jy
+    variable = aux_Jy
     Hx = Hx
     Hy = Hy
     Hz = Hz
     component = 1
   [../]
-  [./Jz]
+  [./aux_Jz]
     type = CurrentDensityComponent
-    variable = Jz
+    variable = aux_Jz
     Hx = Hx
     Hy = Hy
     Hz = Hz
