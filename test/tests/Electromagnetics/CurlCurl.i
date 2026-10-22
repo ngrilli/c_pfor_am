@@ -91,36 +91,45 @@ r_outer = 2.0
     variable = Hz
   [../]
 
-  // TO DO: need a kernel similar to CurlComponent but with all three components of H as coupled variables
-  [./CurlEComponent1_air]
-    type = PowerLawCurlComponent
+  [./curl_x]
+    type = CoupledCurlComponent
     variable = Jx
-    J1 = Jz
-    J2 = Jy
-    E0 = 1.0
-    J0 = 1.0
-    n = 1.0
+    Hx = Hx
+    Hy = Hy
+    Hz = Hz
     component = 0
   [../]
-  [./CurlEComponent2_air]
-    type = PowerLawCurlComponent
+  [./curl_y]
+    type = CoupledCurlComponent
     variable = Jy
-    J1 = Jx
-    J2 = Jz
-    E0 = 1.0
-    J0 = 1.0
-    n = 1.0
+    Hx = Hx
+    Hy = Hy
+    Hz = Hz
     component = 1
   [../]
-  [./CurlEComponent3_air]
-    type = PowerLawCurlComponent
+  [./curl_z]
+    type = CoupledCurlComponent
     variable = Jz
-    J1 = Jy
-    J2 = Jx
-    E0 = 1.0
-    J0 = 1.0
-    n = 1.0
+    Hx = Hx
+    Hy = Hy
+    Hz = Hz
     component = 2
+  [../]
+
+  [./Jx]
+    type = Reaction
+    variable = Jx
+    rate = -1.0
+  [../]
+  [./Jy]
+    type = Reaction
+    variable = Jy
+    rate = -1.0
+  [../]
+  [./Jz]
+    type = Reaction
+    variable = Jz
+    rate = -1.0
   [../]
 []
 
@@ -163,7 +172,7 @@ r_outer = 2.0
   [./sideHz]
     type = DirichletBC
     variable = Hz
-    boundary = 'outer_circle inner_circle back front'
+    boundary = 'outer_circle back front'
     value = 0.0
   [../]
 
