@@ -2,6 +2,9 @@ pi = 6.2832
 I = 1.0
 r_inner = 1.0
 r_outer = 2.0
+E0 = 0.0001
+Jc0 = 2.58e10
+n = 21
 
 [Mesh]
   [./cylinder]
@@ -161,10 +164,19 @@ r_outer = 2.0
 []
 
 [Materials]
-  [./resistivity]
-    type = GenericConstantMaterial
-    prop_names = 'resistivity'
-    prop_values = '1.0'
+  [./resistivity_inner]
+    type = ParsedMaterial
+    property_name = resistivity
+    coupled_variables = 'Jx Jy Jz'
+    expression = '(${E0} / ${Jc0}) * (sqrt(Jx^2 + Jy^2 + Jz^2) / ${Jc0})^(${n}-1)'
+    block = 'inner_block'
+  [../]
+  [./resistivity_outer]
+    type = ParsedMaterial
+    property_name = resistivity
+    coupled_variables = 'Jx Jy Jz'
+    expression = '1.0'
+    block = 'outer_block'
   [../]
 []
 
@@ -207,6 +219,12 @@ r_outer = 2.0
     variable = Jz
     function = '${I} / (${pi} * ${r_inner}^2)'
     boundary = 'inner_back inner_front'
+  [../]
+  [./J_zero]
+    type = FunctionDirichletBC
+    variable = Jz
+    function = '0.0'
+    boundary = 'outer_back outer_front'
   [../]
 []
 

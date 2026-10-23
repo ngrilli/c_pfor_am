@@ -36,10 +36,14 @@ Plane Surface(32) = {23};
 Recombine Surface{31};
 Recombine Surface{32};
 
-Extrude {0,0,5} { Surface{31,32}; Layers{25}; Recombine; }
+Extrude {0,0,5} { Surface{31}; Layers{25}; Recombine; }
+Extrude {0,0,5} { Surface{32}; Layers{25}; Recombine; }
 
 Physical Surface("outer_back") = {31};
 Physical Surface("inner_back") = {32};
 Physical Surface("outer_front") = {74};
 Physical Surface("inner_front") = {96};
 Physical Surface("outer_circle") = {61, 65, 69, 73};
+
+Physical Volume("inner_block") = {2};
+Physical Volume("outer_block") = {1};
