@@ -1,6 +1,6 @@
 pi = 6.2832
 I = 96.0
-tape_surface = 6.0e-9
+tape_surface = 18.0e-9
 E0 = 0.0001
 Jc0 = 2.58e10
 n = 21
@@ -135,7 +135,7 @@ r_outer = 0.009
     property_name = resistivity
     coupled_variables = 'Jx Jy Jz'
     expression = '(${E0} / (${Jc0} * ${mu0})) * (sqrt(Jx^2 + Jy^2 + Jz^2) / ${Jc0})^(${n}-1)'
-    block = 'tape'
+    block = 'silver' #'tape'
   [../]
   [./resistivity_copper]
     type = ParsedMaterial
@@ -143,12 +143,12 @@ r_outer = 0.009
     expression = '8e-9 / ${mu0}'
     block = 'copper_bottom copper_top'
   [../]
-  [./resistivity_silver]
-    type = ParsedMaterial
-    property_name = resistivity
-    expression = '1e-8 / ${mu0}'
-    block = 'silver'
-  [../]
+#  [./resistivity_silver]
+#    type = ParsedMaterial
+#    property_name = resistivity
+#    expression = '1e-8 / ${mu0}'
+#    block = 'silver'
+#  [../]
   [./resistivity_substrate]
     type = ParsedMaterial
     property_name = resistivity
@@ -180,19 +180,37 @@ r_outer = 0.009
   [./J_inlet_outlet]
     type = FunctionDirichletBC
     variable = Jz
-    function = '${I} / ${tape_surface}'
-    boundary = 'tape_inlet tape_outlet'
+    function = 't * ${I} / ${tape_surface}'
+    boundary = 'silver_inlet silver_outlet' #'tape_inlet tape_outlet'
+  [../]
+  [./Jz_zero]
+    type = FunctionDirichletBC
+    variable = Jz
+    function = '0.0'
+    boundary = 'outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
+  [../]
+  [./Jx_zero]
+    type = FunctionDirichletBC
+    variable = Jx
+    function = '0.0'
+    boundary = 'silver_inlet silver_outlet outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
+  [../]
+  [./Jy_zero]
+    type = FunctionDirichletBC
+    variable = Jy
+    function = '0.0'
+    boundary = 'silver_inlet silver_outlet outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
   [../]
 []
 
 [Functions]
   [./outer_surface_Hx]
     type = ParsedFunction
-    expression = '(-y / ${r_outer}) * ${I} / (2.0 * ${pi} * ${r_outer})'
+    expression = 't * (-y / ${r_outer}) * ${I} / (2.0 * ${pi} * ${r_outer})'
   [../]
   [./outer_surface_Hy]
     type = ParsedFunction
-    expression = '(x / ${r_outer}) * ${I} / (2.0 * ${pi} * ${r_outer})'
+    expression = 't * (x / ${r_outer}) * ${I} / (2.0 * ${pi} * ${r_outer})'
   [../]
 []
 
@@ -213,19 +231,20 @@ r_outer = 0.009
   petsc_options_value = 'hypre    boomeramg          51'
   line_search = 'none'
   
-  nl_rel_tol = 1e-6
-  nl_abs_tol = 1e-6
+  nl_rel_tol = 1e-3
+  nl_abs_tol = 1e-3
 
-  nl_max_its = 20
+  nl_max_its = 50
   l_max_its = 100
   
   start_time = 0.0
   end_time = 1.0
-  dt = 0.005
+  dt = 0.001
 []
 
 [Outputs]
   [./out]
     type = Exodus
+    time_step_interval = 10
   [../]
 []
