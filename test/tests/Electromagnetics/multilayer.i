@@ -1,6 +1,6 @@
 pi = 6.2832
 I = 96.0
-tape_surface = 18.0e-9
+tape_surface = 6.0e-9
 E0 = 0.0001
 Jc0 = 2.58e10
 n = 21
@@ -135,7 +135,7 @@ r_outer = 0.009
     property_name = resistivity
     coupled_variables = 'Jx Jy Jz'
     expression = '(${E0} / (${Jc0} * ${mu0})) * (sqrt(Jx^2 + Jy^2 + Jz^2) / ${Jc0})^(${n}-1)'
-    block = 'silver' #'tape'
+    block = 'tape'
   [../]
   [./resistivity_copper]
     type = ParsedMaterial
@@ -143,12 +143,12 @@ r_outer = 0.009
     expression = '8e-9 / ${mu0}'
     block = 'copper_bottom copper_top'
   [../]
-#  [./resistivity_silver]
-#    type = ParsedMaterial
-#    property_name = resistivity
-#    expression = '1e-8 / ${mu0}'
-#    block = 'silver'
-#  [../]
+  [./resistivity_silver]
+    type = ParsedMaterial
+    property_name = resistivity
+    expression = '1e-8 / ${mu0}'
+    block = 'silver'
+  [../]
   [./resistivity_substrate]
     type = ParsedMaterial
     property_name = resistivity
@@ -181,25 +181,25 @@ r_outer = 0.009
     type = FunctionDirichletBC
     variable = Jz
     function = 't * ${I} / ${tape_surface}'
-    boundary = 'silver_inlet silver_outlet' #'tape_inlet tape_outlet'
+    boundary = 'tape_inlet tape_outlet'
   [../]
   [./Jz_zero]
     type = FunctionDirichletBC
     variable = Jz
     function = '0.0'
-    boundary = 'outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
+    boundary = 'outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet silver_inlet silver_outlet'
   [../]
   [./Jx_zero]
     type = FunctionDirichletBC
     variable = Jx
     function = '0.0'
-    boundary = 'silver_inlet silver_outlet outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
+    boundary = 'tape_inlet tape_outlet silver_inlet silver_outlet outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
   [../]
   [./Jy_zero]
     type = FunctionDirichletBC
     variable = Jy
     function = '0.0'
-    boundary = 'silver_inlet silver_outlet outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
+    boundary = 'tape_inlet tape_outlet silver_inlet silver_outlet outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet'
   [../]
 []
 
