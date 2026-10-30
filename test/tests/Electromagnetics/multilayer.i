@@ -1,11 +1,13 @@
 pi = 6.2832
 I = 96.0
-tape_surface = 6.0e-9
+#tape_surface = 6.0e-9
 E0 = 0.0001
 Jc0 = 2.58e10
 n = 21
 mu0 = 1.25663706212e-6
 r_outer = 0.009
+H0 = 81805.6407047012
+k = 0.6288
 
 [Mesh]
   [./cylinder]
@@ -38,6 +40,15 @@ r_outer = 0.009
   [./Jz]
     order = FIRST
     family = LAGRANGE
+  [../]
+
+  [./lambda_tape_inlet]
+    family = SCALAR
+    order = FIRST
+  [../]
+  [./lambda_tape_outlet]
+    family = SCALAR
+    order = FIRST
   [../]
 []
 
@@ -133,8 +144,8 @@ r_outer = 0.009
   [./resistivity_tape]
     type = ParsedMaterial
     property_name = resistivity
-    coupled_variables = 'Jx Jy Jz'
-    expression = '(${E0} / (${Jc0} * ${mu0})) * (sqrt(Jx^2 + Jy^2 + Jz^2) / ${Jc0})^(${n}-1)'
+    coupled_variables = 'Jx Jy Jz Hx Hy Hz'
+    expression = '(${E0} / (${Jc0} * ${mu0})) * ((sqrt(Jx^2 + Jy^2 + Jz^2) / ${Jc0})^(${n}-1)) * ((1.0 + sqrt(${k}*(Hx^2 + Hz^2) + Hy^2)/${H0})^${n})'
     block = 'tape'
   [../]
   [./resistivity_copper]
@@ -177,18 +188,27 @@ r_outer = 0.009
     function = outer_surface_Hy
   [../]
 
-  [./J_inlet_outlet]
-    type = FunctionDirichletBC
+  [./J_inlet]
+    type = BoundaryIntegralValueConstraint
     variable = Jz
-    function = 't * ${I} / ${tape_surface}'
-    boundary = 'tape_inlet tape_outlet'
+    lambda = lambda_tape_inlet
+    phi0 = total_current
+    boundary = 'tape_inlet'
   [../]
-  [./Jz_zero]
-    type = FunctionDirichletBC
+  [./J_outlet]
+    type = BoundaryIntegralValueConstraint
     variable = Jz
-    function = '0.0'
-    boundary = 'outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet silver_inlet silver_outlet'
+    lambda = lambda_tape_outlet
+    phi0 = total_current
+    boundary = 'tape_outlet'
   [../]
+
+  #[./Jz_zero]
+  #  type = FunctionDirichletBC
+  #  variable = Jz
+  #  function = '0.0'
+  #  boundary = 'outer_circle_inlet outer_circle_outlet copper_top_inlet copper_top_outlet copper_bottom_inlet copper_bottom_outlet substrate_inlet substrate_outlet silver_inlet silver_outlet'
+  #[../]
   [./Jx_zero]
     type = FunctionDirichletBC
     variable = Jx
@@ -214,6 +234,19 @@ r_outer = 0.009
   [../]
 []
 
+[Postprocessors]
+  [./time]
+    type = TimePostprocessor
+    execute_on = 'timestep_begin'
+  [../]
+  [./total_current]
+    type = ParsedPostprocessor
+    expression = '16000000000.0 * time'
+    pp_names = 'time'
+    execute_on = 'timestep_begin'
+  [../]
+[]
+
 [Preconditioning]
   active = 'smp'
   [./smp]
@@ -226,16 +259,20 @@ r_outer = 0.009
   type = Transient
   solve_type = 'PJFNK'
   
-  petsc_options = '-snes_ksp_ew'
-  petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart'
-  petsc_options_value = 'hypre    boomeramg          51'
+  #petsc_options = '-snes_ksp_ew'
+  #petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart'
+  #petsc_options_value = 'hypre    boomeramg          301'
+ 
+  petsc_options_iname = '-pc_type -pc_factor_shift_type'
+  petsc_options_value = 'lu       NONZERO'
+
   line_search = 'none'
   
   nl_rel_tol = 1e-3
   nl_abs_tol = 1e-3
 
-  nl_max_its = 50
-  l_max_its = 100
+  nl_max_its = 20
+  l_max_its = 1000
   
   start_time = 0.0
   end_time = 1.0
@@ -245,6 +282,6 @@ r_outer = 0.009
 [Outputs]
   [./out]
     type = Exodus
-    time_step_interval = 10
+    time_step_interval = 20
   [../]
 []
