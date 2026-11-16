@@ -100,12 +100,12 @@ Recombine Surface{204};
 Recombine Surface{205};
 Recombine Surface{206};
 
-Extrude {0,0,zmax} { Surface{201}; Layers{1}; Recombine; }
-Extrude {0,0,zmax} { Surface{202}; Layers{1}; Recombine; }
-Extrude {0,0,zmax} { Surface{203}; Layers{1}; Recombine; }
-Extrude {0,0,zmax} { Surface{204}; Layers{1}; Recombine; }
-Extrude {0,0,zmax} { Surface{205}; Layers{1}; Recombine; }
-Extrude {0,0,zmax} { Surface{206}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{201}; Layers{5}; Recombine; }
+Extrude {0,0,zmax} { Surface{202}; Layers{5}; Recombine; }
+Extrude {0,0,zmax} { Surface{203}; Layers{5}; Recombine; }
+Extrude {0,0,zmax} { Surface{204}; Layers{5}; Recombine; }
+Extrude {0,0,zmax} { Surface{205}; Layers{5}; Recombine; }
+Extrude {0,0,zmax} { Surface{206}; Layers{5}; Recombine; }
 
 Physical Surface("copper_bottom_inlet") = {201};
 Physical Surface("copper_bottom_outlet") = {228};
