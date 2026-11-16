@@ -24,7 +24,7 @@ y5 =  0.000047;  // copper_top top
 x_min = -0.003;
 x_max =  0.003;
 z_min =  0.0;
-z_max =  5*lc;
+z_max =  50*lc;
 
 R_outer = 0.009;
 
@@ -47,6 +47,23 @@ Box(6) = {x_min, y4, z_min, x_max - x_min, y5 - y4, z_max - z_min};
 // First fragment the outer cylinder with all inner boxes
 v() = BooleanFragments{ Volume{1}; Delete; }{ Volume{2, 3, 4, 5, 6}; Delete; };
 
+Transfinite Line {4, 16, 40, 41, 42, 43, 44, 45, 46, 47, 10, 22} = 601;
+Transfinite Line {6, 18, 14, 26} = 6;
+Transfinite Line {15, 27, 11, 23, 9, 21, 17, 5} = 3;
+Transfinite Line {8, 20, 7, 19, 24, 12, 13, 25} = 2;
+
+// Number of elements along z
+Transfinite Line {35, 36, 37, 38, 39, 29, 28, 30, 31, 32, 33, 34, 2} = 6;
+
+// Number of elements along external circumference of outer cylinder
+Transfinite Line {1, 3} = 201;
+
+// Imposta la superficie come transfinite
+Transfinite Surface {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};
+
+// Ricombina i triangoli in quadrilateri strutturati
+Recombine Surface {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};
+
 // After BooleanFragments, volumes are re-indexed. We need to identify them.
 
 // Physical Volumes
@@ -57,7 +74,7 @@ Physical Volume("silver", 4) = {5};
 Physical Volume("copper_top", 5) = {6};
 Physical Volume("outer_circle", 6) = {7};
 
-// Physical Surfaces - Inlet (z=0) and Outlet (z=5*lc) faces
+// Physical Surfaces - Inlet (z=0) and Outlet (z=z_max) faces
 
 // Copper bottom (volume 2): inlet=surface of vol 2 at z=0, outlet=surface of vol 2 at z=lc
 Physical Surface("copper_bottom_inlet", 1) = {17};
@@ -112,6 +129,11 @@ Physical Surface("copper_top_top", 29) = {10};
 Mesh.MshFileVersion = 2.2;
 Mesh.Binary = 0;
 Mesh.RecombineAll = 1;
+
+// Field for Volume 7
+//Field[7] = Constant;
+//Field[7].VolumesList = {7};
+//Field[7].VIn = 0.25;
 
 // Transfinite settings for structured mesh (similar to original)
 // Note: Transfinite doesn't work directly with OpenCASCADE BooleanFragments

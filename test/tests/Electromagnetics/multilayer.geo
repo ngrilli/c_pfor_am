@@ -1,4 +1,5 @@
 lc = 0.000001;
+zmax = 50*lc;
 
 Mesh.RecombinationAlgorithm = 1;
 Mesh.RecombineAll = 1;
@@ -99,12 +100,12 @@ Recombine Surface{204};
 Recombine Surface{205};
 Recombine Surface{206};
 
-Extrude {0,0,lc} { Surface{201}; Layers{1}; Recombine; }
-Extrude {0,0,lc} { Surface{202}; Layers{1}; Recombine; }
-Extrude {0,0,lc} { Surface{203}; Layers{1}; Recombine; }
-Extrude {0,0,lc} { Surface{204}; Layers{1}; Recombine; }
-Extrude {0,0,lc} { Surface{205}; Layers{1}; Recombine; }
-Extrude {0,0,lc} { Surface{206}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{201}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{202}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{203}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{204}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{205}; Layers{1}; Recombine; }
+Extrude {0,0,zmax} { Surface{206}; Layers{1}; Recombine; }
 
 Physical Surface("copper_bottom_inlet") = {201};
 Physical Surface("copper_bottom_outlet") = {228};
@@ -119,6 +120,24 @@ Physical Surface("copper_top_outlet") = {316};
 Physical Surface("outer_circle_inlet") = {206};
 Physical Surface("outer_circle_outlet") = {398};
 Physical Surface("outer_circle_external") = {337, 341, 345, 349};
+
+Physical Surface("copper_bottom_right") = {219};
+Physical Surface("substrate_right") = {241};
+Physical Surface("tape_right") = {263};
+Physical Surface("silver_right") = {285};
+Physical Surface("copper_top_right") = {307};
+Physical Surface("copper_bottom_left") = {227};
+Physical Surface("substrate_left") = {249};
+Physical Surface("tape_left") = {271};
+Physical Surface("silver_left") = {293};
+Physical Surface("copper_top_left") = {315};
+
+Physical Surface("copper_bottom_bottom") = {215};
+Physical Surface("substrate_bottom") = {223};
+Physical Surface("tape_bottom") = {245};
+Physical Surface("silver_bottom") = {267};
+Physical Surface("copper_top_bottom") = {289};
+Physical Surface("copper_top_top") = {311};
 
 Physical Volume("copper_bottom") = {1};
 Physical Volume("substrate") = {2};
