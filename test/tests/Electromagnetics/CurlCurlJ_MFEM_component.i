@@ -4,9 +4,9 @@
 
 pi = 6.2832
 I = 96.0
-# tape_surface = 6.0e-9
+tape_surface = 6.0e-9
 E0 = 0.0001
-Jc0 = 2.58e10
+Jc0 = 2.66e10
 n = 21
 mu0 = 1.25663706212e-6
 r_outer = 0.009
@@ -81,13 +81,19 @@ k = 0.6288
     expression_y = '0.0'
     expression_z = '0.0'
   [../]
+  [./J_inlet]
+    type = ParsedVectorFunction
+    expression_x = '0.0'
+    expression_y = '0.0'
+    expression_z = '$t * {I} / ${tape_surface}'
+  [../]
   # Resistivity functions for each material block
   # tape: nonlinear resistivity depending on |J| and |H|
   [./resistivity_tape]
     type = MFEMParsedFunction
-    expression = '(${E0} / (${Jc0} * ${mu0})) * (J_mag / ${Jc0})^(${n}-1) * ((1.0 + sqrt(${k}*(H_mag^2))/${H0})^${n})'
-    symbol_names = 'J_mag H_mag'
-    symbol_values = 'J_mag H_mag'
+    expression = '(${E0} / (${Jc0} * ${mu0})) * (J_mag / ${Jc0})^(${n}-1) * ((1.0 + sqrt(${k}*(H_x^2 + H_z^2) + H_y^2)/${H0})^${n})'
+    symbol_names = 'J_mag H_mag H_x H_y H_z'
+    symbol_values = 'J_mag H_mag H_x H_y H_z'
   [../]
   # copper: constant resistivity
   [./resistivity_copper]
@@ -217,13 +223,13 @@ k = 0.6288
   [./J_tape_inlet]
     type = MFEMVectorNormalDirichletBC
     variable = J
-    vector_coefficient = J_zero
+    vector_coefficient = J_inlet
     boundary = 'tape_inlet'
   [../]
   [./J_tape_outlet]
     type = MFEMVectorNormalDirichletBC
     variable = J
-    vector_coefficient = J_zero
+    vector_coefficient = J_inlet
     boundary = 'tape_outlet'
   [../]
   # Zero normal J on all other inlet/outlet boundaries
@@ -288,26 +294,13 @@ k = 0.6288
   [../]
 []
 
-[Postprocessors]
-  [./time]
-    type = TimePostprocessor
-    execute_on = 'timestep_begin'
-  [../]
-  [./total_current]
-    type = ParsedPostprocessor
-    expression = '16000000000.0 * time'
-    pp_names = 'time'
-    execute_on = 'timestep_begin'
-  [../]
-[]
-
 [Solvers]
   [./petsc_nl]
     type = MFEMPetscNonlinearSolver
-    max_its = 200
+    max_its = 500
     abs_tol = 1.0e-12
     rel_tol = 1.0e-3
-    print_level = 3
+    print_level = 2
     petsc_options = '-snes_converged_reason'
     petsc_options_iname = '-pc_type -pc_factor_mat_solver_package -sub_pc_factor_shift_type'
     petsc_options_value = 'lu mumps NONZERO'
@@ -318,7 +311,7 @@ k = 0.6288
   type = MFEMTransient
   start_time = 0.0
   end_time = 1.0
-  dt = 0.001
+  dt = 0.002
 []
 
 [Outputs]
