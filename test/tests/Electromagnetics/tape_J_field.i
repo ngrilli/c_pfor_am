@@ -1,16 +1,8 @@
 # J-field sub-app for staggered H-J problem
 # Solves for current density J using MFEMHypreADS preconditioner (suitable for H(div) problems)
 
-pi = 6.2832
 I = 96.0
 tape_surface = 6.0e-9
-E0 = 0.0001
-Jc0 = 2.66e10
-n = 21
-mu0 = 1.25663706212e-6
-r_outer = 0.009
-H0 = 81805.6407047012
-k = 0.6288
 
 [Mesh]
   type = MFEMFileMesh
@@ -32,6 +24,11 @@ k = 0.6288
     fec_type = H1
     fec_order = FIRST
   [../]
+  [./HCurlFESpace]
+    type = MFEMVectorFESpace
+    fec_type = ND
+    fec_order = FIRST
+  [../]
 []
 
 [Variables]
@@ -45,7 +42,7 @@ k = 0.6288
 [AuxVariables]
   [./H]
     type = MFEMVariable
-    fespace = HDivFESpace  # H is projected to HDiv for transfer/evaluation
+    fespace = HCurlFESpace  # H is kept as HCurl for MFEMVectorFECurlKernel
   [../]
   [./J_x]
     type = MFEMVariable
@@ -63,12 +60,6 @@ k = 0.6288
 
 [Functions]
   # Vector functions for normal BC on J (HDiv space)
-  [./J_zero]
-    type = ParsedVectorFunction
-    expression_x = '0.0'
-    expression_y = '0.0'
-    expression_z = '0.0'
-  [../]
   [./J_inlet]
     type = ParsedVectorFunction
     expression_x = '0.0'
@@ -97,17 +88,17 @@ k = 0.6288
 [Kernels]
   # Ampere law: curl H test - J test = 0
   # MFEMVectorFECurlKernel: trial=H (HCurl), test=HDiv (curl H in HDiv tested with HDiv test function)
-  # MFEMVectorFEMassKernel: trial=J (HDiv), test=HDiv, coefficient=-1
+  # MFEMVectorFEMassKernel: trial=J (HDiv), test=HDiv
   [./curlH]
     type = MFEMVectorFECurlKernel
     trial_variable = H
     variable = J
-    coefficient = 1.0
+    coefficient = -1.0
   [../]
   [./J_term]
-    type = MFEMVectorFEMassKernel
+    type = MFEMVectorFEMassKernel # may have a -1 by default on left hand side of equation, see ex22p.cpp in MFEM
     variable = J
-    coefficient = -1.0
+    coefficient = 1.0
   [../]
 []
 
@@ -134,21 +125,27 @@ k = 0.6288
 []
 
 # Preconditioner: MFEMHypreADS for H(div) problems
-[Preconditioner]
+[Solvers]
+  inactive = 'jacobi main newton gmres'
   [./ads]
     type = MFEMHypreADS
     fespace = HDivFESpace
   [../]
-[]
-
-[Solvers]
   [./main]
     type = MFEMCGSolver
-    preconditioner = ads
-    l_tol = 1e-16
+    preconditioner = jacobi
+    l_tol = 1e-8
     l_max_its = 1000
+    print_level = 2
+  [../]
+  [./HyprePCG]
+    type = MFEMHyprePCG
+    preconditioner = ads
+    l_tol = 1e-10
+    l_max_its = 10000
     print_level = 1
   [../]
+
   [./newton]
     type = MFEMNewtonNonlinearSolver
     use_initial_guess = true
@@ -156,15 +153,33 @@ k = 0.6288
     abs_tol = 1e-12
     rel_tol = 1e-8
     print_level = 1
-    linear_solver = main
+  [../]
+  [./jacobi]
+    type = MFEMOperatorJacobiSmoother
+  [../]
+  [./gmres]
+    type = MFEMHypreGMRES
+    preconditioner = boomeramg
+    l_tol = 1e-8
+    l_max_its = 1000
   [../]
 []
 
 [Executioner]
   type = MFEMTransient
   start_time = 0.0
-  end_time = 1.0
-  dt = 0.002
+  end_time = 1.11
+  dt = 0.0025
+[]
+
+[VectorPostprocessors]
+  [./line_sample]
+    type = MFEMVariableLineValueSampler
+    variables = 'J_z'
+    start_point = '-0.004 0.0000245 0.000300'
+    end_point = '0.004 0.0000245 0.000300'
+    num_points = 121
+  [../]
 []
 
 [Outputs]
@@ -172,6 +187,12 @@ k = 0.6288
     type = MFEMParaViewDataCollection
     file_base = OutputData/tape_J_field
     vtk_format = ASCII
-    time_step_interval = 10
+    time_step_interval = 40
+  [../]
+  [./CSV]
+    type = CSV
+    execute_on = 'timestep_end'
+    file_base = OutputData/tape_line_plot
+    time_step_interval = 40
   [../]
 []

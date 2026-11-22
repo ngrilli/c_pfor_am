@@ -3,7 +3,6 @@
 
 pi = 6.2832
 I = 96.0
-tape_surface = 6.0e-9
 E0 = 0.0001
 Jc0 = 2.66e10
 n = 21
@@ -32,6 +31,11 @@ k = 0.6288
     fec_type = H1
     fec_order = FIRST
   [../]
+  [./HDivFESpace]
+    type = MFEMVectorFESpace
+    fec_type = RT
+    fec_order = FIRST
+  [../]
 []
 
 [Variables]
@@ -45,11 +49,7 @@ k = 0.6288
 [AuxVariables]
   [./J]
     type = MFEMVariable
-    fespace = HCurlFESpace  # J is projected to HCurl for transfer/evaluation
-  [../]
-  [./J_mag]
-    type = MFEMVariable
-    fespace = H1FESpace
+    fespace = HDivFESpace # try keep J on HDivFESpace
   [../]
   [./H_x]
     type = MFEMVariable
@@ -81,8 +81,8 @@ k = 0.6288
   [./resistivity_tape]
     type = MFEMParsedFunction
     expression = '(${E0} / (${Jc0} * ${mu0})) * (J_mag / ${Jc0})^(${n}-1) * ((1.0 + sqrt(${k}*(H_x^2 + H_z^2) + H_y^2)/${H0})^${n})'
-    symbol_names = 'J_mag H_mag H_x H_y H_z'
-    symbol_values = 'J_mag H_mag H_x H_y H_z'
+    symbol_names = 'J_mag H_x H_y H_z'
+    symbol_values = 'J_mag H_x H_y H_z'
   [../]
   [./resistivity_copper]
     type = MFEMParsedFunction
@@ -218,12 +218,6 @@ k = 0.6288
 []
 
 [AuxKernels]
-  # Compute J magnitude for resistivity function
-  [./J_mag]
-    type = MFEMVectorMagnitudeAux
-    variable = J_mag
-    vector_variable = J
-  [../]
   # H components for output
   [./H_x]
     type = MFEMVectorComponentAux
@@ -250,38 +244,65 @@ k = 0.6288
   [../]
 []
 
+# MultiApp definitions for the two sub-apps
+[MultiApps]
+  [./J_field_app]
+    type = TransientMultiApp
+    execute_on = 'TIMESTEP_END'
+    input_files = 'tape_J_field.i'
+    sub_cycling = true
+  [../]
+[]
+
+# Transfers between sub-apps
+[Transfers]
+  # Transfer J from J_field_app to H_field_app (for resistivity calculation)
+  [./J_to_H_app]
+    type = MultiAppMFEMShapeEvaluationTransfer
+    source_variables = 'J'
+    variables = 'J'
+    from_multi_app = J_field_app
+    execute_on = 'TIMESTEP_END'
+  [../]
+
+  # Transfer H from H_field_app to J_field_app (for curl H in Ampere law)
+  [./H_to_J_app]
+    type = MultiAppMFEMShapeEvaluationTransfer
+    source_variables = 'H'
+    variables = 'H'
+    to_multi_app = J_field_app
+    execute_on = 'TIMESTEP_END'
+  [../]
+[]
+
 # Preconditioner: MFEMHypreAMS for H(curl) problems
-[Preconditioner]
+[Solvers]
   [./ams]
     type = MFEMHypreAMS
     fespace = HCurlFESpace
   [../]
-[]
-
-[Solvers]
   [./main]
     type = MFEMHyprePCG
     preconditioner = ams
-    l_tol = 1e-9
-    l_max_its = 100
+    l_tol = 1e-10
+    l_max_its = 5000
     print_level = 1
   [../]
   [./newton]
     type = MFEMNewtonNonlinearSolver
     use_initial_guess = true
-    max_its = 1000
-    abs_tol = 1e-12
-    rel_tol = 1e-8
+    max_its = 100
+    abs_tol = 1e-9
+    rel_tol = 1e-5
     print_level = 1
-    linear_solver = main
   [../]
 []
 
 [Executioner]
   type = MFEMTransient
   start_time = 0.0
-  end_time = 1.0
-  dt = 0.002
+  end_time = 1.11
+  dt = 0.0025
 []
 
 [Outputs]
@@ -289,6 +310,6 @@ k = 0.6288
     type = MFEMParaViewDataCollection
     file_base = OutputData/tape_H_field
     vtk_format = ASCII
-    time_step_interval = 10
+    time_step_interval = 40
   [../]
 []
